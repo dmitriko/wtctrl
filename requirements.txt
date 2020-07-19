@@ -1,0 +1,5 @@
+invoke
+boto3
+ipython
+viberbot
+awscli
