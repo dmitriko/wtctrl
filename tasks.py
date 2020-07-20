@@ -1,4 +1,5 @@
 import io
+import os
 import zipfile
 from pathlib import Path
 
@@ -10,6 +11,10 @@ import IPython
 
 
 DEPLOY_BUCKET = "webtectrl-deploy"
+try:
+    REGION = os.environ['AWS_DEFAULT_REGION']
+except KeyError:
+    raise RuntimError("Please, source environment file")
 
 
 def s3_backup(bucket, key_name, backup_name):
@@ -42,4 +47,17 @@ def lambda_deploy(c, path, bucket=DEPLOY_BUCKET):
         zip_buf.seek(0)
         s3.upload_fileobj(zip_buf, bucket, s3key)
         c.run('unlink {}'.format(bin_name))
+
+
+@task
+def terra_init(c, path, bucket=None):
+    "Init terraform in dir with state bucket and region"
+    bucket = bucket or os.environ.get('TF_VAR_terrabucket')
+    if not bucket:
+        raise RuntimeError(
+                "Bucket should be provided via TF_VAR_terrabucket env var")
+    with c.cd(path):
+        c.run('terraform init -backend-config bucket=' + bucket + \
+        ' -backend-config region=' + REGION + ' -reconfigure',
+        echo=True)
 
