@@ -1,6 +1,5 @@
 import io
 import os
-import zipfile
 from pathlib import Path
 
 from invoke import task
@@ -44,10 +43,6 @@ def lambda_deploy(c, path, bucket=DEPLOY_BUCKET):
             bin_name))
         c.run("zip -j {} {}".format(zip_name, bin_name))
         zip_path = path / zip_name
-    #    zip_buf = io.BytesIO()
-    #    with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED, False) as zf:
-     #       zf.writestr(bin_name, bin_path.read_bytes())
-#        zip_buf.seek(0)
         s3.upload_file(str(zip_path), bucket, s3key)
         c.run('rm -f {} {}'.format(bin_name, zip_name))
 
