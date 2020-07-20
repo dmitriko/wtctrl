@@ -33,6 +33,7 @@ def lambda_deploy(c, path, bucket=DEPLOY_BUCKET):
     "Build golang lambda, zip it and upload to deploy bucket"
     s3 = boto3.client('s3')
     bin_name = "main"  # name of binary file
+    zip_name = bin_name + '.zip'
     path = Path(path)
     s3key = "{}/{}.zip".format(path.parts[-2], path.parts[-1])
     s3key_prev = "{}/{}.prev.zip".format(path.parts[-2], path.parts[-1])
@@ -41,13 +42,14 @@ def lambda_deploy(c, path, bucket=DEPLOY_BUCKET):
         c.run('go get .')
         c.run('GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o {}'.format(
             bin_name))
-        bin_path = path / bin_name
-        zip_buf = io.BytesIO()
-        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED, False) as zf:
-            zf.writestr(bin_name, bin_path.read_bytes())
-        zip_buf.seek(0)
-        s3.upload_fileobj(zip_buf, bucket, s3key)
-        c.run('unlink {}'.format(bin_name))
+        c.run("zip -j {} {}".format(zip_name, bin_name))
+        zip_path = path / zip_name
+    #    zip_buf = io.BytesIO()
+    #    with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED, False) as zf:
+     #       zf.writestr(bin_name, bin_path.read_bytes())
+#        zip_buf.seek(0)
+        s3.upload_file(str(zip_path), bucket, s3key)
+        c.run('rm -f {} {}'.format(bin_name, zip_name))
 
 
 @task

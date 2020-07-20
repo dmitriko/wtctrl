@@ -29,10 +29,17 @@ resource "aws_iam_role_policy_attachment" "basic_lambda_execution" {
 }
 
 
+data "aws_s3_bucket_object" "viber_lambda" {
+    bucket = var.deploy_bucket
+    key    = var.viber_webhook_s3_key
+} 
+
+
 resource "aws_lambda_function" "viber_webhook" {
     function_name     = "viber_webhook"
-    s3_bucket         = "${var.deploy_bucket}"
-    s3_key            = "${var.viber_webhook_s3_key}"
+    s3_bucket         = data.aws_s3_bucket_object.viber_lambda.bucket  
+    s3_key            = data.aws_s3_bucket_object.viber_lambda.key
+    source_code_hash  = base64sha256(data.aws_s3_bucket_object.viber_lambda.last_modified)
     handler           = "${var.lambda_binary_name}"
     role              = "${aws_iam_role.webhook.arn}"
     runtime           = "go1.x"
@@ -81,7 +88,7 @@ resource "aws_lambda_permission" "viber_webhook" {
 
 
 resource "aws_api_gateway_deployment" "viber_webhook" {
-    depends_on       = ["aws_api_gateway_integration.viber_webhook"]
+    depends_on       = [aws_api_gateway_integration.viber_webhook]
     rest_api_id      = "${aws_api_gateway_rest_api.webhook.id}"
     stage_name       = "prod1"
 }
