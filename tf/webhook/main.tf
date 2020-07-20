@@ -21,6 +21,14 @@ resource "aws_iam_role" "webhook" {
 POLICY
 }
 
+
+resource "aws_iam_role_policy_attachment" "basic_lambda_execution" {
+    role = "${aws_iam_role.webhook.name}"
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+}
+
+
 resource "aws_lambda_function" "viber_webhook" {
     function_name     = "viber_webhook"
     s3_bucket         = "${var.deploy_bucket}"
