@@ -38,8 +38,9 @@ def lambda_deploy(c, path, bucket=DEPLOY_BUCKET):
     s3key_prev = "{}/{}.prev.zip".format(path.parts[-2], path.parts[-1])
     s3_backup(bucket, s3key, s3key_prev)
     with c.cd(str(path)):
-        c.run("go get .")
-        c.run("GOOS=linux GOARCH=amd64 go build -o {}".format(bin_name))
+        c.run('go get .')
+        c.run('GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o {}'.format(
+            bin_name))
         bin_path = path / bin_name
         zip_buf = io.BytesIO()
         with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED, False) as zf:
