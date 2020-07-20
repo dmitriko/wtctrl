@@ -8,6 +8,9 @@ import boto3
 from botocore.errorfactory import ClientError
 import IPython
 
+from viberbot import Api as ViberApi
+from viberbot.api.bot_configuration import BotConfiguration as ViberBotConfig
+
 
 DEPLOY_BUCKET = "webtectrl-deploy"
 try:
@@ -58,4 +61,12 @@ def terra_init(c, path, bucket=None):
         c.run('terraform init -backend-config bucket=' + bucket + \
         ' -backend-config region=' + REGION + ' -reconfigure',
         echo=True)
+
+
+@task
+def viber_set_webhook(c, url, secret=None):
+    secret = secret or os.environ['VIBER_BOT_SECRET']
+    viber = ViberApi(ViberBotConfig(auth_token=secret, name='foo', avatar='bar'))
+    viber.set_webhook(url)
+
 
