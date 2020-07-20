@@ -52,12 +52,17 @@ resource "aws_api_gateway_rest_api" "webhook" {
 }
 
 
-resource "aws_api_gateway_resource" "viber_webhook" {
+resource "aws_api_gateway_resource" "viber_webhook_base" {
   rest_api_id = aws_api_gateway_rest_api.webhook.id
   parent_id   = aws_api_gateway_rest_api.webhook.root_resource_id
   path_part   = "viber"
 }
 
+resource "aws_api_gateway_resource" "viber_webhook" {
+  rest_api_id = aws_api_gateway_rest_api.webhook.id
+  parent_id   = aws_api_gateway_resource.viber_webhook_base.id
+  path_part   = "{proxy+}"
+}
 
 resource "aws_api_gateway_method" "viber_webhook" { 
     rest_api_id   = aws_api_gateway_rest_api.webhook.id
