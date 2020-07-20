@@ -11,6 +11,6 @@ variable "lambda_binary_name" {
 }
 
 variable "viber_lambda_binary_hash" {
-    default = "0SHjD+E5jGTjKWLZMbdqQCzm+vYOk4VBTfNSZd9UJVg="
+    default = "CxcOzW275krEPnUiM6iArtDuCcicjU/CE/RJFkiLg5U="
 }
 

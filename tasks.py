@@ -70,3 +70,9 @@ def viber_set_webhook(c, url, secret=None):
     viber.set_webhook(url)
 
 
+@task
+def deploy_viber_webhook(c):
+    lambda_deploy(c, path="lambda/viber-webhook")
+    with c.cd('tf/webhook'):
+        c.run('terraform apply -auto-approve -var viber_lambda_binary_hash=foo')
+
