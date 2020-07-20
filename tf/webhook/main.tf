@@ -39,14 +39,13 @@ resource "aws_lambda_function" "viber_webhook" {
     function_name     = "viber_webhook"
     s3_bucket         = data.aws_s3_bucket_object.viber_lambda.bucket  
     s3_key            = data.aws_s3_bucket_object.viber_lambda.key
-    source_code_hash  = base64sha256(data.aws_s3_bucket_object.viber_lambda.last_modified)
+    source_code_hash  = var.viber_lambda_binary_hash
     handler           = var.lambda_binary_name
     role              = aws_iam_role.webhook.arn
     runtime           = "go1.x"
     timeout           = 10
     memory_size       = 128
 }
-
 
 resource "aws_api_gateway_rest_api" "webhook" {
     name = "webhook"
@@ -93,6 +92,10 @@ resource "aws_api_gateway_deployment" "viber_webhook" {
     stage_name       = "prod1"
 }
 
+
+output viber_lambda_hash {
+    value = aws_lambda_function.viber_webhook.source_code_hash
+}
 
 output url {
     value = "${aws_api_gateway_deployment.viber_webhook.invoke_url}${aws_api_gateway_resource.viber_webhook.path}"

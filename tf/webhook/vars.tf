@@ -9,3 +9,8 @@ variable "viber_webhook_s3_key" {
 variable "lambda_binary_name" {
     default = "main"
 }
+
+variable "viber_lambda_binary_hash" {
+    default = "0SHjD+E5jGTjKWLZMbdqQCzm+vYOk4VBTfNSZd9UJVg="
+}
+
