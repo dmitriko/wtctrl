@@ -28,18 +28,10 @@ resource "aws_iam_role_policy_attachment" "basic_lambda_execution" {
 
 }
 
-
-data "aws_s3_bucket_object" "viber_lambda" {
-    bucket = var.deploy_bucket
-    key    = var.viber_webhook_s3_key
-} 
-
-
-resource "aws_lambda_function" "viber_webhook" {
-    function_name     = "viber_webhook"
-    s3_bucket         = data.aws_s3_bucket_object.viber_lambda.bucket  
-    s3_key            = data.aws_s3_bucket_object.viber_lambda.key
-    source_code_hash  = var.viber_lambda_binary_hash
+resource "aws_lambda_function" "tg_webhook" {
+    function_name     = "tg_webhook"
+    s3_bucket         = var.deploy_bucket  
+    s3_key            = "lambda/tg-webhook.v${var.tg_lambda_ver}.zip"
     handler           = var.lambda_binary_name
     role              = aws_iam_role.webhook.arn
     runtime           = "go1.x"
@@ -52,56 +44,53 @@ resource "aws_api_gateway_rest_api" "webhook" {
 }
 
 
-resource "aws_api_gateway_resource" "viber_webhook_base" {
+resource "aws_api_gateway_resource" "tg_webhook_base" {
   rest_api_id = aws_api_gateway_rest_api.webhook.id
   parent_id   = aws_api_gateway_rest_api.webhook.root_resource_id
-  path_part   = "viber"
+  path_part   = "tg"
 }
 
-resource "aws_api_gateway_resource" "viber_webhook" {
+resource "aws_api_gateway_resource" "tg_webhook" {
   rest_api_id = aws_api_gateway_rest_api.webhook.id
-  parent_id   = aws_api_gateway_resource.viber_webhook_base.id
+  parent_id   = aws_api_gateway_resource.tg_webhook_base.id
   path_part   = "{proxy+}"
 }
 
-resource "aws_api_gateway_method" "viber_webhook" { 
+resource "aws_api_gateway_method" "tg_webhook" { 
     rest_api_id   = aws_api_gateway_rest_api.webhook.id
-    resource_id   = aws_api_gateway_resource.viber_webhook.id
+    resource_id   = aws_api_gateway_resource.tg_webhook.id
     http_method   = "POST"
     authorization = "NONE"
 }
 
 
-resource "aws_api_gateway_integration" "viber_webhook" {
+resource "aws_api_gateway_integration" "tg_webhook" {
     rest_api_id             = aws_api_gateway_rest_api.webhook.id
-    resource_id             = aws_api_gateway_resource.viber_webhook.id
-    http_method             = aws_api_gateway_method.viber_webhook.http_method
+    resource_id             = aws_api_gateway_resource.tg_webhook.id
+    http_method             = aws_api_gateway_method.tg_webhook.http_method
     integration_http_method = "POST"
     type                    = "AWS_PROXY"
-    uri                     = aws_lambda_function.viber_webhook.invoke_arn
+    uri                     = aws_lambda_function.tg_webhook.invoke_arn
 }
 
 
-resource "aws_lambda_permission" "viber_webhook" {
+resource "aws_lambda_permission" "tg_webhook" {
     statement_id    = "AllowExecutionFromAPIGateway"
     action          = "lambda:InvokeFunction"
-    function_name   = aws_lambda_function.viber_webhook.function_name
+    function_name   = aws_lambda_function.tg_webhook.function_name
     principal       = "apigateway.amazonaws.com"
     source_arn      = "${aws_api_gateway_rest_api.webhook.execution_arn}/*/*/*"
 }
 
 
-resource "aws_api_gateway_deployment" "viber_webhook" {
-    depends_on       = [aws_api_gateway_integration.viber_webhook]
+resource "aws_api_gateway_deployment" "tg_webhook" {
+    depends_on       = [aws_api_gateway_integration.tg_webhook]
     rest_api_id      = aws_api_gateway_rest_api.webhook.id
     stage_name       = "prod1"
 }
 
 
-output viber_lambda_hash {
-    value = aws_lambda_function.viber_webhook.source_code_hash
-}
 
-output url {
-    value = "${aws_api_gateway_deployment.viber_webhook.invoke_url}${aws_api_gateway_resource.viber_webhook.path}"
+output tg-webhook-url {
+    value = "${aws_api_gateway_deployment.tg_webhook.invoke_url}${aws_api_gateway_resource.tg_webhook.path}"
 }
