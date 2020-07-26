@@ -54,7 +54,7 @@ func Messaging(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(msg, items[0]) {
-		t.Errorf("%+v != %+v", fmsg, msg)
+		t.Errorf("%+v != %+v", items[0], msg)
 	}
 
 }
