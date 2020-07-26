@@ -1,4 +1,4 @@
-package main
+package awsapi
 
 import (
 	"log"
@@ -28,9 +28,9 @@ func Endpoint(endpoint string) func(*DTable) error {
 }
 
 //DTableConnect option
-func PKey(key string) func(*DTable) error {
+func Region(region string) func(*DTable) error {
 	return func(t *DTable) error {
-		t.PKey = key
+		t.Region = region
 		return nil
 	}
 }
@@ -53,6 +53,13 @@ func DTableConnect(name string, options ...func(*DTable) error) (*DTable, error)
 	}
 	t.db = dynamodb.New(sess)
 	return t, nil
+}
+
+func (t *DTable) Create() error {
+	input := createTableInput // TODO make it copy
+	input.TableName = aws.String(t.Name)
+	_, err := t.db.CreateTable(input)
+	return err
 }
 
 func (t *DTable) Store(item interface{}) error {
