@@ -15,13 +15,13 @@ resource "aws_dynamodb_table" "webtectrlv1" {
     }
 
     attribute {
-        name = "usm"
+        name = "USM"
         type = "S"
     }
 
     global_secondary_index {
         name            = "main_usm"
-        hash_key        = "usm"
+        hash_key        = "USM"
         range_key       = "PK"
         projection_type = "ALL"
     }
