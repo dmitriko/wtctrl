@@ -60,8 +60,12 @@ func (t *DTable) Create() error {
 	return err
 }
 
-func (t *DTable) StoreItem(item interface{}) (*dynamodb.PutItemOutput, error) {
-	av, err := dynamodbattribute.MarshalMap(item)
+type DMapper interface {
+	AsDMap() (map[string]*dynamodb.AttributeValue, error)
+}
+
+func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
+	av, err := item.AsDMap()
 	if err != nil {
 		return nil, err
 	}
@@ -118,4 +122,8 @@ func (t *DTable) FetchMsgsUMS(ums string, items interface{}) error {
 type Msg struct {
 	PK  string
 	UMS string
+}
+
+func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	return dynamodbattribute.MarshalMap(m)
 }
