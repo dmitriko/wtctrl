@@ -48,8 +48,15 @@ func Messaging(t *testing.T) {
 	if !reflect.DeepEqual(msg, fmsg) {
 		t.Errorf("%+v != %+v", fmsg, msg)
 	}
-	//	items := []Msg{}
-	//	err = dTable.FetchMsgsUMS("bar", &items)
+	items := []Msg{}
+	err = dTable.FetchMsgsUMS("bar", &items)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(msg, items[0]) {
+		t.Errorf("%+v != %+v", fmsg, msg)
+	}
+
 }
 
 func TestDynamo(t *testing.T) {

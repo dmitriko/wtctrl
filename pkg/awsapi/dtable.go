@@ -91,6 +91,30 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 	return nil
 }
 
+func (t *DTable) QueryIndex(
+	name string, cond string, exprValues map[string]interface{}) (*dynamodb.QueryOutput, error) {
+	av, err := dynamodbattribute.MarshalMap(exprValues)
+	if err != nil {
+		return nil, err
+	}
+	qi := &dynamodb.QueryInput{
+		TableName:                 aws.String(t.Name),
+		IndexName:                 aws.String(name),
+		KeyConditionExpression:    aws.String("UMS = :ums"),
+		ExpressionAttributeValues: av,
+	}
+	return t.db.Query(qi)
+}
+
+func (t *DTable) FetchMsgsUMS(ums string, items interface{}) error {
+	exprValues := map[string]interface{}{":ums": ums}
+	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums", exprValues)
+	if err != nil {
+		return err
+	}
+	return dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
+}
+
 type Msg struct {
 	PK  string
 	UMS string
