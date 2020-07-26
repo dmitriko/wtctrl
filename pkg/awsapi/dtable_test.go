@@ -56,6 +56,26 @@ func Messaging(t *testing.T) {
 	if !reflect.DeepEqual(*msg, items[0]) {
 		t.Errorf("%+v != %+v", items[0], msg)
 	}
+	_, err = dTable.StoreItem(&Msg{"baz", "bar"})
+	if err != nil {
+		t.Error(err)
+	}
+	items = []Msg{}
+	err = dTable.FetchMsgsUMS("baz", &items)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(items) != 0 {
+		t.Errorf("Expected 0 baz items, got: %d", len(items))
+	}
+	items = []Msg{}
+	err = dTable.FetchMsgsUMS("bar", &items)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(items) != 2 {
+		t.Errorf("Expected 2 bar items, got: %d", len(items))
+	}
 
 }
 
