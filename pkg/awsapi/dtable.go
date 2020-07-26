@@ -1,8 +1,6 @@
 package awsapi
 
 import (
-	"log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -62,41 +60,38 @@ func (t *DTable) Create() error {
 	return err
 }
 
-func (t *DTable) Store(item interface{}) error {
+func (t *DTable) StoreItem(item interface{}) (*dynamodb.PutItemOutput, error) {
 	av, err := dynamodbattribute.MarshalMap(item)
+	if err != nil {
+		return nil, err
+	}
 	input := &dynamodb.PutItemInput{
 		Item:      av,
 		TableName: aws.String(t.Name),
 	}
-	resp, err := t.db.PutItem(input)
+	return t.db.PutItem(input)
+}
+
+func (t *DTable) FetchItem(pk string, item interface{}) error {
+	result, err := t.db.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(t.Name),
+		Key: map[string]*dynamodb.AttributeValue{
+			"PK": {
+				S: aws.String(pk),
+			},
+		},
+	})
 	if err != nil {
 		return err
 	}
-	log.Printf("resp is: %s", resp.String())
+	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 type Msg struct {
 	PK  string
 	UMS string
-}
-
-//Puts 3 Msg items in table
-func Put3Items() error {
-	t, _ := DTableConnect("main",
-		Endpoint("http://127.0.0.1:8000"))
-
-	msg := Msg{PK: "msg#bar", UMS: "user1#0"}
-	err := t.Store(msg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func main() {
-	err := Put3Items()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
