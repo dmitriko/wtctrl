@@ -35,17 +35,17 @@ func tearDown() {
 }
 
 func Messaging(t *testing.T) {
-	msg := Msg{"foo", "bar"}
-	_, err := dTable.StoreItem(&msg)
+	msg := &Msg{"foo", "bar"}
+	_, err := dTable.StoreItem(msg)
 	if err != nil {
 		t.Error(err)
 	}
-	fmsg := Msg{}
-	err = dTable.FetchItem("foo", &fmsg)
+	fmsg := &Msg{}
+	err = dTable.FetchItem("foo", fmsg)
 	if err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(msg, fmsg) {
+	if !reflect.DeepEqual(*msg, *fmsg) {
 		t.Errorf("%+v != %+v", fmsg, msg)
 	}
 	items := []Msg{}
@@ -53,7 +53,7 @@ func Messaging(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(msg, items[0]) {
+	if !reflect.DeepEqual(*msg, items[0]) {
 		t.Errorf("%+v != %+v", items[0], msg)
 	}
 
