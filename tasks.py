@@ -63,3 +63,9 @@ def terra_init(c, path, bucket=None):
         ' -backend-config region=' + REGION + ' -reconfigure',
         echo=True)
 
+
+@task
+def start_dynamo_local(c):
+    "Start DynamyDB in local docker"
+    c.run("docker run -d -p 8000:8000 --name dynamo amazon/dynamodb-local:latest")
+
