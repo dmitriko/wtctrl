@@ -104,7 +104,7 @@ func (t *DTable) QueryIndex(
 	qi := &dynamodb.QueryInput{
 		TableName:                 aws.String(t.Name),
 		IndexName:                 aws.String(name),
-		KeyConditionExpression:    aws.String("UMS = :ums"),
+		KeyConditionExpression:    aws.String(cond),
 		ExpressionAttributeValues: av,
 	}
 	return t.db.Query(qi)

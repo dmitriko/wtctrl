@@ -1,6 +1,7 @@
 package awsapi
 
 import (
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"reflect"
 	"testing"
 )
@@ -22,6 +23,17 @@ func TestStoreItems(t *testing.T) {
 	if !reflect.DeepEqual(*msg, *fmsg) {
 		t.Errorf("%+v != %+v", fmsg, msg)
 	}
+	exprValues := map[string]interface{}{":ums": "bar"}
+	resp, err := testTable.QueryIndex("UMSIndex", "UMS = :ums", exprValues)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(resp.Items) != 1 {
+		t.Error("Could not fetch item from index")
+	}
+	item := &TItem{}
+	dynamodbattribute.UnmarshalMap(resp.Items[0], item)
+
 }
 
 func TestMessaging(t *testing.T) {
