@@ -35,7 +35,7 @@ func Region(region string) func(*DTable) error {
 
 //Connects to DynomoDB table
 func DTableConnect(name string, options ...func(*DTable) error) (*DTable, error) {
-	t := &DTable{Name: name, PKey: "PK"}
+	t := &DTable{Name: name, PKey: "PK", Region: "us-west-2"}
 	for _, option := range options {
 		err := option(t)
 		if err != nil {
@@ -44,7 +44,7 @@ func DTableConnect(name string, options ...func(*DTable) error) (*DTable, error)
 	}
 	sess, err := session.NewSession(&aws.Config{
 		Endpoint: aws.String(t.Endpoint),
-		Region:   aws.String("us-west-2"),
+		Region:   aws.String(t.Region),
 	})
 	if err != nil {
 		return t, err
