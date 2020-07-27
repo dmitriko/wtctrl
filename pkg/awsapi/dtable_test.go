@@ -30,6 +30,7 @@ func setUp(t *testing.T) {
 }
 
 func tearDown() {
+	recover()
 	cmd := exec.Command("docker", "kill", containerName)
 	cmd.Run()
 }
@@ -48,33 +49,39 @@ func Messaging(t *testing.T) {
 	if !reflect.DeepEqual(*msg, *fmsg) {
 		t.Errorf("%+v != %+v", fmsg, msg)
 	}
-	items := []Msg{}
-	err = dTable.FetchMsgsUMS("bar", &items)
+	msgs := &ListMsg{}
+	err = msgs.FetchByUMS(dTable, "bar")
 	if err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(*msg, items[0]) {
-		t.Errorf("%+v != %+v", items[0], msg)
+	if msgs.Len() != 1 {
+		t.Errorf("Could not fetch messages for UMS bar")
 	}
+
+	if !reflect.DeepEqual(msg, msgs.At(0)) {
+		t.Errorf("%+v != %+v", msgs.At(0), msg)
+	}
+
 	_, err = dTable.StoreItem(&Msg{"baz", "bar"})
 	if err != nil {
 		t.Error(err)
 	}
-	items = []Msg{}
-	err = dTable.FetchMsgsUMS("baz", &items)
+	msgs = &ListMsg{}
+	err = msgs.FetchByUMS(dTable, "baz")
 	if err != nil {
 		t.Error(err)
 	}
-	if len(items) != 0 {
-		t.Errorf("Expected 0 baz items, got: %d", len(items))
+	if msgs.Len() != 0 {
+		t.Errorf("Expected 0 baz items, got: %v", msgs)
 	}
-	items = []Msg{}
-	err = dTable.FetchMsgsUMS("bar", &items)
+
+	msgs = &ListMsg{}
+	err = msgs.FetchByUMS(dTable, "bar")
 	if err != nil {
 		t.Error(err)
 	}
-	if len(items) != 2 {
-		t.Errorf("Expected 2 bar items, got: %d", len(items))
+	if msgs.Len() != 2 {
+		t.Errorf("Expected 2 bar items, got: %v", msgs)
 	}
 
 }

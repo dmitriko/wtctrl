@@ -110,13 +110,44 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
-func (t *DTable) FetchMsgsUMS(ums string, items interface{}) error {
+//Represents list of Msg
+type ListMsg struct {
+	Items            []*Msg
+	LastEvaluatedKey map[string]*dynamodb.AttributeValue
+}
+
+func (lm *ListMsg) Len() int {
+	return len(lm.Items)
+}
+
+func (lm *ListMsg) DAdd(item map[string]*dynamodb.AttributeValue) error {
+	m := &Msg{}
+	err := dynamodbattribute.UnmarshalMap(item, m)
+	if err != nil {
+		return err
+	}
+	lm.Items = append(lm.Items, m)
+	return nil
+}
+
+func (lm *ListMsg) FetchByUMS(t *DTable, ums string) error {
 	exprValues := map[string]interface{}{":ums": ums}
 	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums", exprValues)
 	if err != nil {
 		return err
 	}
-	return dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
+	for _, item := range resp.Items {
+		lm.DAdd(item)
+	}
+	return nil
+	//return dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
+}
+
+func (lm *ListMsg) At(i int) *Msg {
+	if i > lm.Len()-1 {
+		return nil
+	}
+	return lm.Items[i]
 }
 
 type Msg struct {
