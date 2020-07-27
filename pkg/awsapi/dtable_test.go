@@ -33,7 +33,9 @@ func TestStoreItems(t *testing.T) {
 	}
 	item := &TItem{}
 	dynamodbattribute.UnmarshalMap(resp.Items[0], item)
-
+	if item.PK != "foo" || item.UMS != "bar" {
+		t.Errorf("could not query index, got %+v", item)
+	}
 }
 
 func TestMessaging(t *testing.T) {
