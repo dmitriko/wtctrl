@@ -5,6 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/segmentio/ksuid"
+	"time"
 )
 
 //Provides access to DynamoDB table
@@ -151,8 +153,57 @@ func (lm *ListMsg) At(i int) *Msg {
 }
 
 type Msg struct {
-	PK  string
-	UMS string
+	Channel    string
+	Author     string
+	ID         string
+	UserStatus int
+	CreatedAt  time.Time
+	Data       map[string]interface{}
+}
+
+//Option for new msg
+func CreatedAtOp(ts string) func(*Msg) error {
+	return func(m *Msg) error {
+		t, err := StrToTime(ts)
+		if err != nil {
+			return err
+		}
+		m.CreatedAt = t
+		return nil
+	}
+}
+
+func UserStatusOp(s int) func(*Msg) error {
+	return func(m *Msg) error {
+		m.UserStatus = s
+		return nil
+	}
+}
+
+func DataOp(d map[string]interface{}) func(m *Msg) error {
+	return func(m *Msg) error {
+		m.Data = d
+		return nil
+	}
+}
+
+//Factory method for Msg
+func NewMsg(channel string, author string, options ...func(*Msg) error) (*Msg, error) {
+	msg := &Msg{Channel: channel, Author: author, CreatedAt: time.Now()}
+	for _, opt := range options {
+		err := opt(msg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if msg.ID == "" {
+		id, err := ksuid.NewRandomWithTime(msg.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		msg.ID = id.String()
+	}
+	return msg, nil
 }
 
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {

@@ -2,8 +2,10 @@ package awsapi
 
 import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/segmentio/ksuid"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestStoreItems(t *testing.T) {
@@ -38,52 +40,30 @@ func TestStoreItems(t *testing.T) {
 	}
 }
 
-func TestMessaging(t *testing.T) {
+/*
+func TestDBMessaging(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
 
-	/*
-		msg := &Msg{"foo", "bar"}
-		err := testTable.StoreItem(msg)
-		if
-		msgs := &ListMsg{}
-		err = msgs.FetchByUMS(testTable, "bar")
-		if err != nil {
-			t.Error(err)
-		}
-		if msgs.Len() != 1 {
-			t.Errorf("Could not fetch messages for UMS bar")
-		}
-
-		if !reflect.DeepEqual(msg, msgs.At(0)) {
-			t.Errorf("%+v != %+v", msgs.At(0), msg)
-		}
-
-		_, err = testTable.StoreItem(&Msg{"baz", "bar"})
-		if err != nil {
-			t.Error(err)
-		}
-		msgs = &ListMsg{}
-		err = msgs.FetchByUMS(testTable, "baz")
-		if err != nil {
-			t.Error(err)
-		}
-		if msgs.Len() != 0 {
-			t.Errorf("Expected 0 baz items, got: %v", msgs)
-		}
-
-		msgs = &ListMsg{}
-		err = msgs.FetchByUMS(testTable, "bar")
-		if err != nil {
-			t.Error(err)
-		}
-		if msgs.Len() != 2 {
-			t.Errorf("Expected 2 bar items, got: %v", msgs)
-		}
-	*/
 }
-
-/*
-func TestDynamo(t *testing.T) {
-t.Run("Messages", Messaging)
-}*/
+*/
+func TestSimpleMessaging(t *testing.T) {
+	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(0),
+		DataOp(map[string]interface{}{"url": "https://google.com"}))
+	if err != nil {
+		t.Error(err)
+	}
+	id, err := ksuid.Parse(msg.ID)
+	if err != nil {
+		t.Error(err)
+	}
+	var dur time.Duration
+	dur = id.Time().Sub(msg.CreatedAt)
+	if dur.Milliseconds() > 1000.0 {
+		t.Errorf("time from id != CreatedAt, but has diff %s", dur.String())
+	}
+	dur = time.Now().Sub(id.Time())
+	if int(dur.Hours()) != 48 {
+		t.Errorf("time from msg id is not as expected, but has diff %s", dur.String())
+	}
+}
