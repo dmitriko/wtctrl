@@ -48,7 +48,7 @@ func TestDBMessaging(t *testing.T) {
 }
 */
 func TestSimpleMessaging(t *testing.T) {
-	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(0),
+	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]interface{}{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
@@ -66,4 +66,8 @@ func TestSimpleMessaging(t *testing.T) {
 	if int(dur.Hours()) != 48 {
 		t.Errorf("time from msg id is not as expected, but has diff %s", dur.String())
 	}
+	if msg.UserStatus != 5 {
+		t.Error("UserStatus is not correct")
+	}
+
 }
