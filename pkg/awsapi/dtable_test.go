@@ -40,13 +40,20 @@ func TestStoreItems(t *testing.T) {
 	}
 }
 
-/*
-func TestDBMessaging(t *testing.T) {
+func _TestDBMessaging(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
-
+	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(5),
+		DataOp(map[string]interface{}{"url": "https://google.com"}))
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = testTable.StoreItem(msg)
+	if err != nil {
+		t.Error(err)
+	}
 }
-*/
+
 func TestSimpleMessaging(t *testing.T) {
 	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]interface{}{"url": "https://google.com"}))

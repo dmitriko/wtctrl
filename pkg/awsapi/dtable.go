@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const MsgKeyPrefix = "msg"
+
 //Provides access to DynamoDB table
 type DTable struct {
 	db       *dynamodb.DynamoDB
@@ -62,11 +64,12 @@ func (t *DTable) Create() error {
 	return err
 }
 
-type DMapper interface {
+type DItem interface {
 	AsDMap() (map[string]*dynamodb.AttributeValue, error)
+	LoadFromD(map[string]*dynamodb.AttributeValue) error
 }
 
-func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
+func (t *DTable) StoreItem(item DItem) (*dynamodb.PutItemOutput, error) {
 	av, err := item.AsDMap()
 	if err != nil {
 		return nil, err
@@ -78,7 +81,7 @@ func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
 	return t.db.PutItem(input)
 }
 
-func (t *DTable) FetchItem(pk string, item interface{}) error {
+func (t *DTable) FetchItem(pk string, item DItem) error {
 	result, err := t.db.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(t.Name),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -90,7 +93,7 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
+	err = item.LoadFromD(result.Item)
 	if err != nil {
 		return err
 	}
@@ -208,4 +211,8 @@ func NewMsg(channel string, author string, options ...func(*Msg) error) (*Msg, e
 
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(m)
+}
+
+func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	return dynamodbattribute.UnmarshalMap(av, m)
 }

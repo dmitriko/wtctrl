@@ -44,3 +44,6 @@ type TItem struct {
 func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(item)
 }
+func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	return dynamodbattribute.UnmarshalMap(av, item)
+}
