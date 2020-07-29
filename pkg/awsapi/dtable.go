@@ -163,6 +163,7 @@ func (lm *ListMsg) At(i int) *Msg {
 type Msg struct {
 	Channel    string
 	Author     string
+	Kind       string
 	ID         string
 	UserStatus int
 	CreatedAt  time.Time
@@ -196,8 +197,8 @@ func DataOp(d map[string]string) func(m *Msg) error {
 }
 
 //Factory method for Msg
-func NewMsg(channel string, author string, options ...func(*Msg) error) (*Msg, error) {
-	msg := &Msg{Channel: channel, Author: author, CreatedAt: time.Now()}
+func NewMsg(channel string, author string, kind string, options ...func(*Msg) error) (*Msg, error) {
+	msg := &Msg{Channel: channel, Author: author, Kind: kind, CreatedAt: time.Now()}
 	for _, opt := range options {
 		err := opt(msg)
 		if err != nil {
@@ -228,6 +229,7 @@ func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 		"PK":  m.PK(),
 		"UMS": ums,
 		"C":   m.Channel,
+		"K":   m.Kind,
 	}
 	if len(m.Data) > 0 {
 		item["D"] = m.Data
@@ -275,5 +277,6 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		}
 	}
 	m.Channel = item["C"].(string)
+	m.Kind = item["K"].(string)
 	return nil
 }
