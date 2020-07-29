@@ -108,7 +108,7 @@ func TestSimpleMessaging(t *testing.T) {
 }
 
 func TestListMsg(t *testing.T) {
-	stopLocalDynamo()
+	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	var err error
 	msg1, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-10d"), UserStatusOp(5),
