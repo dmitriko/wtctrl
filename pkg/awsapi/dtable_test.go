@@ -72,6 +72,9 @@ func TestDBMessaging(t *testing.T) {
 		t.Error("Could not fetch Msg.Author")
 	}
 
+	if !reflect.DeepEqual(dmsg, msg) {
+		t.Errorf("%+v is not eq to %+v", dmsg, msg)
+	}
 }
 
 func TestSimpleMessaging(t *testing.T) {

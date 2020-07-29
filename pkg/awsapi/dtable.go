@@ -210,6 +210,7 @@ func NewMsg(channel string, author string, options ...func(*Msg) error) (*Msg, e
 			return nil, err
 		}
 		msg.ID = id.String()
+		msg.CreatedAt = id.Time() //there is a bit difference from origin, we need this to be stored
 	}
 	return msg, nil
 }
@@ -226,6 +227,7 @@ func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
 		"PK":  m.PK(),
 		"UMS": ums,
+		"C":   m.Channel,
 	}
 	if len(m.Data) > 0 {
 		item["D"] = m.Data
@@ -255,7 +257,11 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		return err
 	}
 	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
-
+	kid, err := ksuid.Parse(m.ID)
+	if err != nil {
+		return err
+	}
+	m.CreatedAt = kid.Time()
 	err = m.SetUserStatus(item["UMS"].(string))
 	if err != nil {
 		return err
@@ -268,5 +274,6 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 			m.Data[k] = v.(string)
 		}
 	}
+	m.Channel = item["C"].(string)
 	return nil
 }
