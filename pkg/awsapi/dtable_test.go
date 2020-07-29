@@ -96,5 +96,10 @@ func TestSimpleMessaging(t *testing.T) {
 	if msg.UserStatus != 5 {
 		t.Error("UserStatus is not correct")
 	}
-
+	if msg.Author != "user1" {
+		t.Error("Author is not correct")
+	}
+	if msg.Channel != "bot1" {
+		t.Error("Channel is not correct")
+	}
 }
