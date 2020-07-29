@@ -134,4 +134,7 @@ func TestListMsg(t *testing.T) {
 	if lm.Len() != 1 {
 		t.Errorf("Fetch wrong amount of Msgs %d, expected 1", lm.Len())
 	}
+	if _, ok := lm.Items[msg2.ID]; !ok {
+		t.Error("expect msg2 is fetched")
+	}
 }
