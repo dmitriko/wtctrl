@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
+	"log"
 	"strings"
 	"time"
 )
@@ -162,7 +163,7 @@ type Msg struct {
 	ID         string
 	UserStatus int
 	CreatedAt  time.Time
-	Data       map[string]interface{}
+	Data       map[string]string
 }
 
 //Option for new msg
@@ -184,7 +185,7 @@ func UserStatusOp(s int) func(*Msg) error {
 	}
 }
 
-func DataOp(d map[string]interface{}) func(m *Msg) error {
+func DataOp(d map[string]string) func(m *Msg) error {
 	return func(m *Msg) error {
 		m.Data = d
 		return nil
@@ -221,9 +222,11 @@ func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
 		"PK": m.PK(),
 	}
+	if len(m.Data) > 0 {
+		item["D"] = m.Data
+	}
 	return dynamodbattribute.MarshalMap(item)
 }
-
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	item := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &item)
@@ -231,5 +234,12 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		return err
 	}
 	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
+	d, ok := item["D"].(map[string]interface{})
+	if ok {
+		for k, v := range d {
+			m.Data[k] = v.(string)
+		}
+	}
+	log.Print("OK")
 	return nil
 }
