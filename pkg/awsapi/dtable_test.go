@@ -40,7 +40,7 @@ func TestStoreItems(t *testing.T) {
 	}
 }
 
-func _TestDBMessaging(t *testing.T) {
+func TestDBMessaging(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
 	msg, err := NewMsg("bot1", "user1", CreatedAtOp("-2d"), UserStatusOp(5),
@@ -52,6 +52,15 @@ func _TestDBMessaging(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	dmsg := &Msg{}
+	err = testTable.FetchItem(msg.PK(), dmsg)
+	if err != nil {
+		t.Error(err)
+	}
+	if dmsg.ID != msg.ID {
+		t.Error("Could not fetch msg from dynamo")
+	}
+
 }
 
 func TestSimpleMessaging(t *testing.T) {

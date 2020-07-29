@@ -6,10 +6,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
+	"strings"
 	"time"
 )
 
-const MsgKeyPrefix = "msg"
+const MsgKeyPrefix = "msg#"
 
 //Provides access to DynamoDB table
 type DTable struct {
@@ -209,10 +210,26 @@ func NewMsg(channel string, author string, options ...func(*Msg) error) (*Msg, e
 	return msg, nil
 }
 
+func (m *Msg) PK() string {
+	if m.ID == "" {
+		return ""
+	}
+	return MsgKeyPrefix + m.ID
+}
+
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
-	return dynamodbattribute.MarshalMap(m)
+	item := map[string]interface{}{
+		"PK": m.PK(),
+	}
+	return dynamodbattribute.MarshalMap(item)
 }
 
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	return dynamodbattribute.UnmarshalMap(av, m)
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
+	if err != nil {
+		return err
+	}
+	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
+	return nil
 }
