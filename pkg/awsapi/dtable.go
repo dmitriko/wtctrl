@@ -86,6 +86,15 @@ func (t *DTable) StoreItem(item DItem) (*dynamodb.PutItemOutput, error) {
 	return t.db.PutItem(input)
 }
 
+func (t *DTable) StoreItems(items ...DItem) []error {
+	var output []error
+	for _, item := range items {
+		_, err := t.StoreItem(item)
+		output = append(output, err)
+	}
+	return output
+}
+
 func (t *DTable) FetchItem(pk string, item DItem) error {
 	result, err := t.db.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(t.Name),
@@ -118,46 +127,6 @@ func (t *DTable) QueryIndex(
 		ExpressionAttributeValues: av,
 	}
 	return t.db.Query(qi)
-}
-
-//Represents list of Msg
-type ListMsg struct {
-	Items            []*Msg
-	LastEvaluatedKey map[string]*dynamodb.AttributeValue
-}
-
-func (lm *ListMsg) Len() int {
-	return len(lm.Items)
-}
-
-func (lm *ListMsg) DAdd(item map[string]*dynamodb.AttributeValue) error {
-	m := &Msg{}
-	err := dynamodbattribute.UnmarshalMap(item, m)
-	if err != nil {
-		return err
-	}
-	lm.Items = append(lm.Items, m)
-	return nil
-}
-
-func (lm *ListMsg) FetchByUMS(t *DTable, ums string) error {
-	exprValues := map[string]interface{}{":ums": ums}
-	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums", exprValues)
-	if err != nil {
-		return err
-	}
-	for _, item := range resp.Items {
-		lm.DAdd(item)
-	}
-	return nil
-	//return dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
-}
-
-func (lm *ListMsg) At(i int) *Msg {
-	if i > lm.Len()-1 {
-		return nil
-	}
-	return lm.Items[i]
 }
 
 type Msg struct {
@@ -276,7 +245,65 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 			m.Data[k] = v.(string)
 		}
 	}
-	m.Channel = item["C"].(string)
-	m.Kind = item["K"].(string)
+	ch, ok := item["C"].(string)
+	if ok {
+		m.Channel = ch
+	}
+	k, ok := item["K"].(string)
+	if ok {
+		m.Kind = k
+	}
+	return nil
+}
+
+//Represents list of Msg
+type ListMsg struct {
+	Items            map[string]*Msg
+	LastEvaluatedKey map[string]*dynamodb.AttributeValue
+}
+
+func NewListMsg() *ListMsg {
+	return &ListMsg{map[string]*Msg{}, map[string]*dynamodb.AttributeValue{}}
+}
+
+func (lm *ListMsg) Len() int {
+	return len(lm.Items)
+}
+
+func GetMsgPK(strtime string) (string, error) {
+	t, err := StrToTime(strtime)
+	if err != nil {
+		return "", err
+	}
+	id, err := ksuid.NewRandomWithTime(t)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s%s", MsgKeyPrefix, id.String()), nil
+}
+
+func (lm *ListMsg) FetchByUserStatus(t *DTable, uid string, status int, start, end string) error {
+	ums := fmt.Sprintf("%s#%d", uid, status)
+	start_pk, err := GetMsgPK(start)
+	if err != nil {
+		return err
+	}
+	end_pk, err := GetMsgPK(end)
+	if err != nil {
+		return err
+	}
+	exprValues := map[string]interface{}{":ums": ums, ":start": start_pk, ":end": end_pk}
+	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums and PK BETWEEN :start AND :end", exprValues)
+	if err != nil {
+		return err
+	}
+	for _, item := range resp.Items {
+		msg := &Msg{}
+		err = msg.LoadFromD(item)
+		if err != nil {
+			return err
+		}
+		lm.Items[msg.ID] = msg
+	}
 	return nil
 }

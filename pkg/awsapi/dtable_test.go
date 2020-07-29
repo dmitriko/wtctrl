@@ -41,7 +41,7 @@ func TestStoreItems(t *testing.T) {
 	}
 }
 
-func TestDBMessaging(t *testing.T) {
+func TestDBMsg(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
 	msg, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
@@ -104,5 +104,34 @@ func TestSimpleMessaging(t *testing.T) {
 	}
 	if msg.Channel != "bot1" {
 		t.Error("Channel is not correct")
+	}
+}
+
+func TestListMsg(t *testing.T) {
+	stopLocalDynamo()
+	startLocalDynamo(t)
+	var err error
+	msg1, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-10d"), UserStatusOp(5),
+		DataOp(map[string]string{"url": "https://example1.com"}))
+
+	msg2, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+		DataOp(map[string]string{"url": "https://example2.com"}))
+
+	msg3, err := NewMsg("bot1", "user2", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+		DataOp(map[string]string{"url": "https://example3.com"}))
+
+	errs := testTable.StoreItems(msg1, msg2, msg3)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	lm := NewListMsg()
+	err = lm.FetchByUserStatus(testTable, "user1", 5, "-3d", "now")
+	if err != nil {
+		t.Error(err)
+	}
+	if lm.Len() != 1 {
+		t.Errorf("Fetch wrong amount of Msgs %d, expected 1", lm.Len())
 	}
 }
