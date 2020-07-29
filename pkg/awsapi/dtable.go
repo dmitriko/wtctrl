@@ -1,6 +1,9 @@
 package awsapi
 
 import (
+	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -219,14 +222,30 @@ func (m *Msg) PK() string {
 }
 
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	ums := fmt.Sprintf("%s#%d", m.Author, m.UserStatus)
 	item := map[string]interface{}{
-		"PK": m.PK(),
-		"A":  m.Author,
+		"PK":  m.PK(),
+		"UMS": ums,
 	}
 	if len(m.Data) > 0 {
 		item["D"] = m.Data
 	}
 	return dynamodbattribute.MarshalMap(item)
+}
+
+// Set .Author and .UserStatus from UMS string that is <user>#<status> stored in DB
+func (m *Msg) SetUserStatus(ums string) error {
+	s := strings.Split(ums, "#")
+	if len(s) != 2 {
+		return errors.New("Could not parse " + ums)
+	}
+	m.Author = s[0]
+	i, err := strconv.Atoi(s[1])
+	if err != nil {
+		return err
+	}
+	m.UserStatus = i
+	return nil
 }
 
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
@@ -236,7 +255,12 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		return err
 	}
 	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
-	m.Author = item["A"].(string)
+
+	err = m.SetUserStatus(item["UMS"].(string))
+	if err != nil {
+		return err
+	}
+
 	d, ok := item["D"].(map[string]interface{})
 	if ok {
 		m.Data = make(map[string]string)
