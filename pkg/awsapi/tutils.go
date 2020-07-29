@@ -1,10 +1,11 @@
 package awsapi
 
 import (
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"os/exec"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 const containerName = "dynamotest"
@@ -31,7 +32,6 @@ func startLocalDynamo(t *testing.T) {
 }
 
 func stopLocalDynamo() {
-	recover()
 	cmd := exec.Command("docker", "kill", containerName)
 	cmd.Run()
 }

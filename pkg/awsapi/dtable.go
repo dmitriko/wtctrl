@@ -1,14 +1,14 @@
 package awsapi
 
 import (
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
-	"log"
-	"strings"
-	"time"
 )
 
 const MsgKeyPrefix = "msg#"
@@ -221,12 +221,14 @@ func (m *Msg) PK() string {
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
 		"PK": m.PK(),
+		"A":  m.Author,
 	}
 	if len(m.Data) > 0 {
 		item["D"] = m.Data
 	}
 	return dynamodbattribute.MarshalMap(item)
 }
+
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	item := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &item)
@@ -234,12 +236,13 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		return err
 	}
 	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
+	m.Author = item["A"].(string)
 	d, ok := item["D"].(map[string]interface{})
 	if ok {
+		m.Data = make(map[string]string)
 		for k, v := range d {
 			m.Data[k] = v.(string)
 		}
 	}
-	log.Print("OK")
 	return nil
 }

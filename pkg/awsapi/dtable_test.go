@@ -1,11 +1,12 @@
 package awsapi
 
 import (
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/segmentio/ksuid"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/segmentio/ksuid"
 )
 
 func TestStoreItems(t *testing.T) {
@@ -48,6 +49,9 @@ func TestDBMessaging(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	if msg.Author != "user1" {
+		t.Error("issue with Author")
+	}
 	_, err = testTable.StoreItem(msg)
 	if err != nil {
 		t.Error(err)
@@ -63,6 +67,11 @@ func TestDBMessaging(t *testing.T) {
 	if dmsg.Data["url"] != "https://google.com" {
 		t.Error("Could not store/fetch msg.Data[url]")
 	}
+
+	if dmsg.Author != msg.Author {
+		t.Error("Could not fetch Msg.Author")
+	}
+
 }
 
 func TestSimpleMessaging(t *testing.T) {
