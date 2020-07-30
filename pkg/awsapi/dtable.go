@@ -14,7 +14,10 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-const MsgKeyPrefix = "msg#"
+const (
+	MsgKeyPrefix = "msg#"
+	NO_SUCH_ITEM = "NoSuchItem"
+)
 
 //Provides access to DynamoDB table
 type DTable struct {
@@ -72,6 +75,7 @@ func (t *DTable) Create() error {
 type DMapper interface {
 	AsDMap() (map[string]*dynamodb.AttributeValue, error)
 	LoadFromD(map[string]*dynamodb.AttributeValue) error
+	PK() string
 }
 
 func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
@@ -106,6 +110,9 @@ func (t *DTable) FetchItem(pk string, item DMapper) error {
 	})
 	if err != nil {
 		return err
+	}
+	if len(result.Item) == 0 {
+		return errors.New(NO_SUCH_ITEM)
 	}
 	err = item.LoadFromD(result.Item)
 	if err != nil {
@@ -329,13 +336,70 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, uid string, status int, start, e
 	return nil
 }
 
+const UserKeyPrefix = "user"
+
 type User struct {
-	ID    string
-	Title string
-	Email string
-	Tel   string
-	Tgid  string
-	Data  map[string]string
+	ID        string
+	Title     string
+	Email     string
+	Tel       string
+	Tgid      string
+	CreatedAt time.Time
+	Data      map[string]string
 }
 
-//func NewUser(title, email, tel string)
+func (u *User) PK() string {
+	if u.ID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s%s", UserKeyPrefix, u.ID)
+}
+
+func (u *User) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK": u.PK(),
+		"E":  u.Email,
+		"T":  u.Tel,
+		"TG": u.Tgid,
+	}
+	if len(u.Data) > 0 {
+		item["D"] = u.Data
+	}
+	return dynamodbattribute.MarshalMap(item)
+}
+
+func (u *User) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	ditem, err := loadFromDynamo(UserKeyPrefix, av)
+	if err != nil {
+		return err
+	}
+	u.ID = ditem.ID
+	u.CreatedAt = ditem.CreatedAt
+	u.Data = ditem.Data
+	email, ok := ditem.Orig["E"].(string)
+	if ok {
+		u.Email = email
+	}
+	t, ok := ditem.Orig["T"].(string)
+	if ok {
+		u.Tel = t
+	}
+	tg, ok := ditem.Orig["TG"].(string)
+	if ok {
+		u.Tgid = tg
+	}
+	return nil
+}
+
+func NewUser(title, tel string) *User {
+	user := &User{Title: title, Tel: tel}
+	user.Data = make(map[string]string)
+	kid := ksuid.New()
+	user.CreatedAt = kid.Time()
+	user.ID = kid.String()
+	return user
+}
+
+func (t *DTable) StoreNewUser(user *User) error {
+	return nil
+}

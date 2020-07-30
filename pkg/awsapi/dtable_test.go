@@ -36,7 +36,7 @@ func TestStoreItems(t *testing.T) {
 	}
 	item := &TItem{}
 	dynamodbattribute.UnmarshalMap(resp.Items[0], item)
-	if item.PK != "foo" || item.UMS != "bar" {
+	if item.ID != "foo" || item.UMS != "bar" {
 		t.Errorf("could not query index, got %+v", item)
 	}
 }
@@ -135,10 +135,21 @@ func TestListMsg(t *testing.T) {
 		t.Errorf("Fetch wrong amount of Msgs %d, expected 1", lm.Len())
 	}
 	if _, ok := lm.Items[msg2.ID]; !ok {
-		t.Error("expect msg2 is fetched")
+		t.Error("expected msg2 is fetched")
 	}
 }
 
-/*func TestUser(t *testing.T) {
-	_, err := NewUser("Someone", "s@s.com")
-}*/
+func TestUser(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	usr1 := NewUser("Someone", "5555555")
+	err := testTable.StoreNewUser(usr1)
+	if err != nil {
+		t.Error(err)
+	}
+	usr1_fetched := &User{}
+	err = testTable.FetchItem(usr1.PK(), usr1_fetched)
+	if err != nil {
+		t.Error(err)
+	}
+}

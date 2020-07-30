@@ -1,6 +1,7 @@
 package awsapi
 
 import (
+	"fmt"
 	"os/exec"
 	"testing"
 
@@ -37,13 +38,27 @@ func stopLocalDynamo() {
 }
 
 type TItem struct {
-	PK  string
+	ID  string
 	UMS string
 }
 
+func (item *TItem) PK() string {
+	return fmt.Sprintf("testitem#%s", item.ID)
+}
+
 func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
-	return dynamodbattribute.MarshalMap(item)
+	out := map[string]interface{}{
+		"PK":  item.PK(),
+		"UMS": item.UMS,
+	}
+	return dynamodbattribute.MarshalMap(out)
 }
 func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	return dynamodbattribute.UnmarshalMap(av, item)
+	in, err := loadFromDynamo("testitem", av)
+	if err != nil {
+		return err
+	}
+	item.ID = in.ID
+	item.UMS = in.Orig["UMS"].(string)
+	return nil
 }
