@@ -138,3 +138,7 @@ func TestListMsg(t *testing.T) {
 		t.Error("expect msg2 is fetched")
 	}
 }
+
+/*func TestUser(t *testing.T) {
+	_, err := NewUser("Someone", "s@s.com")
+}*/

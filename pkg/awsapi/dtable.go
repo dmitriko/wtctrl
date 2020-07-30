@@ -69,12 +69,12 @@ func (t *DTable) Create() error {
 	return err
 }
 
-type DItem interface {
+type DMapper interface {
 	AsDMap() (map[string]*dynamodb.AttributeValue, error)
 	LoadFromD(map[string]*dynamodb.AttributeValue) error
 }
 
-func (t *DTable) StoreItem(item DItem) (*dynamodb.PutItemOutput, error) {
+func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
 	av, err := item.AsDMap()
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (t *DTable) StoreItem(item DItem) (*dynamodb.PutItemOutput, error) {
 	return t.db.PutItem(input)
 }
 
-func (t *DTable) StoreItems(items ...DItem) []error {
+func (t *DTable) StoreItems(items ...DMapper) []error {
 	var output []error
 	for _, item := range items {
 		_, err := t.StoreItem(item)
@@ -95,7 +95,7 @@ func (t *DTable) StoreItems(items ...DItem) []error {
 	return output
 }
 
-func (t *DTable) FetchItem(pk string, item DItem) error {
+func (t *DTable) FetchItem(pk string, item DMapper) error {
 	result, err := t.db.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(t.Name),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -129,7 +129,16 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
+//Common fields for any struct stored in DynamoDB
+type DItem struct {
+	ID        string
+	CreatedAt time.Time
+	Data      map[string]string
+	Orig      map[string]interface{}
+}
+
 type Msg struct {
+	DItem
 	Channel    string
 	Author     string
 	Kind       string
@@ -221,35 +230,47 @@ func (m *Msg) SetUserStatus(ums string) error {
 	return nil
 }
 
-func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+func loadFromDynamo(key_prefix string, av map[string]*dynamodb.AttributeValue) (*DItem, error) {
+	ditem := &DItem{}
 	item := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &item)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	m.ID = strings.Replace(item["PK"].(string), MsgKeyPrefix, "", -1)
-	kid, err := ksuid.Parse(m.ID)
+	ditem.Orig = item
+	ditem.Data = make(map[string]string)
+	ditem.ID = strings.Replace(item["PK"].(string), key_prefix, "", -1)
+	kid, err := ksuid.Parse(ditem.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	m.CreatedAt = kid.Time()
-	err = m.SetUserStatus(item["UMS"].(string))
-	if err != nil {
-		return err
-	}
-
+	ditem.CreatedAt = kid.Time()
 	d, ok := item["D"].(map[string]interface{})
 	if ok {
-		m.Data = make(map[string]string)
 		for k, v := range d {
-			m.Data[k] = v.(string)
+			ditem.Data[k] = v.(string)
 		}
 	}
-	ch, ok := item["C"].(string)
+	return ditem, nil
+}
+
+func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	ditem, err := loadFromDynamo(MsgKeyPrefix, av)
+	if err != nil {
+		return err
+	}
+	m.ID = ditem.ID
+	m.CreatedAt = ditem.CreatedAt
+	m.Data = ditem.Data
+	err = m.SetUserStatus(ditem.Orig["UMS"].(string))
+	if err != nil {
+		return err
+	}
+	ch, ok := ditem.Orig["C"].(string)
 	if ok {
 		m.Channel = ch
 	}
-	k, ok := item["K"].(string)
+	k, ok := ditem.Orig["K"].(string)
 	if ok {
 		m.Kind = k
 	}
@@ -307,3 +328,14 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, uid string, status int, start, e
 	}
 	return nil
 }
+
+type User struct {
+	ID    string
+	Title string
+	Email string
+	Tel   string
+	Tgid  string
+	Data  map[string]string
+}
+
+//func NewUser(title, email, tel string)
