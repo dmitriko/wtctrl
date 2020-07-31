@@ -78,7 +78,16 @@ type DMapper interface {
 	PK() string
 }
 
-func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
+// Option to check uniqueness of stored item by cheking PK
+func UniqueOp() func(*dynamodb.PutItemInput) error {
+	return func(pii *dynamodb.PutItemInput) error {
+		pii.ConditionExpression = aws.String("attribute_not_exists(PK)")
+		return nil
+	}
+}
+
+func (t *DTable) StoreItem(item DMapper,
+	options ...func(*dynamodb.PutItemInput) error) (*dynamodb.PutItemOutput, error) {
 	av, err := item.AsDMap()
 	if err != nil {
 		return nil, err
@@ -86,6 +95,12 @@ func (t *DTable) StoreItem(item DMapper) (*dynamodb.PutItemOutput, error) {
 	input := &dynamodb.PutItemInput{
 		Item:      av,
 		TableName: aws.String(t.Name),
+	}
+	for _, ops := range options {
+		err := ops(input)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return t.db.PutItem(input)
 }
@@ -136,12 +151,12 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
-//Common fields for any struct stored in DynamoDB
+//Common fields for some structs stored in DynamoDB
 type DItem struct {
 	ID        string
 	CreatedAt time.Time
 	Data      map[string]string
-	Orig      map[string]interface{}
+	Orig      map[string]interface{} // this is not stored in db
 }
 
 type Msg struct {

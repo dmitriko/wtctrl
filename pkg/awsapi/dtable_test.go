@@ -2,6 +2,7 @@ package awsapi
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,11 @@ func TestStoreItems(t *testing.T) {
 	_, err := testTable.StoreItem(msg)
 	if err != nil {
 		t.Error(err)
+	}
+	msg_err := &TItem{"foo", "baz"}
+	_, err = testTable.StoreItem(msg_err, UniqueOp())
+	if err == nil || !strings.HasPrefix(err.Error(), "ConditionalCheckFailedException") {
+		t.Error("Fail to unique store item")
 	}
 	fmsg := &TItem{}
 	err = testTable.FetchItem(msg.PK(), fmsg)
