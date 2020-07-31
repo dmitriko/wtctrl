@@ -167,9 +167,10 @@ func TestListMsg(t *testing.T) {
 func TestUser(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
-	usr1, _ := NewUser("Someone", "5555555")
+	var err error
+	usr1, _ := NewUser("Someone")
 	e1, _ := NewEmail("foo@bar", usr1.PK())
-	_, err := testTable.StoreItem(e1)
+	_, err = testTable.StoreItem(e1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -207,14 +208,51 @@ func TestUser(t *testing.T) {
 	if tg1.TGID != tgf.TGID || tg1.OwnerPK != tgf.OwnerPK {
 		t.Errorf("%+v != %+v", tg1, tgf)
 	}
-	/*
-		err := testTable.StoreNewUser(usr1)
-		if err != nil {
-			t.Error(err)
-		}
-		usr1_fetched := &User{}
-		err = testTable.FetchItem(usr1.PK(), usr1_fetched)
-		if err != nil {
-			t.Error(err)
-		}*/
+}
+func TestNewUser(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	usr1, _ := NewUser("Someone")
+	err := usr1.SetTel("555555")
+	if err != nil {
+		t.Error(err)
+	}
+	err = usr1.SetEmail("foo@bar")
+	if err != nil {
+		t.Error(err)
+	}
+	err = testTable.StoreNewUser(usr1)
+	if err != nil {
+		t.Error(err)
+	}
+	usr1f := &User{}
+	err = testTable.FetchItem(usr1.PK(), usr1f)
+	if err != nil {
+		t.Error(err)
+	}
+	if usr1f.Email != "foo@bar" || usr1f.Tel != "555555" {
+		t.Errorf("%+v", usr1f)
+	}
+	email := &Email{}
+	err = testTable.FetchItem(EmailKeyPrefix+"foo@bar", email)
+	if err != nil {
+		t.Error(err)
+	}
+	if email.OwnerPK != usr1.PK() {
+		t.Error("could not fetch email")
+	}
+	tel := &Tel{}
+	err = testTable.FetchItem(TelKeyPrefix+"555555", tel)
+	if err != nil {
+		t.Error(err)
+	}
+	if tel.OwnerPK != usr1.PK() {
+		t.Error("could not fetch telephone")
+	}
+	usr2, _ := NewUser("Somebodyelse")
+	usr2.SetTel("555555")
+	err = testTable.StoreNewUser(usr2)
+	if err == nil || strings.HasPrefix("TransactionCanceledException", err.Error()) {
+		t.Error("expect error here")
+	}
 }

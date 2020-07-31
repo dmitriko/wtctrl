@@ -385,7 +385,7 @@ type User struct {
 	Title     string
 	Email     string
 	Tel       string
-	Tgid      string
+	TGID      string
 	CreatedAt time.Time
 	Data      map[string]string
 }
@@ -402,7 +402,7 @@ func (u *User) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 		"PK": u.PK(),
 		"E":  u.Email,
 		"T":  u.Tel,
-		"TG": u.Tgid,
+		"TG": u.TGID,
 	}
 	if len(u.Data) > 0 {
 		item["D"] = u.Data
@@ -428,13 +428,13 @@ func (u *User) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	}
 	tg, ok := ditem.Orig["TG"].(string)
 	if ok {
-		u.Tgid = tg
+		u.TGID = tg
 	}
 	return nil
 }
 
-func NewUser(title, tel string) (*User, error) {
-	user := &User{Title: title, Tel: tel}
+func NewUser(title string) (*User, error) {
+	user := &User{Title: title}
 	user.Data = make(map[string]string)
 	kid := ksuid.New()
 	user.CreatedAt = kid.Time()
@@ -442,8 +442,55 @@ func NewUser(title, tel string) (*User, error) {
 	return user, nil
 }
 
-func (t *DTable) StoreNewUser(user *User) error {
+func (u *User) SetTel(t string) error {
+	tel, err := NewTel(t, u.PK())
+	if err != nil {
+		return err
+	}
+	u.Tel = tel.String()
 	return nil
+}
+
+func (u *User) SetEmail(e string) error {
+	email, err := NewEmail(e, u.PK())
+	if err != nil {
+		return err
+	}
+	u.Email = email.String()
+	return nil
+}
+
+func (t *Tel) String() string {
+	return t.Number
+}
+
+func (e *Email) String() string {
+	return e.Email
+}
+
+func (t *TGAcc) String() string {
+	return t.TGID
+}
+
+//Store user, telephon number, email, TG id in one transaction
+//it fails if number, email or tg id already exist
+func (t *DTable) StoreNewUser(user *User) error {
+	items := []DMapper{user}
+	if user.Tel != "" {
+		tel, err := NewTel(user.Tel, user.PK())
+		if err != nil {
+			return err
+		}
+		items = append(items, tel)
+	}
+	if user.Email != "" {
+		email, err := NewEmail(user.Email, user.PK())
+		if err != nil {
+			return err
+		}
+		items = append(items, email)
+	}
+	return t.StoreInTransUniq(items...)
 }
 
 const EmailKeyPrefix = "email"
