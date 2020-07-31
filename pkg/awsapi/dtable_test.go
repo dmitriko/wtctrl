@@ -169,9 +169,21 @@ func TestUser(t *testing.T) {
 		t.Error(err)
 	}
 	if t1.Number != t_stored.Number || t1.OwnerPK != t_stored.OwnerPK {
-		t.Errorf("%+v != %+v", e1, ef)
+		t.Errorf("%+v != %+v", t1, t_stored)
 	}
-	//	tg1, err := NewTGAcc("tgid1", usr1.PK())
+	tg1, err := NewTGAcc("tgid1", usr1.PK())
+	_, err = testTable.StoreItem(tg1)
+	if err != nil {
+		t.Error(err)
+	}
+	tgf := &TGAcc{}
+	err = testTable.FetchItem(tg1.PK(), tgf)
+	if err != nil {
+		t.Error(err)
+	}
+	if tg1.TGID != tgf.TGID || tg1.OwnerPK != tgf.OwnerPK {
+		t.Errorf("%+v != %+v", tg1, tgf)
+	}
 	/*
 		err := testTable.StoreNewUser(usr1)
 		if err != nil {
