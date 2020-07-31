@@ -283,3 +283,8 @@ func TestSetTG(t *testing.T) {
 		t.Error("Could not fetch TG data")
 	}
 }
+
+func TestInvite(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+}

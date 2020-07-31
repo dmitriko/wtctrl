@@ -72,6 +72,12 @@ func (t *DTable) Create() error {
 	return err
 }
 
+func (t *DTable) EnableTTL() error {
+	timeToLiveInput.TableName = aws.String(t.Name)
+	_, err := t.db.UpdateTimeToLive(timeToLiveInput)
+	return err
+}
+
 type DMapper interface {
 	AsDMap() (map[string]*dynamodb.AttributeValue, error)
 	LoadFromD(map[string]*dynamodb.AttributeValue) error
@@ -633,4 +639,21 @@ func (t *TGAcc) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 
 func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
 	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+}
+
+type Bot struct {
+}
+
+const InviteKeyPrefix = "inv"
+
+type Invite struct {
+	ID        string
+	UserPK    string
+	OTP       int
+	CreatedAt time.Time
+	TTL       uint64
+}
+
+func (inv *Invite) PK() string {
+	return fmt.Sprintf("%s#%s#%d", InviteKeyPrefix, inv.ID, inv.OTP)
 }

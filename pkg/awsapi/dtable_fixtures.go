@@ -16,6 +16,10 @@ var createTableInput = &dynamodb.CreateTableInput{
 			AttributeName: aws.String("UMS"),
 			AttributeType: aws.String("S"),
 		},
+		{
+			AttributeName: aws.String("TTL"),
+			AttributeType: aws.String("N"),
+		},
 	},
 	KeySchema: []*dynamodb.KeySchemaElement{
 		{
@@ -40,5 +44,12 @@ var createTableInput = &dynamodb.CreateTableInput{
 				},
 			},
 		},
+	},
+}
+
+var timeToLiveInput = &dynamodb.UpdateTimeToLiveInput{
+	TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+		AttributeName: aws.String("TTL"),
+		Enabled:       aws.Bool(true),
 	},
 }
