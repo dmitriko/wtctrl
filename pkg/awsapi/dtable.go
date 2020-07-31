@@ -391,13 +391,13 @@ func (u *User) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	return nil
 }
 
-func NewUser(title, tel string) *User {
+func NewUser(title, tel string) (*User, error) {
 	user := &User{Title: title, Tel: tel}
 	user.Data = make(map[string]string)
 	kid := ksuid.New()
 	user.CreatedAt = kid.Time()
 	user.ID = kid.String()
-	return user
+	return user, nil
 }
 
 func (t *DTable) StoreNewUser(user *User) error {
@@ -442,4 +442,45 @@ func (e *Email) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 
 func NewEmail(email, owner_pk string) (*Email, error) {
 	return &Email{Email: email, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+}
+
+//For telephone number
+type Tel struct {
+	Number    string
+	OwnerPK   string
+	CreatedAt time.Time
+}
+
+func (t *Tel) PK() string {
+	return t.Number
+}
+
+func (t *Tel) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
+	if err != nil {
+		return err
+	}
+	created, err := time.Parse(time.RFC3339, item["C"].(string))
+	if err != nil {
+		return err
+	}
+	t.Number = item["PK"].(string)
+	t.OwnerPK = item["O"].(string)
+	t.CreatedAt = created
+	return nil
+}
+
+func (t *Tel) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK": t.PK(),
+		"O":  t.OwnerPK,
+		"C":  t.CreatedAt.Format(time.RFC3339),
+	}
+
+	return dynamodbattribute.MarshalMap(item)
+}
+
+func NewTel(number, owner_pk string) (*Tel, error) {
+	return &Tel{Number: number, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }

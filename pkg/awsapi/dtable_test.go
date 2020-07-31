@@ -144,7 +144,7 @@ func TestListMsg(t *testing.T) {
 func TestUser(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
-	usr1 := NewUser("Someone", "5555555")
+	usr1, _ := NewUser("Someone", "5555555")
 	e1, _ := NewEmail("foo@bar", usr1.PK())
 	_, err := testTable.StoreItem(e1)
 	if err != nil {
@@ -155,7 +155,20 @@ func TestUser(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if e1.Email != ef.Email && e1.OwnerPK != ef.OwnerPK {
+	if e1.Email != ef.Email || e1.OwnerPK != ef.OwnerPK {
+		t.Errorf("%+v != %+v", e1, ef)
+	}
+	t1, _ := NewTel("5555555", usr1.PK())
+	_, err = testTable.StoreItem(t1)
+	if err != nil {
+		t.Error(err)
+	}
+	t_stored := &Tel{}
+	err = testTable.FetchItem(t1.PK(), t_stored)
+	if err != nil {
+		t.Error(err)
+	}
+	if t1.Number != t_stored.Number || t1.OwnerPK != t_stored.OwnerPK {
 		t.Errorf("%+v != %+v", e1, ef)
 	}
 	/*
