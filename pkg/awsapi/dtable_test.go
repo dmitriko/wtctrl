@@ -256,3 +256,30 @@ func TestNewUser(t *testing.T) {
 		t.Error("expect error here")
 	}
 }
+
+func TestSetTG(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	tgid := "sometgid"
+	usr, _ := NewUser("Foo")
+	err := testTable.StoreUserTG(usr, tgid)
+	if err != nil {
+		t.Error(err)
+	}
+	u := &User{}
+	err = testTable.FetchItem(usr.PK(), u)
+	if err != nil {
+		t.Error(err)
+	}
+	if u.TGID != tgid {
+		t.Error("could not save TGID")
+	}
+	tg := &TGAcc{}
+	err = testTable.FetchItem(TGAccKeyPrefix+tgid, tg)
+	if err != nil {
+		t.Error(err)
+	}
+	if tg.OwnerPK != usr.PK() || tg.TGID != tgid {
+		t.Error("Could not fetch TG data")
+	}
+}

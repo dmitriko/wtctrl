@@ -472,6 +472,20 @@ func (t *TGAcc) String() string {
 	return t.TGID
 }
 
+func (t *DTable) StoreUserTG(user *User, tgid string) error {
+	tg, err := NewTGAcc(tgid, user.PK())
+	if err != nil {
+		return err
+	}
+	_, err = t.StoreItem(tg, UniqueOp())
+	if err != nil {
+		return err
+	}
+	user.TGID = tgid
+	_, err = t.StoreItem(user)
+	return err
+}
+
 //Store user, telephon number, email, TG id in one transaction
 //it fails if number, email or tg id already exist
 func (t *DTable) StoreNewUser(user *User) error {
