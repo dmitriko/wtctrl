@@ -237,7 +237,7 @@ func (m *Msg) SetUserStatus(ums string) error {
 	return nil
 }
 
-func loadFromDynamo(key_prefix string, av map[string]*dynamodb.AttributeValue) (*DItem, error) {
+func loadFromDynamoWithKSUID(key_prefix string, av map[string]*dynamodb.AttributeValue) (*DItem, error) {
 	ditem := &DItem{}
 	item := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &item)
@@ -262,7 +262,7 @@ func loadFromDynamo(key_prefix string, av map[string]*dynamodb.AttributeValue) (
 }
 
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	ditem, err := loadFromDynamo(MsgKeyPrefix, av)
+	ditem, err := loadFromDynamoWithKSUID(MsgKeyPrefix, av)
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, uid string, status int, start, e
 	return nil
 }
 
-const UserKeyPrefix = "user"
+const UserKeyPrefix = "user#"
 
 type User struct {
 	ID        string
@@ -369,7 +369,7 @@ func (u *User) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 }
 
 func (u *User) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	ditem, err := loadFromDynamo(UserKeyPrefix, av)
+	ditem, err := loadFromDynamoWithKSUID(UserKeyPrefix, av)
 	if err != nil {
 		return err
 	}
@@ -402,4 +402,44 @@ func NewUser(title, tel string) *User {
 
 func (t *DTable) StoreNewUser(user *User) error {
 	return nil
+}
+
+type Email struct {
+	Email     string
+	OwnerPK   string
+	CreatedAt time.Time
+}
+
+func (e *Email) PK() string {
+	return e.Email
+}
+
+func (e *Email) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
+	if err != nil {
+		return err
+	}
+	created, err := time.Parse(time.RFC3339, item["C"].(string))
+	if err != nil {
+		return err
+	}
+	e.Email = item["PK"].(string)
+	e.OwnerPK = item["O"].(string)
+	e.CreatedAt = created
+	return nil
+}
+
+func (e *Email) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK": e.PK(),
+		"O":  e.OwnerPK,
+		"C":  e.CreatedAt.Format(time.RFC3339),
+	}
+
+	return dynamodbattribute.MarshalMap(item)
+}
+
+func NewEmail(email, owner_pk string) (*Email, error) {
+	return &Email{Email: email, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }

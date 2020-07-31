@@ -54,7 +54,7 @@ func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(out)
 }
 func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	in, err := loadFromDynamo("testitem", av)
+	in, err := loadFromDynamoWithKSUID("testitem", av)
 	if err != nil {
 		return err
 	}
