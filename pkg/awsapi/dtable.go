@@ -409,6 +409,8 @@ func (t *DTable) StoreNewUser(user *User) error {
 	return nil
 }
 
+const EmailKeyPrefix = "email"
+
 type Email struct {
 	Email     string
 	OwnerPK   string
@@ -416,7 +418,7 @@ type Email struct {
 }
 
 func (e *Email) PK() string {
-	return e.Email
+	return fmt.Sprintf("%s%s", EmailKeyPrefix, e.Email)
 }
 
 func (e *Email) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
@@ -429,7 +431,7 @@ func (e *Email) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	e.Email = item["PK"].(string)
+	e.Email = IdFromPk(item["PK"], EmailKeyPrefix)
 	e.OwnerPK = item["O"].(string)
 	e.CreatedAt = created
 	return nil
@@ -449,6 +451,8 @@ func NewEmail(email, owner_pk string) (*Email, error) {
 	return &Email{Email: email, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }
 
+const TelKeyPrefix = "tel"
+
 //For telephone number
 type Tel struct {
 	Number    string
@@ -457,7 +461,7 @@ type Tel struct {
 }
 
 func (t *Tel) PK() string {
-	return t.Number
+	return fmt.Sprintf("%s%s", TelKeyPrefix, t.Number)
 }
 
 func (t *Tel) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
@@ -470,7 +474,7 @@ func (t *Tel) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	t.Number = item["PK"].(string)
+	t.Number = IdFromPk(item["PK"], TelKeyPrefix)
 	t.OwnerPK = item["O"].(string)
 	t.CreatedAt = created
 	return nil
