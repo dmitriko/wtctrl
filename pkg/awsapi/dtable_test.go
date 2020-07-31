@@ -171,6 +171,7 @@ func TestUser(t *testing.T) {
 	if t1.Number != t_stored.Number || t1.OwnerPK != t_stored.OwnerPK {
 		t.Errorf("%+v != %+v", e1, ef)
 	}
+	//	tg1, err := NewTGAcc("tgid1", usr1.PK())
 	/*
 		err := testTable.StoreNewUser(usr1)
 		if err != nil {

@@ -237,6 +237,11 @@ func (m *Msg) SetUserStatus(ums string) error {
 	return nil
 }
 
+func IdFromPk(pk interface{}, prefix string) string {
+	p := pk.(string)
+	return strings.Replace(p, prefix, "", -1)
+}
+
 func loadFromDynamoWithKSUID(key_prefix string, av map[string]*dynamodb.AttributeValue) (*DItem, error) {
 	ditem := &DItem{}
 	item := map[string]interface{}{}
@@ -246,7 +251,7 @@ func loadFromDynamoWithKSUID(key_prefix string, av map[string]*dynamodb.Attribut
 	}
 	ditem.Orig = item
 	ditem.Data = make(map[string]string)
-	ditem.ID = strings.Replace(item["PK"].(string), key_prefix, "", -1)
+	ditem.ID = IdFromPk(item["PK"], key_prefix)
 	kid, err := ksuid.Parse(ditem.ID)
 	if err != nil {
 		return nil, err
