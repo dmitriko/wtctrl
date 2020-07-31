@@ -105,6 +105,28 @@ func (t *DTable) StoreItem(item DMapper,
 	return t.db.PutItem(input)
 }
 
+//Store bunch of items in transactions, make sure they are new
+// by checking PK uniqueness
+func (t *DTable) StoreInTransUniq(items ...DMapper) error {
+	titems := []*dynamodb.TransactWriteItem{}
+	for _, i := range items {
+		av, err := i.AsDMap()
+		if err != nil {
+			return err
+		}
+		titems = append(titems, &dynamodb.TransactWriteItem{
+			Put: &dynamodb.Put{
+				ConditionExpression: aws.String("attribute_not_exists(PK)"),
+				Item:                av,
+				TableName:           aws.String(t.Name),
+			},
+		})
+	}
+	_, err := t.db.TransactWriteItems(&dynamodb.TransactWriteItemsInput{
+		TransactItems: titems})
+	return err
+}
+
 func (t *DTable) StoreItems(items ...DMapper) []error {
 	var output []error
 	for _, item := range items {

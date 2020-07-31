@@ -9,6 +9,23 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+func TestStoreInTrans(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	item1 := &TItem{"foo1", "bar1"}
+	item2 := &TItem{"foo2", "bar2"}
+	err := testTable.StoreInTransUniq(item1, item2)
+	if err != nil {
+		t.Error(err)
+	}
+	item3 := &TItem{"foo3", "bar3"}
+	item4 := &TItem{"foo1", "bar1"} // shoud be failing
+	err = testTable.StoreInTransUniq(item3, item4)
+	if err == nil || strings.HasPrefix("TransactionCanceledException", err.Error()) {
+		t.Error("this should be failing")
+	}
+}
+
 func TestStoreItems(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
