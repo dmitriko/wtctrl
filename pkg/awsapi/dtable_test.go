@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
 )
 
 func TestStoreItems(t *testing.T) {
-	startLocalDynamo(t)
 	defer stopLocalDynamo()
+	startLocalDynamo(t)
 
 	msg := &TItem{"foo", "bar"}
 	_, err := testTable.StoreItem(msg)
@@ -19,7 +18,7 @@ func TestStoreItems(t *testing.T) {
 		t.Error(err)
 	}
 	fmsg := &TItem{}
-	err = testTable.FetchItem("foo", fmsg)
+	err = testTable.FetchItem(msg.PK(), fmsg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,7 +34,10 @@ func TestStoreItems(t *testing.T) {
 		t.Error("Could not fetch item from index")
 	}
 	item := &TItem{}
-	dynamodbattribute.UnmarshalMap(resp.Items[0], item)
+	err = item.LoadFromD(resp.Items[0])
+	if err != nil {
+		t.Error(err)
+	}
 	if item.ID != "foo" || item.UMS != "bar" {
 		t.Errorf("could not query index, got %+v", item)
 	}
@@ -140,7 +142,7 @@ func TestListMsg(t *testing.T) {
 }
 
 func TestUser(t *testing.T) {
-	stopLocalDynamo()
+	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	usr1 := NewUser("Someone", "5555555")
 	e1, _ := NewEmail("foo@bar", usr1.PK())

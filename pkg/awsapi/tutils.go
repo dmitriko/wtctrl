@@ -1,7 +1,6 @@
 package awsapi
 
 import (
-	"fmt"
 	"os/exec"
 	"testing"
 
@@ -43,7 +42,7 @@ type TItem struct {
 }
 
 func (item *TItem) PK() string {
-	return fmt.Sprintf("testitem#%s", item.ID)
+	return item.ID
 }
 
 func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
@@ -54,11 +53,12 @@ func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(out)
 }
 func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	in, err := loadFromDynamoWithKSUID("testitem", av)
+	in := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &in)
 	if err != nil {
 		return err
 	}
-	item.ID = in.ID
-	item.UMS = in.Orig["UMS"].(string)
+	item.ID = in["PK"].(string)
+	item.UMS = in["UMS"].(string)
 	return nil
 }
