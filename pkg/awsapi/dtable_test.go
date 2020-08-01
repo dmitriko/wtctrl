@@ -262,7 +262,8 @@ func TestSetTG(t *testing.T) {
 	startLocalDynamo(t)
 	tgid := "sometgid"
 	usr, _ := NewUser("Foo")
-	err := testTable.StoreUserTG(usr, tgid)
+	bot, _ := NewBot(TGBotKind, "somesecret")
+	err := testTable.StoreUserTG(usr, tgid, bot)
 	if err != nil {
 		t.Error(err)
 	}
@@ -281,6 +282,9 @@ func TestSetTG(t *testing.T) {
 	}
 	if tg.OwnerPK != usr.PK() || tg.TGID != tgid {
 		t.Error("Could not fetch TG data")
+	}
+	if _, ok := tg.Data[bot.PK()]; !ok {
+		t.Error("tg account does not have associated bot")
 	}
 }
 

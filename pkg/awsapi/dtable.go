@@ -478,11 +478,12 @@ func (t *TGAcc) String() string {
 	return t.TGID
 }
 
-func (t *DTable) StoreUserTG(user *User, tgid string) error {
+func (t *DTable) StoreUserTG(user *User, tgid string, bot *Bot) error {
 	tg, err := NewTGAcc(tgid, user.PK())
 	if err != nil {
 		return err
 	}
+	tg.Data[bot.PK()] = "ok"
 	_, err = t.StoreItem(tg, UniqueOp())
 	if err != nil {
 		return err
@@ -605,6 +606,7 @@ type TGAcc struct {
 	TGID      string
 	OwnerPK   string
 	CreatedAt time.Time
+	Data      map[string]string
 }
 
 func (t *TGAcc) PK() string {
@@ -624,6 +626,13 @@ func (t *TGAcc) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	t.TGID = IdFromPk(item["PK"], TGAccKeyPrefix)
 	t.OwnerPK = item["O"].(string)
 	t.CreatedAt = created
+	d, ok := item["D"].(map[string]interface{})
+	if ok {
+		t.Data = make(map[string]string)
+		for k, v := range d {
+			t.Data[k] = v.(string)
+		}
+	}
 	return nil
 }
 
@@ -633,12 +642,15 @@ func (t *TGAcc) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 		"O":  t.OwnerPK,
 		"C":  t.CreatedAt.Format(time.RFC3339),
 	}
-
+	if len(t.Data) > 0 {
+		item["D"] = t.Data
+	}
 	return dynamodbattribute.MarshalMap(item)
 }
 
 func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
-	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now(),
+		Data: make(map[string]string)}, nil
 }
 
 const TGBotKind = "tg"
