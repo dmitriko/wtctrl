@@ -2,6 +2,7 @@ package awsapi
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -314,11 +315,13 @@ func TestInvite(t *testing.T) {
 	valid := 24 //hours
 	inv, _ := NewInvite(user, bot, valid)
 	if !inv.IsValid() {
-		t.Errorf("%v expected to be valid", inv)
+		t.Errorf("%+v expected to be valid", inv)
 	}
 	inv.TTL = time.Now().Unix()
 	if inv.IsValid() {
-		t.Errorf("%v expected to be invalid", inv)
+		t.Errorf("%+v expected to be invalid", inv)
 	}
-
+	if !regexp.MustCompile(`^[0-9]{6}$`).MatchString(inv.OTP) {
+		t.Errorf("OTP is not properly set, %+v", inv)
+	}
 }

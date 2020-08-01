@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
+	"github.com/xlzd/gotp"
 )
 
 const (
@@ -716,20 +717,24 @@ const InviteKeyPrefix = "inv"
 type Invite struct {
 	BotID     string
 	UserPK    string
-	OTP       int
+	OTP       string
 	CreatedAt time.Time
 	TTL       int64
 }
 
 func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
-	inv := &Invite{TTL: int64(valid)*60*60 + time.Now().Unix()}
+	inv := &Invite{CreatedAt: time.Now(), TTL: int64(valid)*60*60 + time.Now().Unix()}
+	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
 	return inv, nil
 }
 
 func (inv *Invite) PK() string {
-	return fmt.Sprintf("%s#%s#%d", InviteKeyPrefix, inv.BotID, inv.OTP)
+	return fmt.Sprintf("%s#%s#%s", InviteKeyPrefix, inv.BotID, inv.OTP)
 }
 
 func (inv *Invite) IsValid() bool {
+	if inv.TTL > time.Now().Unix() {
+		return true
+	}
 	return false
 }
