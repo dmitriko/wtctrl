@@ -641,19 +641,83 @@ func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
 	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }
 
+const TGBotKind = "tg"
+const BotKeyPrefix = "bot"
+
 type Bot struct {
+	ID        string
+	Kind      string
+	Secret    string
+	CreatedAt time.Time
+	Data      map[string]string
+}
+
+func NewBot(kind, secret string) (*Bot, error) {
+	bot := &Bot{Kind: kind, Secret: secret, Data: make(map[string]string)}
+	kid := ksuid.New()
+	bot.ID = kid.String()
+	bot.CreatedAt = kid.Time()
+	return bot, nil
+}
+
+func (b *Bot) PK() string {
+	if b.ID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s%s", BotKeyPrefix, b.ID)
+}
+
+func (b *Bot) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK": b.PK(),
+		"S":  b.Secret,
+		"K":  b.Kind,
+	}
+	if len(b.Data) > 0 {
+		item["D"] = b.Data
+	}
+	return dynamodbattribute.MarshalMap(item)
+}
+
+func (b *Bot) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	ditem, err := loadFromDynamoWithKSUID(BotKeyPrefix, av)
+	if err != nil {
+		return err
+	}
+	b.ID = ditem.ID
+	b.CreatedAt = ditem.CreatedAt
+	b.Data = ditem.Data
+	kind, ok := ditem.Orig["K"].(string)
+	if ok {
+		b.Kind = kind
+	}
+	s, ok := ditem.Orig["S"].(string)
+	if ok {
+		b.Secret = s
+	}
+
+	return nil
 }
 
 const InviteKeyPrefix = "inv"
 
 type Invite struct {
-	ID        string
+	BotID     string
 	UserPK    string
 	OTP       int
 	CreatedAt time.Time
-	TTL       uint64
+	TTL       int64
+}
+
+func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
+	inv := &Invite{TTL: int64(valid)*60*60 + time.Now().Unix()}
+	return inv, nil
 }
 
 func (inv *Invite) PK() string {
-	return fmt.Sprintf("%s#%s#%d", InviteKeyPrefix, inv.ID, inv.OTP)
+	return fmt.Sprintf("%s#%s#%d", InviteKeyPrefix, inv.BotID, inv.OTP)
+}
+
+func (inv *Invite) IsValid() bool {
+	return false
 }

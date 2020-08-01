@@ -284,7 +284,37 @@ func TestSetTG(t *testing.T) {
 	}
 }
 
+func TestBot(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	bot, _ := NewBot(TGBotKind, "somesecret")
+	_, err := testTable.StoreItem(bot)
+	if err != nil {
+		t.Error(err)
+	}
+	bf := &Bot{}
+	err = testTable.FetchItem(bot.PK(), bf)
+	if err != nil {
+		t.Error(err)
+	}
+	if bf.ID != bot.ID || bf.Secret != bot.Secret || bot.Kind != bf.Kind {
+		t.Errorf("%+v != %+v", bot, bf)
+	}
+}
+
 func TestInvite(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	bot, _ := NewBot(TGBotKind, "somesecret")
+	valid := 24 //hours
+	inv, _ := NewInvite(user, bot, valid)
+	if !inv.IsValid() {
+		t.Errorf("%v expected to be valid", inv)
+	}
+	inv.TTL = time.Now().Unix()
+	if inv.IsValid() {
+		t.Errorf("%v expected to be invalid", inv)
+	}
+
 }
