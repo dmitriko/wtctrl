@@ -720,11 +720,18 @@ type Invite struct {
 	OTP       string
 	CreatedAt time.Time
 	TTL       int64
+	Data      map[string]string
 }
 
 func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
-	inv := &Invite{CreatedAt: time.Now(), TTL: int64(valid)*60*60 + time.Now().Unix()}
+	inv := &Invite{
+		UserPK:    u.PK(),
+		BotID:     b.ID,
+		CreatedAt: time.Now(),
+		TTL:       int64(valid)*60*60 + time.Now().Unix(),
+	}
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
+	inv.Data = make(map[string]string)
 	return inv, nil
 }
 
@@ -737,4 +744,47 @@ func (inv *Invite) IsValid() bool {
 		return true
 	}
 	return false
+}
+
+func (inv *Invite) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
+	if err != nil {
+		return err
+	}
+	created, err := time.Parse(time.RFC3339, item["C"].(string))
+	if err != nil {
+		return err
+	}
+	inv.UserPK, _ = item["U"].(string)
+	inv.BotID = item["B"].(string)
+	inv.OTP = item["O"].(string)
+	ttl, ok := item["T"].(float64)
+	if ok {
+		inv.TTL = int64(ttl)
+	}
+	inv.CreatedAt = created
+	d, ok := item["D"].(map[string]interface{})
+	if ok {
+		inv.Data = make(map[string]string)
+		for k, v := range d {
+			inv.Data[k] = v.(string)
+		}
+	}
+	return nil
+}
+
+func (inv *Invite) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK": inv.PK(),
+		"U":  inv.UserPK,
+		"B":  inv.BotID,
+		"O":  inv.OTP,
+		"T":  inv.TTL,
+		"C":  inv.CreatedAt.Format(time.RFC3339),
+	}
+	if len(inv.Data) > 0 {
+		item["D"] = inv.Data
+	}
+	return dynamodbattribute.MarshalMap(item)
 }

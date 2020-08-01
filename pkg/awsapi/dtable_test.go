@@ -324,4 +324,16 @@ func TestInvite(t *testing.T) {
 	if !regexp.MustCompile(`^[0-9]{6}$`).MatchString(inv.OTP) {
 		t.Errorf("OTP is not properly set, %+v", inv)
 	}
+	_, err := testTable.StoreItem(inv, UniqueOp())
+	if err != nil {
+		t.Error(err)
+	}
+	invf := &Invite{}
+	err = testTable.FetchItem(inv.PK(), invf)
+	if err != nil {
+		t.Error(err)
+	}
+	if invf.OTP != inv.OTP || invf.UserPK != inv.UserPK || invf.BotID != inv.BotID || invf.TTL != inv.TTL {
+		t.Errorf("%+v !+ %+v", invf, inv)
+	}
 }
