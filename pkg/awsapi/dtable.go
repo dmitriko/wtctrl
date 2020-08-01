@@ -659,18 +659,23 @@ const BotKeyPrefix = "bot"
 
 type Bot struct {
 	ID        string
+	Name      string
 	Kind      string
 	Secret    string
 	CreatedAt time.Time
 	Data      map[string]string
 }
 
-func NewBot(kind, secret string) (*Bot, error) {
-	bot := &Bot{Kind: kind, Secret: secret, Data: make(map[string]string)}
+func NewBot(kind, name, secret string) (*Bot, error) {
+	bot := &Bot{Kind: kind, Name: name, Secret: secret, Data: make(map[string]string)}
 	kid := ksuid.New()
 	bot.ID = kid.String()
 	bot.CreatedAt = kid.Time()
 	return bot, nil
+}
+
+func (b *Bot) InviteUrl(otp string) string {
+	return fmt.Sprintf("%s/%s?start=%s", "https://t.me", b.Name, otp)
 }
 
 func (b *Bot) PK() string {
@@ -685,6 +690,7 @@ func (b *Bot) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 		"PK": b.PK(),
 		"S":  b.Secret,
 		"K":  b.Kind,
+		"N":  b.Name,
 	}
 	if len(b.Data) > 0 {
 		item["D"] = b.Data
@@ -708,6 +714,7 @@ func (b *Bot) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if ok {
 		b.Secret = s
 	}
+	b.Name, _ = ditem.Orig["N"].(string)
 
 	return nil
 }
@@ -720,6 +727,7 @@ type Invite struct {
 	OTP       string
 	CreatedAt time.Time
 	TTL       int64
+	Url       string
 	Data      map[string]string
 }
 
@@ -732,6 +740,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 	}
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
 	inv.Data = make(map[string]string)
+	inv.Url = b.InviteUrl(inv.OTP)
 	return inv, nil
 }
 
@@ -759,6 +768,7 @@ func (inv *Invite) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	inv.UserPK, _ = item["U"].(string)
 	inv.BotID = item["B"].(string)
 	inv.OTP = item["O"].(string)
+	inv.Url = item["Url"].(string)
 	ttl, ok := item["T"].(float64)
 	if ok {
 		inv.TTL = int64(ttl)
@@ -776,12 +786,13 @@ func (inv *Invite) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 
 func (inv *Invite) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK": inv.PK(),
-		"U":  inv.UserPK,
-		"B":  inv.BotID,
-		"O":  inv.OTP,
-		"T":  inv.TTL,
-		"C":  inv.CreatedAt.Format(time.RFC3339),
+		"PK":  inv.PK(),
+		"U":   inv.UserPK,
+		"B":   inv.BotID,
+		"O":   inv.OTP,
+		"T":   inv.TTL,
+		"Url": inv.Url,
+		"C":   inv.CreatedAt.Format(time.RFC3339),
 	}
 	if len(inv.Data) > 0 {
 		item["D"] = inv.Data

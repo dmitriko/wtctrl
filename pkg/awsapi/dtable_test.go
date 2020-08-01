@@ -263,7 +263,7 @@ func TestSetTG(t *testing.T) {
 	startLocalDynamo(t)
 	tgid := "sometgid"
 	usr, _ := NewUser("Foo")
-	bot, _ := NewBot(TGBotKind, "somesecret")
+	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
 	err := testTable.StoreUserTG(usr, tgid, bot)
 	if err != nil {
 		t.Error(err)
@@ -292,7 +292,7 @@ func TestSetTG(t *testing.T) {
 func TestBot(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
-	bot, _ := NewBot(TGBotKind, "somesecret")
+	bot, _ := NewBot(TGBotKind, "foo", "somesecret")
 	_, err := testTable.StoreItem(bot)
 	if err != nil {
 		t.Error(err)
@@ -302,8 +302,12 @@ func TestBot(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if bf.ID != bot.ID || bf.Secret != bot.Secret || bot.Kind != bf.Kind {
+	if bf.Name != bot.Name || bf.ID != bot.ID || bf.Secret != bot.Secret || bot.Kind != bf.Kind {
 		t.Errorf("%+v != %+v", bot, bf)
+	}
+	if bot.InviteUrl("111111") != "https://t.me/foo?start=111111" {
+		t.Errorf("Invite URL is not correct, got %s expected %s", bot.InviteUrl("111111"),
+			"http://t.me/foo?start=111111")
 	}
 }
 
@@ -311,7 +315,7 @@ func TestInvite(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	user, _ := NewUser("foo")
-	bot, _ := NewBot(TGBotKind, "somesecret")
+	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
 	valid := 24 //hours
 	inv, _ := NewInvite(user, bot, valid)
 	if !inv.IsValid() {
@@ -335,5 +339,10 @@ func TestInvite(t *testing.T) {
 	}
 	if invf.OTP != inv.OTP || invf.UserPK != inv.UserPK || invf.BotID != inv.BotID || invf.TTL != inv.TTL {
 		t.Errorf("%+v !+ %+v", invf, inv)
+	}
+	url := inv.Url
+	expected_url := "https://t.me/somebot?start=" + inv.OTP
+	if url != expected_url {
+		t.Errorf("expected %s got %s", expected_url, url)
 	}
 }
