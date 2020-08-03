@@ -831,3 +831,16 @@ func (inv *Invite) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	}
 	return dynamodbattribute.MarshalMap(item)
 }
+
+func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
+	inv.OTP = code
+	inv.BotID = bot.ID
+	err := t.FetchItem(inv.PK(), inv)
+	if err != nil {
+		return err
+	}
+	if !inv.IsValid() {
+		return errors.New(NO_SUCH_ITEM)
+	}
+	return nil
+}

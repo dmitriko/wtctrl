@@ -367,4 +367,19 @@ func TestInvite(t *testing.T) {
 	if url != expected_url {
 		t.Errorf("expected %s got %s", expected_url, url)
 	}
+	inv, _ = NewInvite(user, bot, valid)
+	_, err = testTable.StoreItem(inv)
+	if err != nil {
+		t.Error(err)
+	}
+	invf2 := &Invite{}
+	err = testTable.FetchInvite(bot, inv.OTP, invf2)
+	if err != nil {
+		t.Error(err)
+	}
+	invf2 = &Invite{}
+	err = testTable.FetchInvite(bot, "000000", invf2)
+	if err == nil || err.Error() != NO_SUCH_ITEM {
+		t.Error("should not be happening")
+	}
 }
