@@ -28,8 +28,21 @@ func TestStoreInTrans(t *testing.T) {
 }
 
 func TestDBUpdateItem(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
 	item, _ := NewTestItem("foo", "bar")
 	item.Data["spam"] = "egg"
+	item.Data["url"] = "example.com"
+	_, err := testTable.StoreItem(item)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = testTable.UpdateItemData(item.PK(), "url", "foobar.com")
+	f := &TItem{}
+	err = testTable.FetchItem(item.PK(), f)
+	if f.Data["url"] != "foobar.com" {
+		t.Errorf("update did not work %+v", f)
+	}
 }
 
 func TestStoreItems(t *testing.T) {

@@ -170,6 +170,27 @@ func (t *DTable) FetchItem(pk string, item DMapper) error {
 	return nil
 }
 
+func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutput, error) {
+	uii := &dynamodb.UpdateItemInput{
+		TableName: aws.String(t.Name),
+		//	ReturnValues: aws.String("ALL_NEW"),
+		ExpressionAttributeNames: map[string]*string{
+			"#Data": aws.String("D"),
+			"#Key":  aws.String(key),
+		},
+		UpdateExpression: aws.String("SET #Data.#Key = :v"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":v": {
+				S: aws.String(value),
+			},
+		},
+		Key: map[string]*dynamodb.AttributeValue{
+			"PK": {S: aws.String(pk)},
+		},
+	}
+	return t.db.UpdateItem(uii)
+}
+
 func (t *DTable) QueryIndex(
 	name string, cond string, exprValues map[string]interface{}) (*dynamodb.QueryOutput, error) {
 	av, err := dynamodbattribute.MarshalMap(exprValues)
