@@ -807,8 +807,8 @@ func (inv *Invite) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	}
 	inv.CreatedAt = created
 	d, ok := item["D"].(map[string]interface{})
+	inv.Data = make(map[string]string)
 	if ok {
-		inv.Data = make(map[string]string)
 		for k, v := range d {
 			inv.Data[k] = v.(string)
 		}
