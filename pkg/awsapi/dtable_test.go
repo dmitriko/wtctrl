@@ -67,7 +67,7 @@ func TestStoreItems(t *testing.T) {
 	}
 }
 
-func TestDBMsg(t *testing.T) {
+func TestMsgDb(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
 	msg, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
@@ -103,7 +103,7 @@ func TestDBMsg(t *testing.T) {
 	}
 }
 
-func TestSimpleMessaging(t *testing.T) {
+func TestMsgSimple(t *testing.T) {
 	msg, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
 	if err != nil {
@@ -133,7 +133,7 @@ func TestSimpleMessaging(t *testing.T) {
 	}
 }
 
-func TestListMsg(t *testing.T) {
+func TestMsgList(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	var err error
