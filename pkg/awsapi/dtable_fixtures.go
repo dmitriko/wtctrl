@@ -17,9 +17,13 @@ var createTableInput = &dynamodb.CreateTableInput{
 			AttributeType: aws.String("S"),
 		},
 		{
-			AttributeName: aws.String("TTL"),
+			AttributeName: aws.String("CRTD"),
 			AttributeType: aws.String("N"),
 		},
+		/*	{
+			AttributeName: aws.String("TTL"),
+			AttributeType: aws.String("N"),
+		},*/
 	},
 	KeySchema: []*dynamodb.KeySchemaElement{
 		{
@@ -31,7 +35,7 @@ var createTableInput = &dynamodb.CreateTableInput{
 		{
 			IndexName: aws.String("UMSIndex"),
 			Projection: &dynamodb.Projection{
-				ProjectionType: aws.String("KEYS_ONLY"),
+				ProjectionType: aws.String("ALL"),
 			},
 			KeySchema: []*dynamodb.KeySchemaElement{
 				{
@@ -39,7 +43,7 @@ var createTableInput = &dynamodb.CreateTableInput{
 					KeyType:       aws.String("HASH"),
 				},
 				{
-					AttributeName: aws.String("PK"),
+					AttributeName: aws.String("CRTD"),
 					KeyType:       aws.String("RANGE"),
 				},
 			},

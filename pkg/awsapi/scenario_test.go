@@ -70,7 +70,7 @@ func TestScenarioTGStartNotValidCode(t *testing.T) {
 	}
 }
 
-func _TestScenarioTGText(t *testing.T) {
+func TestScenarioTGText(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	tgid := 123456789

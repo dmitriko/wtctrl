@@ -15,7 +15,7 @@ const (
 
 func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) error {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
-	//	msg.Data["text"] = tgmsg.Text
+	msg.Data["text"] = tgmsg.Text
 	if err != nil {
 		return err
 	}

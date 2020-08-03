@@ -3,6 +3,7 @@ package awsapi
 import (
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -37,14 +38,16 @@ func stopLocalDynamo() {
 }
 
 type TItem struct {
-	ID   string
-	UMS  string
-	Data map[string]string
+	ID        string
+	UMS       string
+	CreatedAt int64
+	Data      map[string]string
 }
 
 func NewTestItem(id, ums string) (*TItem, error) {
-	i := &TItem{ID: id, UMS: ums}
+	i := &TItem{ID: id, UMS: ums, CreatedAt: time.Now().Unix()}
 	i.Data = make(map[string]string)
+
 	return i, nil
 }
 
@@ -54,8 +57,9 @@ func (item *TItem) PK() string {
 
 func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	out := map[string]interface{}{
-		"PK":  item.PK(),
-		"UMS": item.UMS,
+		"PK":   item.PK(),
+		"UMS":  item.UMS,
+		"CRTD": item.CreatedAt,
 	}
 	if len(item.Data) > 0 {
 		out["D"] = item.Data
@@ -70,6 +74,7 @@ func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	}
 	item.ID = in["PK"].(string)
 	item.UMS = in["UMS"].(string)
+	item.CreatedAt = int64(in["CRTD"].(float64))
 	item.Data = make(map[string]string)
 	d, ok := in["D"].(map[string]interface{})
 	if ok {

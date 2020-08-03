@@ -75,6 +75,7 @@ func TestStoreItems(t *testing.T) {
 	}
 	if len(resp.Items) != 1 {
 		t.Error("Could not fetch item from index")
+		t.FailNow()
 	}
 	item := &TItem{}
 	err = item.LoadFromD(resp.Items[0])
@@ -94,7 +95,7 @@ func TestMsgDb(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if msg.Author != "user#user1" {
+	if msg.AuthorPK != "user#user1" {
 		t.Error("issue with Author")
 	}
 	_, err = testTable.StoreItem(msg)
@@ -113,7 +114,7 @@ func TestMsgDb(t *testing.T) {
 		t.Error("Could not store/fetch msg.Data[url]")
 	}
 
-	if dmsg.Author != msg.Author {
+	if dmsg.AuthorPK != msg.AuthorPK {
 		t.Error("Could not fetch Msg.Author")
 	}
 
@@ -123,7 +124,7 @@ func TestMsgDb(t *testing.T) {
 }
 
 func TestMsgSimple(t *testing.T) {
-	msg, err := NewMsg("bot1", "user1", TGPicMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg, err := NewMsg("bot1", "user#user1", TGPicMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
@@ -133,7 +134,7 @@ func TestMsgSimple(t *testing.T) {
 		t.Error(err)
 	}
 	var dur time.Duration
-	dur = id.Time().Sub(msg.CreatedAt)
+	dur = id.Time().Sub(time.Unix(msg.CreatedAt, 0))
 	if dur.Milliseconds() > 1000.0 {
 		t.Errorf("time from id != CreatedAt, but has diff %s", dur.String())
 	}
@@ -144,11 +145,11 @@ func TestMsgSimple(t *testing.T) {
 	if msg.UserStatus != 5 {
 		t.Error("UserStatus is not correct")
 	}
-	if msg.Author != "user1" {
-		t.Error("Author is not correct")
+	if msg.AuthorPK != "user#user1" {
+		t.Errorf("AuthorPK is not correct, expected %s got %s", "user#user1", msg.AuthorPK)
 	}
-	if msg.Channel != "bot1" {
-		t.Error("Channel is not correct")
+	if msg.ChannelPK != "bot1" {
+		t.Error("ChannelPK is not correct")
 	}
 	if msg.Kind != TGPicMsgKind {
 		t.Error("Kind is not correct")
@@ -168,6 +169,7 @@ func TestMsgList(t *testing.T) {
 		DataOp(map[string]string{"url": "https://example2.com"}))
 
 	msg3, err := NewMsg("bot1", user2.PK(), TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+
 		DataOp(map[string]string{"url": "https://example3.com"}))
 
 	errs := testTable.StoreItems(msg1, msg2, msg3)

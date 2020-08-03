@@ -215,12 +215,12 @@ type DItem struct {
 }
 
 type Msg struct {
-	Channel    string
-	Author     string
+	ChannelPK  string
+	AuthorPK   string
 	Kind       int64
 	ID         string
 	UserStatus int
-	CreatedAt  time.Time
+	CreatedAt  int64
 	Data       map[string]string
 }
 
@@ -231,7 +231,7 @@ func CreatedAtOp(ts string) func(*Msg) error {
 		if err != nil {
 			return err
 		}
-		m.CreatedAt = t
+		m.CreatedAt = t.Unix()
 		return nil
 	}
 }
@@ -258,7 +258,7 @@ const (
 
 //Factory method for Msg
 func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) (*Msg, error) {
-	msg := &Msg{Channel: channel, Author: pk, Kind: kind, CreatedAt: time.Now()}
+	msg := &Msg{ChannelPK: channel, AuthorPK: pk, Kind: kind, CreatedAt: time.Now().Unix()}
 	msg.Data = make(map[string]string)
 	for _, opt := range options {
 		err := opt(msg)
@@ -267,12 +267,12 @@ func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) 
 		}
 	}
 	if msg.ID == "" {
-		id, err := ksuid.NewRandomWithTime(msg.CreatedAt)
+		id, err := ksuid.NewRandomWithTime(time.Unix(msg.CreatedAt, 0))
 		if err != nil {
 			return nil, err
 		}
 		msg.ID = id.String()
-		msg.CreatedAt = id.Time() //there is a bit difference from origin, we need this to be stored
+		msg.CreatedAt = id.Time().Unix() //there is a bit difference from origin, we need this to be stored
 	}
 	return msg, nil
 }
@@ -285,12 +285,13 @@ func (m *Msg) PK() string {
 }
 
 func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
-	ums := fmt.Sprintf("%s#%d", m.Author, m.UserStatus)
+	ums := fmt.Sprintf("%s#%d", m.AuthorPK, m.UserStatus)
 	item := map[string]interface{}{
-		"PK":  m.PK(),
-		"UMS": ums,
-		"C":   m.Channel,
-		"K":   m.Kind,
+		"PK":   m.PK(),
+		"UMS":  ums,
+		"Ch":   m.ChannelPK,
+		"CRTD": m.CreatedAt,
+		"K":    m.Kind,
 	}
 	if len(m.Data) > 0 {
 		item["D"] = m.Data
@@ -304,7 +305,7 @@ func (m *Msg) SetUserStatus(ums string) error {
 	if len(s) != 3 {
 		return errors.New("Could not parse " + ums)
 	}
-	m.Author = s[0] + "#" + s[1]
+	m.AuthorPK = s[0] + "#" + s[1]
 	i, err := strconv.Atoi(s[2])
 	if err != nil {
 		return err
@@ -342,23 +343,34 @@ func loadFromDynamoWithKSUID(key_prefix string, av map[string]*dynamodb.Attribut
 	return ditem, nil
 }
 
+func PK2ID(pk, prefix string) string {
+	return strings.Replace(pk, prefix, "", -1)
+}
+
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	ditem, err := loadFromDynamoWithKSUID(MsgKeyPrefix, av)
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
 	if err != nil {
 		return err
 	}
-	m.ID = ditem.ID
-	m.CreatedAt = ditem.CreatedAt
-	m.Data = ditem.Data
-	err = m.SetUserStatus(ditem.Orig["UMS"].(string))
-	if err != nil {
-		return err
-	}
-	ch, ok := ditem.Orig["C"].(string)
+	m.ID = PK2ID(item["PK"].(string), MsgKeyPrefix)
+	m.CreatedAt = int64(item["CRTD"].(float64))
+	m.Data = make(map[string]string)
+	d, ok := item["D"].(map[string]interface{})
 	if ok {
-		m.Channel = ch
+		for k, v := range d {
+			m.Data[k] = v.(string)
+		}
 	}
-	k, ok := ditem.Orig["K"].(float64)
+	err = m.SetUserStatus(item["UMS"].(string))
+	if err != nil {
+		return err
+	}
+	ch, ok := item["Ch"].(string)
+	if ok {
+		m.ChannelPK = ch
+	}
+	k, ok := item["K"].(float64)
 	if ok {
 		m.Kind = int64(k)
 	}
@@ -393,16 +405,17 @@ func GetMsgPK(strtime string) (string, error) {
 
 func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, end string) error {
 	ums := fmt.Sprintf("%s#%d", user.PK(), status)
-	start_pk, err := GetMsgPK(start)
+
+	start_time, err := StrToTime(start)
 	if err != nil {
 		return err
 	}
-	end_pk, err := GetMsgPK(end)
+	end_time, err := StrToTime(end)
 	if err != nil {
 		return err
 	}
-	exprValues := map[string]interface{}{":ums": ums, ":start": start_pk, ":end": end_pk}
-	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums and PK BETWEEN :start AND :end", exprValues)
+	exprValues := map[string]interface{}{":ums": ums, ":start": start_time.Unix(), ":end": end_time.Unix()}
+	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums and CRTD BETWEEN :start AND :end", exprValues)
 	if err != nil {
 		return err
 	}
