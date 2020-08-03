@@ -70,7 +70,7 @@ func TestScenarioTGStartNotValidCode(t *testing.T) {
 	}
 }
 
-func TestScenarioTGText(t *testing.T) {
+func _TestScenarioTGText(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	tgid := 123456789
@@ -90,5 +90,18 @@ func TestScenarioTGText(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
+	lm := NewListMsg()
+	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	if err != nil {
+		t.Error(err)
+	}
+	if lm.Len() != 1 {
+		t.Error("expected 1 Msg in DB")
+	}
+	for _, msg := range lm.Items {
+		txt, ok := msg.Data["text"]
+		if !ok && txt != text {
+			t.Errorf("expected msg with text %s got %+v", text, msg)
+		}
+	}
 }

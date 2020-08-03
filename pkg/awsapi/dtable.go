@@ -259,6 +259,7 @@ const (
 //Factory method for Msg
 func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) (*Msg, error) {
 	msg := &Msg{Channel: channel, Author: pk, Kind: kind, CreatedAt: time.Now()}
+	msg.Data = make(map[string]string)
 	for _, opt := range options {
 		err := opt(msg)
 		if err != nil {

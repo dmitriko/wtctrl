@@ -39,6 +39,6 @@ func NewTgUserMsg(orig string) (*TGUserMsg, error) {
 	return msg, err
 }
 
-func (um *TGUserMsg) UserID() string {
+func (um *TGUserMsg) TGID() string {
 	return string(um.From.Id)
 }

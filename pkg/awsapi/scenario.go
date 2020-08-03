@@ -13,6 +13,16 @@ const (
 	WELCOME    = "Welcome!"
 )
 
+func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) error {
+	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
+	//	msg.Data["text"] = tgmsg.Text
+	if err != nil {
+		return err
+	}
+	_, err = table.StoreItem(msg)
+	return err
+}
+
 func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error) {
 	var err error
 	r := regexp.MustCompile(`\d{6}`)
@@ -51,7 +61,18 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 		return "", err
 	}
 	if strings.HasPrefix(msg.Text, "/start") {
-		return handleTGStartMsg(bot, table, msg.Text, msg.UserID())
+		return handleTGStartMsg(bot, table, msg.Text, msg.TGID())
 	}
+	tgacc := &TGAcc{}
+	err = table.FetchItem(TGAccKeyPrefix+msg.TGID(), tgacc)
+	if err != nil {
+		return "", err
+	}
+	user := &User{}
+	err = table.FetchItem(tgacc.OwnerPK, user)
+	if err != nil {
+		return "", err
+	}
+	err = handleTGAuthTextMsg(bot, table, user, msg)
 	return "", err
 }
