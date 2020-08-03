@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	MsgKeyPrefix = "msg#"
-	NO_SUCH_ITEM = "NoSuchItem"
+	MsgKeyPrefix   = "msg#"
+	NO_SUCH_ITEM   = "NoSuchItem"
+	ALREADY_EXISTS = "AlreadyExists"
 )
 
 //Provides access to DynamoDB table
@@ -109,7 +110,11 @@ func (t *DTable) StoreItem(item DMapper,
 			return nil, err
 		}
 	}
-	return t.db.PutItem(input)
+	out, err := t.db.PutItem(input)
+	if err != nil && strings.HasPrefix(err.Error(), "ConditionalCheckFailedException") {
+		return out, errors.New(ALREADY_EXISTS)
+	}
+	return out, err
 }
 
 //Store bunch of items in transactions, make sure they are new

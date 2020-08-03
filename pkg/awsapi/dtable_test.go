@@ -38,7 +38,7 @@ func TestStoreItems(t *testing.T) {
 	}
 	msg_err := &TItem{"foo", "baz"}
 	_, err = testTable.StoreItem(msg_err, UniqueOp())
-	if err == nil || !strings.HasPrefix(err.Error(), "ConditionalCheckFailedException") {
+	if err == nil || err.Error() != ALREADY_EXISTS {
 		t.Error("Fail to unique store item")
 	}
 	fmsg := &TItem{}
