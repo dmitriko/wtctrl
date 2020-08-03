@@ -37,8 +37,15 @@ func stopLocalDynamo() {
 }
 
 type TItem struct {
-	ID  string
-	UMS string
+	ID   string
+	UMS  string
+	Data map[string]string
+}
+
+func NewTestItem(id, ums string) (*TItem, error) {
+	i := &TItem{ID: id, UMS: ums}
+	i.Data = make(map[string]string)
+	return i, nil
 }
 
 func (item *TItem) PK() string {
@@ -50,6 +57,9 @@ func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 		"PK":  item.PK(),
 		"UMS": item.UMS,
 	}
+	if len(item.Data) > 0 {
+		out["D"] = item.Data
+	}
 	return dynamodbattribute.MarshalMap(out)
 }
 func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
@@ -60,5 +70,12 @@ func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	}
 	item.ID = in["PK"].(string)
 	item.UMS = in["UMS"].(string)
+	item.Data = make(map[string]string)
+	d, ok := in["D"].(map[string]interface{})
+	if ok {
+		for k, v := range d {
+			item.Data[k] = v.(string)
+		}
+	}
 	return nil
 }
