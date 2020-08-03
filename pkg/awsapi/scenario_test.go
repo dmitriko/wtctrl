@@ -20,7 +20,7 @@ const TGTextMsgTmpl = `{"message_id": 181,
         "date": 1571403733,
         "text": "%[2]s"}`
 
-func TestScenarioStartValidCodeTG(t *testing.T) {
+func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	tgid := 123456789
@@ -46,7 +46,7 @@ func TestScenarioStartValidCodeTG(t *testing.T) {
 	}
 }
 
-func TestScenarioStartNotValidCodeTG(t *testing.T) {
+func TestScenarioTGStartNotValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	tgid := 123456789
@@ -68,4 +68,27 @@ func TestScenarioStartNotValidCodeTG(t *testing.T) {
 	if resp != WRONG_CODE {
 		t.Errorf("Expected wrong code response, got %s", resp)
 	}
+}
+
+func TestScenarioTGText(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	tgid := 123456789
+	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	user, _ := NewUser("someuser")
+	tgacc, _ := NewTGAcc(string(tgid), user.PK())
+	user.TGID = string(tgid)
+	errs := testTable.StoreItems(bot, user, tgacc)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	text := "65 euro gas station"
+	orig := fmt.Sprintf(TGTextMsgTmpl, tgid, text)
+	_, err := HandleTGMsg(bot, testTable, orig)
+	if err != nil {
+		t.Error(err)
+	}
+
 }

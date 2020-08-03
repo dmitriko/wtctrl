@@ -215,7 +215,6 @@ type DItem struct {
 }
 
 type Msg struct {
-	DItem
 	Channel    string
 	Author     string
 	Kind       int64
@@ -258,8 +257,8 @@ const (
 )
 
 //Factory method for Msg
-func NewMsg(channel string, author string, kind int64, options ...func(*Msg) error) (*Msg, error) {
-	msg := &Msg{Channel: channel, Author: author, Kind: kind, CreatedAt: time.Now()}
+func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) (*Msg, error) {
+	msg := &Msg{Channel: channel, Author: pk, Kind: kind, CreatedAt: time.Now()}
 	for _, opt := range options {
 		err := opt(msg)
 		if err != nil {
@@ -298,14 +297,14 @@ func (m *Msg) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(item)
 }
 
-// Set .Author and .UserStatus from UMS string that is <user>#<status> stored in DB
+// Set .Author and .UserStatus from UMS string that is <prefix>#<author>#<status> stored in DB
 func (m *Msg) SetUserStatus(ums string) error {
 	s := strings.Split(ums, "#")
-	if len(s) != 2 {
+	if len(s) != 3 {
 		return errors.New("Could not parse " + ums)
 	}
-	m.Author = s[0]
-	i, err := strconv.Atoi(s[1])
+	m.Author = s[0] + "#" + s[1]
+	i, err := strconv.Atoi(s[2])
 	if err != nil {
 		return err
 	}
@@ -391,8 +390,8 @@ func GetMsgPK(strtime string) (string, error) {
 	return fmt.Sprintf("%s%s", MsgKeyPrefix, id.String()), nil
 }
 
-func (lm *ListMsg) FetchByUserStatus(t *DTable, uid string, status int, start, end string) error {
-	ums := fmt.Sprintf("%s#%d", uid, status)
+func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, end string) error {
+	ums := fmt.Sprintf("%s#%d", user.PK(), status)
 	start_pk, err := GetMsgPK(start)
 	if err != nil {
 		return err
