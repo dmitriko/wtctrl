@@ -192,7 +192,7 @@ type Msg struct {
 	DItem
 	Channel    string
 	Author     string
-	Kind       string
+	Kind       int64
 	ID         string
 	UserStatus int
 	CreatedAt  time.Time
@@ -225,8 +225,14 @@ func DataOp(d map[string]string) func(m *Msg) error {
 	}
 }
 
+const (
+	TGTextMsgKind  = 1
+	TGAudioMsgKind = 2
+	TGPicMsgKind   = 3
+)
+
 //Factory method for Msg
-func NewMsg(channel string, author string, kind string, options ...func(*Msg) error) (*Msg, error) {
+func NewMsg(channel string, author string, kind int64, options ...func(*Msg) error) (*Msg, error) {
 	msg := &Msg{Channel: channel, Author: author, Kind: kind, CreatedAt: time.Now()}
 	for _, opt := range options {
 		err := opt(msg)
@@ -326,9 +332,9 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if ok {
 		m.Channel = ch
 	}
-	k, ok := ditem.Orig["K"].(string)
+	k, ok := ditem.Orig["K"].(float64)
 	if ok {
-		m.Kind = k
+		m.Kind = int64(k)
 	}
 	return nil
 }

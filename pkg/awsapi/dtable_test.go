@@ -70,7 +70,7 @@ func TestStoreItems(t *testing.T) {
 func TestMsgDb(t *testing.T) {
 	startLocalDynamo(t)
 	defer stopLocalDynamo()
-	msg, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+	msg, err := NewMsg("bot1", "user1", TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
@@ -104,7 +104,7 @@ func TestMsgDb(t *testing.T) {
 }
 
 func TestMsgSimple(t *testing.T) {
-	msg, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+	msg, err := NewMsg("bot1", "user1", TGPicMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
@@ -131,19 +131,22 @@ func TestMsgSimple(t *testing.T) {
 	if msg.Channel != "bot1" {
 		t.Error("Channel is not correct")
 	}
+	if msg.Kind != TGPicMsgKind {
+		t.Error("Kind is not correct")
+	}
 }
 
 func TestMsgList(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	var err error
-	msg1, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-10d"), UserStatusOp(5),
+	msg1, err := NewMsg("bot1", "user1", TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://example1.com"}))
 
-	msg2, err := NewMsg("bot1", "user1", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+	msg2, err := NewMsg("bot1", "user1", TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://example2.com"}))
 
-	msg3, err := NewMsg("bot1", "user2", "tgtext", CreatedAtOp("-2d"), UserStatusOp(5),
+	msg3, err := NewMsg("bot1", "user2", TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://example3.com"}))
 
 	errs := testTable.StoreItems(msg1, msg2, msg3)
