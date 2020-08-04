@@ -70,6 +70,9 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	tgacc := &TGAcc{}
 	err = table.FetchItem(TGAccKeyPrefix+msg.TGID(), tgacc)
 	if err != nil {
+		if err.Error() == NO_SUCH_ITEM {
+			return NEED_CODE, nil
+		}
 		return "", err
 	}
 	user := &User{}

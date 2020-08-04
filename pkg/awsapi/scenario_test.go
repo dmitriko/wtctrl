@@ -70,7 +70,7 @@ func TestScenarioTGStartNotValidCode(t *testing.T) {
 	}
 }
 
-func TestScenarioTGText(t *testing.T) {
+func TestScenarioTGAuthText(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	tgid := 123456789
@@ -133,5 +133,28 @@ func TestScenarioTGValidCode(t *testing.T) {
 	}
 	if resp != WELCOME {
 		t.Error("Expected welcome message")
+	}
+}
+
+// User sent no code no /start message but has no account
+func TestScenarioTGNonAuth(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	tgid := 123456789
+	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	errs := testTable.StoreItems(bot)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	text := "65 euro gas station"
+	orig := fmt.Sprintf(TGTextMsgTmpl, tgid, text)
+	resp, err := HandleTGMsg(bot, testTable, orig)
+	if err != nil {
+		t.Error(err)
+	}
+	if resp != NEED_CODE {
+		t.Error("expected need code response")
 	}
 }
