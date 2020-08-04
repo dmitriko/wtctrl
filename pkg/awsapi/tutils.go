@@ -30,6 +30,10 @@ func startLocalDynamo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = testTable.EnableTTL()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func stopLocalDynamo() {

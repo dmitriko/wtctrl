@@ -105,3 +105,33 @@ func TestScenarioTGText(t *testing.T) {
 		}
 	}
 }
+
+//User sent message with valid code only
+func TestScenarioTGValidCode(t *testing.T) {
+	defer stopLocalDynamo()
+	startLocalDynamo(t)
+	tgid := 123456789
+	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	user, _ := NewUser("someuser")
+	inv, _ := NewInvite(user, bot, 24)
+	errs := testTable.StoreItems(bot, user, inv)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	orig := fmt.Sprintf(TGTextMsgTmpl, tgid, inv.OTP)
+
+	resp, err := HandleTGMsg(bot, testTable, orig)
+	if err != nil {
+		t.Error(err)
+	}
+	tgacc := &TGAcc{}
+	err = testTable.FetchItem(TGAccKeyPrefix+string(tgid), tgacc)
+	if err != nil {
+		t.Error(err)
+	}
+	if resp != WELCOME {
+		t.Error("Expected welcome message")
+	}
+}

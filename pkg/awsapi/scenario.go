@@ -13,6 +13,8 @@ const (
 	WELCOME    = "Welcome!"
 )
 
+var CODE_REGEXP = regexp.MustCompile(`\d{6}`)
+
 func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) error {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
 	msg.Data["text"] = tgmsg.Text
@@ -25,8 +27,7 @@ func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) 
 
 func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error) {
 	var err error
-	r := regexp.MustCompile(`\d{6}`)
-	code := r.FindString(text)
+	code := CODE_REGEXP.FindString(text)
 	if code == "" {
 		return NEED_CODE, nil
 	}
@@ -61,6 +62,9 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 		return "", err
 	}
 	if strings.HasPrefix(msg.Text, "/start") {
+		return handleTGStartMsg(bot, table, msg.Text, msg.TGID())
+	}
+	if len(msg.Text) == 6 && CODE_REGEXP.MatchString(msg.Text) {
 		return handleTGStartMsg(bot, table, msg.Text, msg.TGID())
 	}
 	tgacc := &TGAcc{}
