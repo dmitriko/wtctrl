@@ -57,18 +57,18 @@ func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error
 
 // Handles message got via webhook from Telegram
 func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
-	msg, err := NewTgUserMsg(orig)
+	tgmsg, err := NewTgUserMsg(orig)
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(msg.Text, "/start") {
-		return handleTGStartMsg(bot, table, msg.Text, msg.TGID())
+	if strings.HasPrefix(tgmsg.Text, "/start") {
+		return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
 	}
-	if len(msg.Text) == 6 && CODE_REGEXP.MatchString(msg.Text) {
-		return handleTGStartMsg(bot, table, msg.Text, msg.TGID())
+	if len(tgmsg.Text) == 6 && CODE_REGEXP.MatchString(tgmsg.Text) {
+		return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
 	}
 	tgacc := &TGAcc{}
-	err = table.FetchItem(TGAccKeyPrefix+msg.TGID(), tgacc)
+	err = table.FetchItem(TGAccKeyPrefix+tgmsg.TGID(), tgacc)
 	if err != nil {
 		if err.Error() == NO_SUCH_ITEM {
 			return NEED_CODE, nil
@@ -80,6 +80,6 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = handleTGAuthTextMsg(bot, table, user, msg)
+	err = handleTGAuthTextMsg(bot, table, user, tgmsg)
 	return "", err
 }
