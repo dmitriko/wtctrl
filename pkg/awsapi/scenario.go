@@ -64,13 +64,13 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	if strings.HasPrefix(tgmsg.Text, "/start") {
 		return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
 	}
-	if len(tgmsg.Text) == 6 && CODE_REGEXP.MatchString(tgmsg.Text) {
-		return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
-	}
 	tgacc := &TGAcc{}
 	err = table.FetchItem(TGAccKeyPrefix+tgmsg.TGID(), tgacc)
 	if err != nil {
 		if err.Error() == NO_SUCH_ITEM {
+			if len(tgmsg.Text) == 6 && CODE_REGEXP.MatchString(tgmsg.Text) {
+				return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
+			}
 			return NEED_CODE, nil
 		}
 		return "", err
