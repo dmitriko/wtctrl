@@ -244,7 +244,7 @@ func DataOp(d map[string]string) func(m *Msg) error {
 
 const (
 	TGTextMsgKind  = 1
-	TGAudioMsgKind = 2
+	TGVoiceMsgKind = 2
 	TGPicMsgKind   = 3
 )
 
@@ -331,13 +331,7 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	}
 	m.ID = id
 	m.CreatedAt = int64(item["CRTD"].(float64))
-	m.Data = make(map[string]string)
-	d, ok := item["D"].(map[string]interface{})
-	if ok {
-		for k, v := range d {
-			m.Data[k] = v.(string)
-		}
-	}
+	m.Data = UnmarshalDataProp(item["D"])
 	err = m.SetUserStatus(item["UMS"].(string))
 	if err != nil {
 		return err
@@ -771,7 +765,12 @@ func UnmarshalDataProp(d interface{}) map[string]string {
 	s, ok := d.(map[string]interface{})
 	if ok {
 		for k, v := range s {
-			r[k] = v.(string)
+			val, ok := v.(string)
+			if ok {
+				r[k] = val
+			} else {
+				r[k] = ""
+			}
 		}
 	}
 	return r

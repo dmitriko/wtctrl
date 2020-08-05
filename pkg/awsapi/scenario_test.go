@@ -20,6 +20,30 @@ const TGTextMsgTmpl = `{"message_id": 181,
         "date": 1571403733,
         "text": "%[2]s"}`
 
+const TGAudioMsgTmpl = `{
+  "message_id": 92,
+  "from": {
+    "id": %[1]d,
+    "is_bot": false,
+    "first_name": "D",
+    "last_name": "K",
+    "language_code": "en"
+  },
+  "chat": {
+    "id": %[1]d,
+    "first_name": "D",
+    "last_name": "K",
+    "type": "private"
+  },
+  "date": 1570375932,
+  "voice": {
+    "duration": %[2]d,
+    "mime_type": "audio/ogg",
+    "file_id": "%[3]s",
+    "file_size": 5070
+  }
+}`
+
 func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
@@ -136,7 +160,7 @@ func TestScenarioTGValidCode(t *testing.T) {
 	}
 }
 
-// User sent no code no /start message but has no account
+// User sent no code no /start message bcut has no account
 func TestScenarioTGNonAuth(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
@@ -156,5 +180,40 @@ func TestScenarioTGNonAuth(t *testing.T) {
 	}
 	if resp != NEED_CODE {
 		t.Error("expected need code response")
+	}
+}
+
+func TestScenarioTGAudio(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+	tgid := 123456789
+	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	user, _ := NewUser("someuser")
+	tgacc, _ := NewTGAcc(string(tgid), user.PK())
+	user.TGID = string(tgid)
+	errs := testTable.StoreItems(bot, user, tgacc)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	orig := fmt.Sprintf(TGAudioMsgTmpl, tgid, 1, "sometgfileid")
+	_, err := HandleTGMsg(bot, testTable, orig)
+	if err != nil {
+		t.Error(err)
+	}
+	lm := NewListMsg()
+	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	if err != nil {
+		t.Error(err)
+	}
+	if lm.Len() != 1 {
+		t.Error("expected 1 Msg in DB")
+	}
+	for _, msg := range lm.Items {
+		if msg.Data["orig_duration"] != "1" || msg.Data["orig_file_id"] != "sometgfileid" ||
+			msg.Data["orig_mime_type"] != "audio/ogg" || msg.Data["orig_file_size"] != "5070" {
+			t.Errorf("expected msg with orig audio data got %+v", msg.Data)
+		}
 	}
 }

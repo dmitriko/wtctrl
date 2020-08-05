@@ -42,3 +42,10 @@ func NewTgUserMsg(orig string) (*TGUserMsg, error) {
 func (um *TGUserMsg) TGID() string {
 	return string(um.From.Id)
 }
+
+func (um *TGUserMsg) IsAudio() bool {
+	if um.Voice.Duration > 0 {
+		return true
+	}
+	return false
+}

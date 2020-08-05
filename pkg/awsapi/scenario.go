@@ -1,6 +1,7 @@
 package awsapi
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -15,14 +16,14 @@ const (
 
 var CODE_REGEXP = regexp.MustCompile(`\d{6}`)
 
-func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) error {
+func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
-	msg.Data["text"] = tgmsg.Text
 	if err != nil {
-		return err
+		return "", err
 	}
+	msg.Data["text"] = tgmsg.Text
 	_, err = table.StoreItem(msg)
-	return err
+	return "", err
 }
 
 func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error) {
@@ -80,6 +81,21 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = handleTGAuthTextMsg(bot, table, user, tgmsg)
+	if tgmsg.IsAudio() {
+		return handleTGAuthAudioMsg(bot, table, user, tgmsg)
+	}
+	return handleTGAuthTextMsg(bot, table, user, tgmsg)
+}
+
+func handleTGAuthAudioMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
+	msg, err := NewMsg(bot.PK(), user.PK(), TGVoiceMsgKind)
+	if err != nil {
+		return "", err
+	}
+	msg.Data["orig_duration"] = fmt.Sprintf("%d", tgmsg.Voice.Duration)
+	msg.Data["orig_mime_type"] = tgmsg.Voice.MimeType
+	msg.Data["orig_file_id"] = tgmsg.Voice.FileId
+	msg.Data["orig_file_size"] = fmt.Sprintf("%d", tgmsg.Voice.FileSize)
+	_, err = table.StoreItem(msg)
 	return "", err
 }
