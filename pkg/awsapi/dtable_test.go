@@ -12,7 +12,7 @@ import (
 
 func TestStoreInTrans(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	item1, _ := NewTestItem("foo1", "bar1")
 	item2, _ := NewTestItem("foo2", "bar2")
 	err := testTable.StoreInTransUniq(item1, item2)
@@ -29,7 +29,7 @@ func TestStoreInTrans(t *testing.T) {
 
 func TestDBUpdateItem(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	item, _ := NewTestItem("foo", "bar")
 	item.Data["spam"] = "egg"
 	item.Data["url"] = "example.com"
@@ -47,7 +47,7 @@ func TestDBUpdateItem(t *testing.T) {
 
 func TestStoreItems(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 
 	msg, _ := NewTestItem("foo", "bar")
 	msg.Data["spam"] = "egg"
@@ -88,7 +88,7 @@ func TestStoreItems(t *testing.T) {
 }
 
 func TestMsgDb(t *testing.T) {
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	defer stopLocalDynamo()
 	msg, err := NewMsg("bot1", "user#user1", TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
@@ -158,7 +158,7 @@ func TestMsgSimple(t *testing.T) {
 
 func TestMsgList(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	var err error
 	user1, _ := NewUser("user1")
 	user2, _ := NewUser("user2")
@@ -193,7 +193,7 @@ func TestMsgList(t *testing.T) {
 
 func TestUser(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	var err error
 	usr1, _ := NewUser("Someone")
 	e1, _ := NewEmail("foo@bar", usr1.PK())
@@ -238,7 +238,7 @@ func TestUser(t *testing.T) {
 }
 func TestNewUser(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	usr1, _ := NewUser("Someone")
 	err := usr1.SetTel("555555")
 	if err != nil {
@@ -286,7 +286,7 @@ func TestNewUser(t *testing.T) {
 
 func TestSetTG(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := "sometgid"
 	usr, _ := NewUser("Foo")
 	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
@@ -317,7 +317,7 @@ func TestSetTG(t *testing.T) {
 
 func TestBot(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	bot, _ := NewBot(TGBotKind, "foo", "somesecret")
 	bot.Data["foo"] = "bar"
 	_, err := testTable.StoreItem(bot)
@@ -340,7 +340,7 @@ func TestBot(t *testing.T) {
 
 func TestInvite(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
 	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
 	valid := 24 //hours
@@ -388,3 +388,10 @@ func TestInvite(t *testing.T) {
 		t.Error("should not be happening")
 	}
 }
+
+/*
+func TestFile(t *testing.T) {
+	user, _ := NewUser("Foobar")
+	f, _ := NewFile(user.PK(), PicFileKind)
+	_, err :=
+}*/

@@ -22,7 +22,7 @@ const TGTextMsgTmpl = `{"message_id": 181,
 
 func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
@@ -48,7 +48,7 @@ func TestScenarioTGStartValidCode(t *testing.T) {
 
 func TestScenarioTGStartNotValidCode(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
@@ -72,7 +72,7 @@ func TestScenarioTGStartNotValidCode(t *testing.T) {
 
 func TestScenarioTGAuthText(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
@@ -109,7 +109,7 @@ func TestScenarioTGAuthText(t *testing.T) {
 //User sent message with valid code only
 func TestScenarioTGValidCode(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
@@ -139,7 +139,7 @@ func TestScenarioTGValidCode(t *testing.T) {
 // User sent no code no /start message but has no account
 func TestScenarioTGNonAuth(t *testing.T) {
 	defer stopLocalDynamo()
-	startLocalDynamo(t)
+	testTable := startLocalDynamo(t)
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	errs := testTable.StoreItems(bot)

@@ -11,10 +11,9 @@ import (
 
 const containerName = "dynamotest"
 
-var testTable *DTable
-
 // Creates container with local DynamodDB, create table
-func startLocalDynamo(t *testing.T) {
+func startLocalDynamo(t *testing.T) *DTable {
+	var testTable *DTable
 	cmd := exec.Command("docker", "run", "--rm", "-d", "--name", containerName,
 		"-p", "8000:8000", "amazon/dynamodb-local:latest")
 	err := cmd.Run()
@@ -34,6 +33,7 @@ func startLocalDynamo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return testTable
 }
 
 func stopLocalDynamo() {
