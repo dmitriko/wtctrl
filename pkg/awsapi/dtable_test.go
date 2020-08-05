@@ -389,9 +389,14 @@ func TestInvite(t *testing.T) {
 	}
 }
 
-/*
 func TestFile(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
 	user, _ := NewUser("Foobar")
 	f, _ := NewFile(user.PK(), PicFileKind)
-	_, err :=
-}*/
+	f.Data["tgid"] = "spamegg"
+	_, err := testTable.StoreItem(f)
+	if err != nil {
+		t.Error(err)
+	}
+}

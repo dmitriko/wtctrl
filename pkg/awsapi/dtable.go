@@ -870,3 +870,56 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	}
 	return nil
 }
+
+const PicFileKind = "PicFileKind"
+const FileKeyPrefix = "file#"
+
+type File struct {
+	ID        string
+	OwnerPK   string
+	Kind      string
+	Data      map[string]string
+	CreatedAt int64
+}
+
+func NewFile(pk, kind string) (*File, error) {
+	f := &File{}
+	f.ID = ksuid.New().String()
+	f.OwnerPK = pk
+	f.Kind = kind
+	f.Data = make(map[string]string)
+	f.CreatedAt = time.Now().Unix()
+	return f, nil
+}
+
+func (f *File) PK() string {
+	return FileKeyPrefix + f.ID
+}
+
+func (f *File) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+	item := map[string]interface{}{
+		"PK":   f.PK(),
+		"O":    f.OwnerPK,
+		"K":    f.Kind,
+		"CRTD": f.CreatedAt,
+	}
+	if len(f.Data) > 0 {
+		item["D"] = f.Data
+	}
+	return dynamodbattribute.MarshalMap(item)
+}
+
+func (f *File) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
+	if err != nil {
+		return err
+	}
+	f.ID = IdFromPk(item["PK"], FileKeyPrefix)
+	f.OwnerPK = item["O"].(string)
+	f.Kind = item["K"].(string)
+	f.CreatedAt = UnmarshalCreated(item["CRTD"])
+	f.Data = UnmarshalDataProp(item["D"])
+
+	return nil
+}
