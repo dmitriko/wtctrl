@@ -172,8 +172,8 @@ func (t *DTable) FetchItem(pk string, item DMapper) error {
 
 func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutput, error) {
 	uii := &dynamodb.UpdateItemInput{
-		TableName: aws.String(t.Name),
-		//	ReturnValues: aws.String("ALL_NEW"),
+		TableName:    aws.String(t.Name),
+		ReturnValues: aws.String("ALL_NEW"),
 		ExpressionAttributeNames: map[string]*string{
 			"#Data": aws.String("D"),
 			"#Key":  aws.String(key),
@@ -204,14 +204,6 @@ func (t *DTable) QueryIndex(
 		ExpressionAttributeValues: av,
 	}
 	return t.db.Query(qi)
-}
-
-//Common fields for some structs stored in DynamoDB
-type DItem struct {
-	ID        string
-	CreatedAt time.Time
-	Data      map[string]string
-	Orig      map[string]interface{} // this is not stored in db
 }
 
 type Msg struct {
@@ -319,32 +311,12 @@ func IdFromPk(pk interface{}, prefix string) string {
 	return strings.Replace(p, prefix, "", -1)
 }
 
-func loadFromDynamoWithKSUID(key_prefix string, av map[string]*dynamodb.AttributeValue) (*DItem, error) {
-	ditem := &DItem{}
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return nil, err
+func PK2ID(pkin interface{}, prefix string) (string, error) {
+	pk, ok := pkin.(string)
+	if !ok {
+		return "", errors.New(fmt.Sprintf("Could not cast string from %+v", pkin))
 	}
-	ditem.Orig = item
-	ditem.Data = make(map[string]string)
-	ditem.ID = IdFromPk(item["PK"], key_prefix)
-	kid, err := ksuid.Parse(ditem.ID)
-	if err != nil {
-		return nil, err
-	}
-	ditem.CreatedAt = kid.Time()
-	d, ok := item["D"].(map[string]interface{})
-	if ok {
-		for k, v := range d {
-			ditem.Data[k] = v.(string)
-		}
-	}
-	return ditem, nil
-}
-
-func PK2ID(pk, prefix string) string {
-	return strings.Replace(pk, prefix, "", -1)
+	return strings.Replace(pk, prefix, "", -1), nil
 }
 
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
@@ -353,7 +325,11 @@ func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	m.ID = PK2ID(item["PK"].(string), MsgKeyPrefix)
+	id, err := PK2ID(item["PK"], MsgKeyPrefix)
+	if err != nil {
+		return err
+	}
+	m.ID = id
 	m.CreatedAt = int64(item["CRTD"].(float64))
 	m.Data = make(map[string]string)
 	d, ok := item["D"].(map[string]interface{})
@@ -438,7 +414,7 @@ type User struct {
 	Email     string
 	Tel       string
 	TGID      string
-	CreatedAt time.Time
+	CreatedAt int64
 	Data      map[string]string
 }
 
@@ -451,10 +427,11 @@ func (u *User) PK() string {
 
 func (u *User) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK": u.PK(),
-		"E":  u.Email,
-		"T":  u.Tel,
-		"TG": u.TGID,
+		"PK":   u.PK(),
+		"E":    u.Email,
+		"T":    u.Tel,
+		"TG":   u.TGID,
+		"CRTD": u.CreatedAt,
 	}
 	if len(u.Data) > 0 {
 		item["D"] = u.Data
@@ -463,22 +440,39 @@ func (u *User) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 }
 
 func (u *User) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	ditem, err := loadFromDynamoWithKSUID(UserKeyPrefix, av)
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
 	if err != nil {
 		return err
 	}
-	u.ID = ditem.ID
-	u.CreatedAt = ditem.CreatedAt
-	u.Data = ditem.Data
-	email, ok := ditem.Orig["E"].(string)
+
+	id, err := PK2ID(item["PK"], UserKeyPrefix)
+	if err != nil {
+		return err
+	}
+	u.ID = id
+
+	created_at, ok := item["CRTD"].(float64)
+	if ok {
+		u.CreatedAt = int64(created_at)
+	}
+
+	u.Data = make(map[string]string)
+	data, ok := item["D"].(map[string]string)
+	if ok {
+		for k, v := range data {
+			u.Data[k] = v
+		}
+	}
+	email, ok := item["E"].(string)
 	if ok {
 		u.Email = email
 	}
-	t, ok := ditem.Orig["T"].(string)
+	t, ok := item["T"].(string)
 	if ok {
 		u.Tel = t
 	}
-	tg, ok := ditem.Orig["TG"].(string)
+	tg, ok := item["TG"].(string)
 	if ok {
 		u.TGID = tg
 	}
@@ -489,7 +483,7 @@ func NewUser(title string) (*User, error) {
 	user := &User{Title: title}
 	user.Data = make(map[string]string)
 	kid := ksuid.New()
-	user.CreatedAt = kid.Time()
+	user.CreatedAt = int64(time.Now().Unix())
 	user.ID = kid.String()
 	return user, nil
 }
@@ -700,14 +694,14 @@ func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
 }
 
 const TGBotKind = "tg"
-const BotKeyPrefix = "bot"
+const BotKeyPrefix = "bot#"
 
 type Bot struct {
 	ID        string
 	Name      string
 	Kind      string
 	Secret    string
-	CreatedAt time.Time
+	CreatedAt int64
 	Data      map[string]string
 }
 
@@ -715,7 +709,7 @@ func NewBot(kind, name, secret string) (*Bot, error) {
 	bot := &Bot{Kind: kind, Name: name, Secret: secret, Data: make(map[string]string)}
 	kid := ksuid.New()
 	bot.ID = kid.String()
-	bot.CreatedAt = kid.Time()
+	bot.CreatedAt = int64(time.Now().Unix())
 	return bot, nil
 }
 
@@ -732,10 +726,11 @@ func (b *Bot) PK() string {
 
 func (b *Bot) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK": b.PK(),
-		"S":  b.Secret,
-		"K":  b.Kind,
-		"N":  b.Name,
+		"PK":   b.PK(),
+		"S":    b.Secret,
+		"K":    b.Kind,
+		"CRTD": b.CreatedAt,
+		"N":    b.Name,
 	}
 	if len(b.Data) > 0 {
 		item["D"] = b.Data
@@ -744,24 +739,43 @@ func (b *Bot) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 }
 
 func (b *Bot) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
-	ditem, err := loadFromDynamoWithKSUID(BotKeyPrefix, av)
+	item := map[string]interface{}{}
+	err := dynamodbattribute.UnmarshalMap(av, &item)
 	if err != nil {
 		return err
 	}
-	b.ID = ditem.ID
-	b.CreatedAt = ditem.CreatedAt
-	b.Data = ditem.Data
-	kind, ok := ditem.Orig["K"].(string)
+	id, err := PK2ID(item["PK"], BotKeyPrefix)
+	if err != nil {
+		return err
+	}
+	b.ID = id
+	created_at, ok := item["CRTD"].(float64)
+	if ok {
+		b.CreatedAt = int64(created_at)
+	}
+	b.Data = UnmarshalDataProp(item["D"])
+	kind, ok := item["K"].(string)
 	if ok {
 		b.Kind = kind
 	}
-	s, ok := ditem.Orig["S"].(string)
+	s, ok := item["S"].(string)
 	if ok {
 		b.Secret = s
 	}
-	b.Name, _ = ditem.Orig["N"].(string)
+	b.Name, _ = item["N"].(string)
 
 	return nil
+}
+
+func UnmarshalDataProp(d interface{}) map[string]string {
+	r := make(map[string]string)
+	s, ok := d.(map[string]interface{})
+	if ok {
+		for k, v := range s {
+			r[k] = v.(string)
+		}
+	}
+	return r
 }
 
 const InviteKeyPrefix = "inv"

@@ -319,6 +319,7 @@ func TestBot(t *testing.T) {
 	defer stopLocalDynamo()
 	startLocalDynamo(t)
 	bot, _ := NewBot(TGBotKind, "foo", "somesecret")
+	bot.Data["foo"] = "bar"
 	_, err := testTable.StoreItem(bot)
 	if err != nil {
 		t.Error(err)
@@ -328,7 +329,7 @@ func TestBot(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if bf.Name != bot.Name || bf.ID != bot.ID || bf.Secret != bot.Secret || bot.Kind != bf.Kind {
+	if !reflect.DeepEqual(bf, bot) {
 		t.Errorf("%+v != %+v", bot, bf)
 	}
 	if bot.InviteUrl("111111") != "https://t.me/foo?start=111111" {
