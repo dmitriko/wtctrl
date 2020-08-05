@@ -645,7 +645,7 @@ const TGAccKeyPrefix = "tgacc"
 type TGAcc struct {
 	TGID      string
 	OwnerPK   string
-	CreatedAt time.Time
+	CreatedAt int64
 	Data      map[string]string
 }
 
@@ -659,28 +659,27 @@ func (t *TGAcc) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	created, err := time.Parse(time.RFC3339, item["C"].(string))
-	if err != nil {
-		return err
-	}
 	t.TGID = IdFromPk(item["PK"], TGAccKeyPrefix)
 	t.OwnerPK = item["O"].(string)
-	t.CreatedAt = created
-	d, ok := item["D"].(map[string]interface{})
-	if ok {
-		t.Data = make(map[string]string)
-		for k, v := range d {
-			t.Data[k] = v.(string)
-		}
-	}
+	t.CreatedAt = UnmarshalCreated(item["CRTD"])
+	t.Data = UnmarshalDataProp(item["D"])
+
 	return nil
+}
+
+func UnmarshalCreated(c interface{}) int64 {
+	crtd, ok := c.(float64)
+	if ok {
+		return int64(crtd)
+	}
+	return 0
 }
 
 func (t *TGAcc) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK": t.PK(),
-		"O":  t.OwnerPK,
-		"C":  t.CreatedAt.Format(time.RFC3339),
+		"PK":   t.PK(),
+		"O":    t.OwnerPK,
+		"CRTD": t.CreatedAt,
 	}
 	if len(t.Data) > 0 {
 		item["D"] = t.Data
@@ -689,7 +688,7 @@ func (t *TGAcc) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 }
 
 func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
-	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now(),
+	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
 		Data: make(map[string]string)}, nil
 }
 
