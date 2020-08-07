@@ -1,0 +1,2 @@
+FROM dmitriko/amznpy3.8
+RUN yum install -y alsa-lib && pip3.8 install IPython azure-cognitiveservices-speech

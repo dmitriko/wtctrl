@@ -1,0 +1,6 @@
+FROM amazonlinux:2 as builder
+RUN yum install less wget sqlite-devel tar gcc openssl-devel bzip2-devel libffi-devel gzip make -y && \
+ cd /tmp && curl -L https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz | tar xz -- &&\
+ cd /tmp/Python-3.8.5 && ./configure --enable-optimizations && make altinstall && cd / && rm -rf /tmp/*
+
+
