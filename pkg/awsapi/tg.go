@@ -26,11 +26,11 @@ type photo struct {
 }
 
 type TGUserMsg struct {
-	From  from    `json:"from"`
-	Voice voice   `json:"voice"`
-	Date  int     `json:"date"`
-	Photo []photo `json:"photo"`
-	Text  string  `json:"text"`
+	From   from    `json:"from"`
+	Voice  voice   `json:"voice"`
+	Date   int     `json:"date"`
+	Photos []photo `json:"photo"`
+	Text   string  `json:"text"`
 }
 
 func NewTgUserMsg(orig string) (*TGUserMsg, error) {
@@ -45,6 +45,13 @@ func (um *TGUserMsg) TGID() string {
 
 func (um *TGUserMsg) IsAudio() bool {
 	if um.Voice.Duration > 0 {
+		return true
+	}
+	return false
+}
+
+func (um *TGUserMsg) IsPhoto() bool {
+	if len(um.Photos) > 0 {
 		return true
 	}
 	return false

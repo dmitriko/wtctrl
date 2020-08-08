@@ -16,6 +16,23 @@ const (
 
 var CODE_REGEXP = regexp.MustCompile(`\d{6}`)
 
+func handleTGAuthPhotoMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
+	msg, err := NewMsg(bot.PK(), user.PK(), TGPhotoMsgKind)
+	if err != nil {
+		return "", err
+	}
+
+	for i, photo := range tgmsg.Photos {
+		key_prefix := fmt.Sprintf("orig_%d_", i)
+		msg.Data[key_prefix+"file_id"] = photo.FileId
+		msg.Data[key_prefix+"file_size"] = fmt.Sprintf("%d", photo.FileSize)
+		msg.Data[key_prefix+"width"] = fmt.Sprintf("%d", photo.Width)
+		msg.Data[key_prefix+"height"] = fmt.Sprintf("%d", photo.Height)
+	}
+	_, err = table.StoreItem(msg)
+	return "", nil
+}
+
 func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
 	if err != nil {
@@ -80,6 +97,9 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	err = table.FetchItem(tgacc.OwnerPK, user)
 	if err != nil {
 		return "", err
+	}
+	if tgmsg.IsPhoto() {
+		return handleTGAuthPhotoMsg(bot, table, user, tgmsg)
 	}
 	if tgmsg.IsAudio() {
 		return handleTGAuthAudioMsg(bot, table, user, tgmsg)

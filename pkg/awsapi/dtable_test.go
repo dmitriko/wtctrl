@@ -124,7 +124,7 @@ func TestMsgDb(t *testing.T) {
 }
 
 func TestMsgSimple(t *testing.T) {
-	msg, err := NewMsg("bot1", "user#user1", TGPicMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg, err := NewMsg("bot1", "user#user1", TGPhotoMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
@@ -151,7 +151,7 @@ func TestMsgSimple(t *testing.T) {
 	if msg.ChannelPK != "bot1" {
 		t.Error("ChannelPK is not correct")
 	}
-	if msg.Kind != TGPicMsgKind {
+	if msg.Kind != TGPhotoMsgKind {
 		t.Error("Kind is not correct")
 	}
 }

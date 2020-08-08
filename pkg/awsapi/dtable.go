@@ -245,7 +245,7 @@ func DataOp(d map[string]string) func(m *Msg) error {
 const (
 	TGTextMsgKind  = 1
 	TGVoiceMsgKind = 2
-	TGPicMsgKind   = 3
+	TGPhotoMsgKind = 3
 )
 
 //Factory method for Msg

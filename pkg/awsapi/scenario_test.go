@@ -44,6 +44,45 @@ const TGAudioMsgTmpl = `{
   }
 }`
 
+const TGPhotoMsgTmpl = `
+{
+  "message_id": 67,
+  "from": {
+    "id": %[1]d,
+    "is_bot": false,
+    "first_name": "D",
+    "last_name": "K",
+    "language_code": "en"
+  },
+  "chat": {
+    "id": %[1]d,
+    "first_name": "D",
+    "last_name": "K",
+    "type": "private"
+  },
+  "date": 1570263478,
+  "photo": [
+    {
+      "file_id": "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA20AA_NLAwABFgQ",
+      "file_size": 12635,
+      "width": 180,
+      "height": 320
+    },
+    {
+      "file_id": "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3gAA_RLAwABFgQ",
+      "file_size": 49078,
+      "width": 450,
+      "height": 800
+    },
+    {
+      "file_id": "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3kAA_FLAwABFgQ",
+      "file_size": 73321,
+      "width": 720,
+      "height": 1280
+    }
+  ]
+}`
+
 func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
@@ -160,7 +199,7 @@ func TestScenarioTGValidCode(t *testing.T) {
 	}
 }
 
-// User sent no code no /start message bcut has no account
+// User sent no code no /start message but has no account
 func TestScenarioTGNonAuth(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
@@ -214,6 +253,56 @@ func TestScenarioTGAudio(t *testing.T) {
 		if msg.Data["orig_duration"] != "1" || msg.Data["orig_file_id"] != "sometgfileid" ||
 			msg.Data["orig_mime_type"] != "audio/ogg" || msg.Data["orig_file_size"] != "5070" {
 			t.Errorf("expected msg with orig audio data got %+v", msg.Data)
+		}
+	}
+}
+
+func TestScenarioTGPhoto(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+	tgid := 123456789
+	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	user, _ := NewUser("someuser")
+	tgacc, _ := NewTGAcc(string(tgid), user.PK())
+	user.TGID = string(tgid)
+	errs := testTable.StoreItems(bot, user, tgacc)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	orig := fmt.Sprintf(TGPhotoMsgTmpl, tgid)
+	_, err := HandleTGMsg(bot, testTable, orig)
+	if err != nil {
+		t.Error(err)
+	}
+	lm := NewListMsg()
+	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	if err != nil {
+		t.Error(err)
+	}
+	if lm.Len() != 1 {
+		t.Error("expected 1 Msg in DB")
+	}
+	data := map[string]string{
+		"orig_0_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA20AA_NLAwABFgQ",
+		"orig_0_file_size": "12635",
+		"orig_0_width":     "180",
+		"orig_0_height":    "320",
+		"orig_1_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3gAA_RLAwABFgQ",
+		"orig_1_file_size": "49078",
+		"orig_1_width":     "450",
+		"orig_1_height":    "800",
+		"orig_2_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3kAA_FLAwABFgQ",
+		"orig_2_file_size": "73321",
+		"orig_2_width":     "720",
+		"orig_2_height":    "1280",
+	}
+	for _, msg := range lm.Items {
+		for k, _ := range data {
+			if data[k] != msg.Data[k] {
+				t.Errorf("%s are not equal, expected %s, got %s", k, data[k], msg.Data[k])
+			}
 		}
 	}
 }
