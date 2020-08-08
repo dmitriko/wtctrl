@@ -49,7 +49,7 @@ func startLocalDynamo(t *testing.T) *DTable {
 		stopLocalDynamo()
 		t.Fatal(err)
 	}
-	//	createDynamoWithTF(t)
+	//createDynamoWithTF(t)
 	createDynamoFromGO(t, testTable)
 	return testTable
 }
