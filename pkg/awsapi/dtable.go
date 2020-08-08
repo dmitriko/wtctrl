@@ -31,40 +31,21 @@ type DTable struct {
 	Skey     string
 }
 
-//DTableConnect option
-func Endpoint(endpoint string) func(*DTable) error {
-	return func(t *DTable) error {
-		t.Endpoint = endpoint
-		return nil
-	}
+func NewDTable(name string) (*DTable, error) {
+	return &DTable{Name: name, PKey: "PK", Region: "us-west-2"}, nil
 }
 
-//DTableConnect option
-func Region(region string) func(*DTable) error {
-	return func(t *DTable) error {
-		t.Region = region
-		return nil
+func (table *DTable) Connect() error {
+	conf := &aws.Config{Region: aws.String(table.Region)}
+	if table.Endpoint != "" {
+		conf.Endpoint = aws.String(table.Endpoint)
 	}
-}
-
-//Connects to DynomoDB table
-func DTableConnect(name string, options ...func(*DTable) error) (*DTable, error) {
-	t := &DTable{Name: name, PKey: "PK", Region: "us-west-2"}
-	for _, option := range options {
-		err := option(t)
-		if err != nil {
-			return t, err
-		}
-	}
-	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(t.Endpoint),
-		Region:   aws.String(t.Region),
-	})
+	sess, err := session.NewSession(conf)
 	if err != nil {
-		return t, err
+		return err
 	}
-	t.db = dynamodb.New(sess)
-	return t, nil
+	table.db = dynamodb.New(sess)
+	return nil
 }
 
 func (t *DTable) Create() error {

@@ -36,7 +36,6 @@ func createDynamoFromGO(t *testing.T, testTable *DTable) {
 
 // Creates container with local DynamodDB, create table
 func startLocalDynamo(t *testing.T) *DTable {
-	var testTable *DTable
 	cmd := exec.Command("docker", "run", "--rm", "-d", "--name", containerName,
 		"-p", "8000:8000", "amazon/dynamodb-local:latest")
 
@@ -44,7 +43,9 @@ func startLocalDynamo(t *testing.T) *DTable {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testTable, err = DTableConnect("MainTest", Endpoint("http://127.0.0.1:8000"), Region("us-west-2"))
+	testTable, _ := NewDTable("MainTest")
+	testTable.Endpoint = "http://127.0.0.1:8000"
+	err = testTable.Connect()
 	if err != nil {
 		stopLocalDynamo()
 		t.Fatal(err)
