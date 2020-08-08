@@ -1,0 +1,6 @@
+curl \
+    --header "Ocp-Apim-Subscription-Key: ${SPEECHSDK_SPEECH_KEY}" \
+    --header "Content-type: audio/wav; codecs=audio/pcm; samplerate=16000" \
+    -X POST \
+    --data-binary @whatstheweatherlike.wav \
+   "https://${SPEECHSDK_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US" -v

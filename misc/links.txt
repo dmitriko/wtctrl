@@ -1,0 +1,3 @@
+https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/rest-speech-to-text
+https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/
+http://magicermine.com/trial.html
