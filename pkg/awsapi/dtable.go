@@ -705,7 +705,6 @@ const TGBotKind = "tg"
 const BotKeyPrefix = "bot#"
 
 type Bot struct {
-	ID        string
 	Name      string
 	Kind      string
 	Secret    string
@@ -713,10 +712,8 @@ type Bot struct {
 	Data      map[string]string
 }
 
-func NewBot(kind, name, secret string) (*Bot, error) {
-	bot := &Bot{Kind: kind, Name: name, Secret: secret, Data: make(map[string]string)}
-	kid := ksuid.New()
-	bot.ID = kid.String()
+func NewBot(kind, name string) (*Bot, error) {
+	bot := &Bot{Kind: kind, Name: name, Data: make(map[string]string)}
 	bot.CreatedAt = int64(time.Now().Unix())
 	return bot, nil
 }
@@ -726,10 +723,7 @@ func (b *Bot) InviteUrl(otp string) string {
 }
 
 func (b *Bot) PK() string {
-	if b.ID == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s%s", BotKeyPrefix, b.ID)
+	return fmt.Sprintf("%s%s#%s", BotKeyPrefix, b.Name, b.Kind)
 }
 
 func (b *Bot) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
@@ -752,26 +746,24 @@ func (b *Bot) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	id, err := PK2ID(item["PK"], BotKeyPrefix)
-	if err != nil {
-		return err
-	}
-	b.ID = id
 	created_at, ok := item["CRTD"].(float64)
 	if ok {
 		b.CreatedAt = int64(created_at)
 	}
 	b.Data = UnmarshalDataProp(item["D"])
-	kind, ok := item["K"].(string)
-	if ok {
-		b.Kind = kind
+	b.Kind, ok = item["K"].(string)
+	if !ok {
+		return errors.New("Kind is not set for bot in db")
 	}
+
 	s, ok := item["S"].(string)
 	if ok {
 		b.Secret = s
 	}
-	b.Name, _ = item["N"].(string)
-
+	b.Name, ok = item["N"].(string)
+	if !ok {
+		return errors.New("Name is not set for bot in db")
+	}
 	return nil
 }
 
@@ -794,7 +786,7 @@ func UnmarshalDataProp(d interface{}) map[string]string {
 const InviteKeyPrefix = "inv"
 
 type Invite struct {
-	BotID     string
+	BotPK     string
 	UserPK    string
 	OTP       string
 	CreatedAt time.Time
@@ -806,7 +798,7 @@ type Invite struct {
 func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 	inv := &Invite{
 		UserPK:    u.PK(),
-		BotID:     b.ID,
+		BotPK:     b.PK(),
 		CreatedAt: time.Now(),
 		TTL:       int64(valid)*60*60 + time.Now().Unix(),
 	}
@@ -817,7 +809,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 }
 
 func (inv *Invite) PK() string {
-	return fmt.Sprintf("%s#%s#%s", InviteKeyPrefix, inv.BotID, inv.OTP)
+	return fmt.Sprintf("%s#%s#%s", InviteKeyPrefix, inv.BotPK, inv.OTP)
 }
 
 func (inv *Invite) IsValid() bool {
@@ -838,7 +830,7 @@ func (inv *Invite) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 		return err
 	}
 	inv.UserPK, _ = item["U"].(string)
-	inv.BotID = item["B"].(string)
+	inv.BotPK = item["B"].(string)
 	inv.OTP = item["O"].(string)
 	inv.Url = item["Url"].(string)
 	ttl, ok := item["T"].(float64)
@@ -860,7 +852,7 @@ func (inv *Invite) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
 		"PK":  inv.PK(),
 		"U":   inv.UserPK,
-		"B":   inv.BotID,
+		"B":   inv.BotPK,
 		"O":   inv.OTP,
 		"T":   inv.TTL,
 		"Url": inv.Url,
@@ -874,7 +866,7 @@ func (inv *Invite) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 
 func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	inv.OTP = code
-	inv.BotID = bot.ID
+	inv.BotPK = bot.PK()
 	err := t.FetchItem(inv.PK(), inv)
 	if err != nil {
 		return err

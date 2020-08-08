@@ -290,7 +290,7 @@ func TestSetTG(t *testing.T) {
 	testTable := startLocalDynamo(t)
 	tgid := 999999999
 	usr, _ := NewUser("Foo")
-	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
+	bot, _ := NewBot(TGBotKind, "somebot")
 	err := testTable.StoreUserTG(usr, tgid, bot)
 	if err != nil {
 		t.Error(err)
@@ -320,7 +320,7 @@ func TestSetTG(t *testing.T) {
 func TestBot(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
-	bot, _ := NewBot(TGBotKind, "foo", "somesecret")
+	bot, _ := NewBot(TGBotKind, "foo")
 	bot.Data["foo"] = "bar"
 	_, err := testTable.StoreItem(bot)
 	if err != nil {
@@ -344,7 +344,7 @@ func TestInvite(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
-	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
+	bot, _ := NewBot(TGBotKind, "somebot")
 	valid := 24 //hours
 	inv, _ := NewInvite(user, bot, valid)
 	if !inv.IsValid() {
@@ -366,7 +366,7 @@ func TestInvite(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if invf.OTP != inv.OTP || invf.UserPK != inv.UserPK || invf.BotID != inv.BotID || invf.TTL != inv.TTL {
+	if invf.OTP != inv.OTP || invf.UserPK != inv.UserPK || invf.BotPK != inv.BotPK || invf.TTL != inv.TTL {
 		t.Errorf("%+v !+ %+v", invf, inv)
 	}
 	url := inv.Url

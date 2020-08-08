@@ -87,7 +87,7 @@ func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
 	inv, _ := NewInvite(user, bot, 24)
 	errs := testTable.StoreItems(bot, user, inv)
@@ -113,7 +113,7 @@ func TestScenarioTGStartNotValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "fooboot")
 	user, _ := NewUser("someuser")
 	inv, _ := NewInvite(user, bot, 24)
 	errs := testTable.StoreItems(bot, user, inv)
@@ -137,7 +137,7 @@ func TestScenarioTGAuthText(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
 	tgacc, _ := NewTGAcc(tgid, user.PK())
 	user.TGID = tgacc.TGID
@@ -174,7 +174,7 @@ func TestScenarioTGValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
 	inv, _ := NewInvite(user, bot, 24)
 	errs := testTable.StoreItems(bot, user, inv)
@@ -204,7 +204,7 @@ func TestScenarioTGNonAuth(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	errs := testTable.StoreItems(bot)
 	for _, e := range errs {
 		if e != nil {
@@ -226,7 +226,7 @@ func TestScenarioTGAudio(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
 	tgacc, _ := NewTGAcc(tgid, user.PK())
 	user.TGID = tgacc.TGID
@@ -261,7 +261,7 @@ func TestScenarioTGPhoto(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
-	bot, _ := NewBot("foobot", "secret", TGBotKind)
+	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
 	tgacc, _ := NewTGAcc(tgid, user.PK())
 	user.TGID = tgacc.TGID
