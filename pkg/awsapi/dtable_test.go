@@ -1,6 +1,7 @@
 package awsapi
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -222,7 +223,7 @@ func TestUser(t *testing.T) {
 	if t1.Number != t_stored.Number || t1.OwnerPK != t_stored.OwnerPK {
 		t.Errorf("%+v != %+v", t1, t_stored)
 	}
-	tg1, err := NewTGAcc("tgid1", usr1.PK())
+	tg1, err := NewTGAcc(99999999, usr1.PK())
 	_, err = testTable.StoreItem(tg1)
 	if err != nil {
 		t.Error(err)
@@ -287,7 +288,7 @@ func TestNewUser(t *testing.T) {
 func TestSetTG(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
-	tgid := "sometgid"
+	tgid := 999999999
 	usr, _ := NewUser("Foo")
 	bot, _ := NewBot(TGBotKind, "somebot", "somesecret")
 	err := testTable.StoreUserTG(usr, tgid, bot)
@@ -299,16 +300,17 @@ func TestSetTG(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if u.TGID != tgid {
+	if u.TGID != fmt.Sprintf("%d", tgid) {
 		t.Error("could not save TGID")
 	}
 	tg := &TGAcc{}
-	err = testTable.FetchItem(TGAccKeyPrefix+tgid, tg)
+	pk := fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid)
+	err = testTable.FetchItem(pk, tg)
 	if err != nil {
 		t.Error(err)
 	}
-	if tg.OwnerPK != usr.PK() || tg.TGID != tgid {
-		t.Error("Could not fetch TG data")
+	if tg.OwnerPK != usr.PK() || tg.TGID != "999999999" {
+		t.Errorf("Could not fetch TG data, %#v", tg)
 	}
 	if _, ok := tg.Data[bot.PK()]; !ok {
 		t.Error("tg account does not have associated bot")

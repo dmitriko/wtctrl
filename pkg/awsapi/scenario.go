@@ -43,9 +43,9 @@ func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) 
 	return "", err
 }
 
-func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error) {
+func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *TGUserMsg) (string, error) {
 	var err error
-	code := CODE_REGEXP.FindString(text)
+	code := CODE_REGEXP.FindString(tgmsg.Text)
 	if code == "" {
 		return NEED_CODE, nil
 	}
@@ -60,7 +60,7 @@ func handleTGStartMsg(bot *Bot, table *DTable, text, tgid string) (string, error
 		log.Printf("ERROR: Could not find user for invite %+v", inv)
 		return "", err
 	}
-	err = table.StoreUserTG(user, tgid, bot)
+	err = table.StoreUserTG(user, tgmsg.TGID(), bot)
 	if err != nil {
 		return "", err
 	}
@@ -80,14 +80,14 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 		return "", err
 	}
 	if strings.HasPrefix(tgmsg.Text, "/start") {
-		return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
+		return handleTGStartMsg(bot, table, tgmsg)
 	}
 	tgacc := &TGAcc{}
-	err = table.FetchItem(TGAccKeyPrefix+tgmsg.TGID(), tgacc)
+	err = table.FetchTGAcc(tgmsg.TGID(), tgacc)
 	if err != nil {
 		if err.Error() == NO_SUCH_ITEM {
 			if len(tgmsg.Text) == 6 && CODE_REGEXP.MatchString(tgmsg.Text) {
-				return handleTGStartMsg(bot, table, tgmsg.Text, tgmsg.TGID())
+				return handleTGStartMsg(bot, table, tgmsg)
 			}
 			return NEED_CODE, nil
 		}

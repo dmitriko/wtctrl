@@ -103,7 +103,7 @@ func TestScenarioTGStartValidCode(t *testing.T) {
 		t.Error(err)
 	}
 	tgacc := &TGAcc{}
-	err = testTable.FetchItem(TGAccKeyPrefix+string(tgid), tgacc)
+	err = testTable.FetchTGAcc(tgid, tgacc)
 	if err != nil {
 		t.Error(err)
 	}
@@ -139,8 +139,8 @@ func TestScenarioTGAuthText(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(string(tgid), user.PK())
-	user.TGID = string(tgid)
+	tgacc, _ := NewTGAcc(tgid, user.PK())
+	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {
 		if e != nil {
@@ -190,7 +190,7 @@ func TestScenarioTGValidCode(t *testing.T) {
 		t.Error(err)
 	}
 	tgacc := &TGAcc{}
-	err = testTable.FetchItem(TGAccKeyPrefix+string(tgid), tgacc)
+	err = testTable.FetchTGAcc(tgid, tgacc)
 	if err != nil {
 		t.Error(err)
 	}
@@ -228,8 +228,8 @@ func TestScenarioTGAudio(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(string(tgid), user.PK())
-	user.TGID = string(tgid)
+	tgacc, _ := NewTGAcc(tgid, user.PK())
+	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {
 		if e != nil {
@@ -263,8 +263,8 @@ func TestScenarioTGPhoto(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot("foobot", "secret", TGBotKind)
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(string(tgid), user.PK())
-	user.TGID = string(tgid)
+	tgacc, _ := NewTGAcc(tgid, user.PK())
+	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {
 		if e != nil {

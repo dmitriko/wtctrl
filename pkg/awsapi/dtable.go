@@ -191,6 +191,11 @@ func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutp
 	return t.db.UpdateItem(uii)
 }
 
+func (t *DTable) FetchTGAcc(tgid int, tgacc *TGAcc) error {
+	pk := fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid)
+	return t.FetchItem(pk, tgacc)
+}
+
 func (t *DTable) QueryIndex(
 	name string, cond string, exprValues map[string]interface{}) (*dynamodb.QueryOutput, error) {
 	av, err := dynamodbattribute.MarshalMap(exprValues)
@@ -522,7 +527,7 @@ func (t *TGAcc) String() string {
 	return t.TGID
 }
 
-func (t *DTable) StoreUserTG(user *User, tgid string, bot *Bot) error {
+func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 	tg, err := NewTGAcc(tgid, user.PK())
 	if err != nil {
 		return err
@@ -532,7 +537,7 @@ func (t *DTable) StoreUserTG(user *User, tgid string, bot *Bot) error {
 	if err != nil {
 		return err
 	}
-	user.TGID = tgid
+	user.TGID = tg.TGID
 	_, err = t.StoreItem(user)
 	return err
 }
@@ -691,8 +696,8 @@ func (t *TGAcc) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(item)
 }
 
-func NewTGAcc(tgid, owner_pk string) (*TGAcc, error) {
-	return &TGAcc{TGID: tgid, OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
+func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
+	return &TGAcc{TGID: fmt.Sprintf("%d", tgid), OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
 		Data: make(map[string]string)}, nil
 }
 

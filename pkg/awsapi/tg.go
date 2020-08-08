@@ -39,8 +39,8 @@ func NewTgUserMsg(orig string) (*TGUserMsg, error) {
 	return msg, err
 }
 
-func (um *TGUserMsg) TGID() string {
-	return string(um.From.Id)
+func (um *TGUserMsg) TGID() int {
+	return um.From.Id
 }
 
 func (um *TGUserMsg) IsAudio() bool {
