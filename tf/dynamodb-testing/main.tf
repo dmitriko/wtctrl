@@ -4,8 +4,10 @@ provider aws {
     }
 }
 
-resource "aws_dynamodb_table" "webtectrlv1" {
-    name          = "main"
+variable "table_name" {}
+
+resource "aws_dynamodb_table" "main" {
+    name          = var.table_name
     billing_mode  = "PAY_PER_REQUEST"
     hash_key      = "PK"
 
@@ -15,15 +17,29 @@ resource "aws_dynamodb_table" "webtectrlv1" {
     }
 
     attribute {
-        name = "USM"
+        name = "UMS"
         type = "S"
     }
 
+    attribute {
+        name = "CRTD"
+        type = "N"
+    }
+    
+    ttl {
+        attribute_name = "TTL"
+        enabled        = true
+    }
+
+    stream_enabled   = true
+    stream_view_type = "NEW_IMAGE"
+
     global_secondary_index {
-        name            = "main_usm"
-        hash_key        = "USM"
-        range_key       = "PK"
-        projection_type = "ALL"
+        name               = "UMSIndex"
+        hash_key           = "UMS"
+        range_key          = "CRTD"
+        projection_type    = "INCLUDE"
+        non_key_attributes = ["PK", "K"]
     }
     
 }

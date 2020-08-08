@@ -4,3 +4,8 @@ curl \
     -X POST \
     --data-binary @whatstheweatherlike.wav \
    "https://${SPEECHSDK_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US" -v
+
+
+dynamo = boto3.resource('dynamodb',endpoint_url='http://localhost:8000', region_name='us-west-2')
+table = dynamo.Table('MainTest')
+table.scan()

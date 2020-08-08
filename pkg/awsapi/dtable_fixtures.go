@@ -35,7 +35,8 @@ var createTableInput = &dynamodb.CreateTableInput{
 		{
 			IndexName: aws.String("UMSIndex"),
 			Projection: &dynamodb.Projection{
-				ProjectionType: aws.String("ALL"),
+				ProjectionType:   aws.String("INCLUDE"),
+				NonKeyAttributes: []*string{aws.String("PK"), aws.String("K")},
 			},
 			KeySchema: []*dynamodb.KeySchemaElement{
 				{
