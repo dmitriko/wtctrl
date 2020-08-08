@@ -319,6 +319,10 @@ func PK2ID(pkin interface{}, prefix string) (string, error) {
 	return strings.Replace(pk, prefix, "", -1), nil
 }
 
+func (m *Msg) Update(table *DTable) error {
+	return table.FetchItem(m.PK(), m)
+}
+
 func (m *Msg) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
 	item := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &item)
@@ -389,10 +393,16 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, e
 	if err != nil {
 		return err
 	}
+	// item in db has only PK, K, UMS and CRTD b/c index projection settings
+	// so we fetch whole item here
 	for _, item := range resp.Items {
 		msg := &Msg{}
-		err = msg.LoadFromD(item)
+		pk := *item["PK"].S
+		err = t.FetchItem(pk, msg)
 		if err != nil {
+			if err.Error() == NO_SUCH_ITEM {
+				continue
+			}
 			return err
 		}
 		lm.Items[msg.ID] = msg
