@@ -1,3 +1,4 @@
+https://john.dev/posts/2019-03-31-lambda-to-s3-golang.html
 https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/rest-speech-to-text
 https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/
 http://magicermine.com/trial.html
