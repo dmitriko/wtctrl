@@ -1,3 +1,4 @@
+https://github.com/tucnak/telebot/blob/v2/examples/awslambdaechobot/main.tf
 https://lumigo.io/blog/sqs-and-lambda-the-missing-guide-on-failure-modes/
 https://www.alexdebrie.com/posts/api-gateway-elements/
 https://john.dev/posts/2019-03-31-lambda-to-s3-golang.html

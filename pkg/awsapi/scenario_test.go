@@ -83,6 +83,38 @@ const TGPhotoMsgTmpl = `
   ]
 }`
 
+const TGDocMsgTmpl = `
+message_id": 9,
+    "from": {
+        "id":  %[1]d,
+        "is_bot": false,
+        "first_name": "D",
+        "last_name": "K",
+        "language_code": "en"
+    },
+    "chat": {
+        "id":  %[1]d,
+        "first_name": "D",
+        "last_name": "K",
+        "type": "private"
+    },
+    "date": 1597084525,
+    "document": {
+        "file_name": "IMG_20200802_195818.jpg",
+        "mime_type": "image/jpeg",
+        "thumb": {
+            "file_id": "AAMCAgADGQEAAwlfMZNtVktT1WdNuj9C_14AASnIEPQAAoAIAAJawYhJucPv_LtVYgNQDWWWLgADAQAHbQADzRIAAhoE",
+            "file_unique_id": "AQADUA1lli4AA80SAAI",
+            "file_size": 8914,
+            "width": 320,
+            "height": 240
+        },
+        "file_id": "BQACAgIAAxkBAAMJXzGTbVZLU9VnTbo_Qv9eAAEpyBD0AAKACAACWsGISbnD7_y7VWIDGgQ",
+        "file_unique_id": "AgADgAgAAlrBiEk",
+        "file_size": 4398585
+    }
+}`
+
 func TestScenarioTGStartValidCode(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
