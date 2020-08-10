@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/dmitriko/wtctrl/pkg/tgapi"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 
 var CODE_REGEXP = regexp.MustCompile(`\d{6}`)
 
-func handleTGAuthPhotoMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
+func handleTGAuthPhotoMsg(bot *Bot, table *DTable, user *User, tgmsg *tgapi.TGUserMsg) (string, error) {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGPhotoMsgKind)
 	if err != nil {
 		return "", err
@@ -33,7 +35,7 @@ func handleTGAuthPhotoMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg)
 	return "", nil
 }
 
-func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
+func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *tgapi.TGUserMsg) (string, error) {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGTextMsgKind)
 	if err != nil {
 		return "", err
@@ -43,7 +45,7 @@ func handleTGAuthTextMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) 
 	return "", err
 }
 
-func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *TGUserMsg) (string, error) {
+func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *tgapi.TGUserMsg) (string, error) {
 	var err error
 	code := CODE_REGEXP.FindString(tgmsg.Text)
 	if code == "" {
@@ -75,7 +77,7 @@ func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *TGUserMsg) (string, error)
 
 // Handles message got via webhook from Telegram
 func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
-	tgmsg, err := NewTgUserMsg(orig)
+	tgmsg, err := tgapi.NewTgUserMsg(orig)
 	if err != nil {
 		return "", err
 	}
@@ -107,7 +109,7 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	return handleTGAuthTextMsg(bot, table, user, tgmsg)
 }
 
-func handleTGAuthAudioMsg(bot *Bot, table *DTable, user *User, tgmsg *TGUserMsg) (string, error) {
+func handleTGAuthAudioMsg(bot *Bot, table *DTable, user *User, tgmsg *tgapi.TGUserMsg) (string, error) {
 	msg, err := NewMsg(bot.PK(), user.PK(), TGVoiceMsgKind)
 	if err != nil {
 		return "", err

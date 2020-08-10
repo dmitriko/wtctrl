@@ -1,4 +1,4 @@
-package awsapi
+package tgapi
 
 import (
 	"encoding/json"
