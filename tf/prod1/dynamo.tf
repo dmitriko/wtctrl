@@ -1,6 +1,3 @@
-provider aws {}
-
-variable "table_name" {}
 
 resource "aws_dynamodb_table" "main" {
     name          = var.table_name
