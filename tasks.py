@@ -8,9 +8,6 @@ import boto3
 from botocore.errorfactory import ClientError
 import IPython
 
-from viberbot import Api as ViberApi
-from viberbot.api.bot_configuration import BotConfiguration as ViberBotConfig
-
 
 DEPLOY_BUCKET = "webtectrl-deploy"
 try:
