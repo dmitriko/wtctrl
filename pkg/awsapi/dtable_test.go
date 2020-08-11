@@ -237,7 +237,7 @@ func TestUser(t *testing.T) {
 		t.Errorf("%+v != %+v", tg1, tgf)
 	}
 }
-func TestNewUser(t *testing.T) {
+func TestUserNew(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	usr1, _ := NewUser("Someone")

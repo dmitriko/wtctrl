@@ -62,6 +62,7 @@ func tgbotInviteUserCmd() *cobra.Command {
 	registerTGBotFlags(cmd)
 	registerUserFlags(cmd)
 	cmd.MarkFlagRequired("title")
+	cmd.MarkFlagRequired("bot-name")
 	return cmd
 
 }
@@ -125,6 +126,15 @@ func inviteUser() error {
 	if err != nil {
 		return err
 	}
+	user, _ := NewUser(userTitle)
+	if userTel != "" {
+		user.Tel = userTel
+	}
+	if userEmail != "" {
+		user.Email = userEmail
+	}
+	bot, _ := NewBot(TGKindBot, tgbotName)
+	inv, _ = NewInvite(user, bot, 24)
 
 	return nil
 }

@@ -524,7 +524,7 @@ func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 	return err
 }
 
-//Store user, telephon number, email, TG id in one transaction
+//Store user, telephon number, email in one transaction
 //it fails if number, email or tg id already exist
 func (t *DTable) StoreNewUser(user *User) error {
 	items := []DMapper{user}
