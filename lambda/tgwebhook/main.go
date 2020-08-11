@@ -1,35 +1,35 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	tb "github.com/dmitriko/wtctrl/pkg/telebot"
 )
 
-func putInSQS(text string) error {
+func handleMessage(body string) error {
+	//bot_name := os.Genenv("TGBOT_NAME")
+	bot_secret := os.Getenv("TGBOT_SECRET")
 
-	queue_url := os.Getenv("QUEUE_URL")
-	if queue_url == "" {
-		return errors.New("QUEUE_URL env var is not set")
+	if bot_secret == "" {
+		return errors.New("BOT_NAME or BOT_SECRET not set")
 	}
-
-	sess := session.Must(session.NewSession())
-	svc := sqs.New(sess)
-	send_input := &sqs.SendMessageInput{
-		MessageGroupId: aws.String("tgwebhook"),
-		MessageBody:    aws.String(text),
-		QueueUrl:       aws.String(queue_url),
-	}
-	_, err := svc.SendMessage(send_input)
+	_, err := tb.NewBot(tb.Settings{
+		Token:       bot_secret,
+		Synchronous: true,
+	})
 	if err != nil {
 		return err
+	}
+	var upd tb.Update
+	if err = json.Unmarshal([]byte(body), &upd); err == nil {
+		fmt.Printf("%+v", upd.Message)
 	}
 	return nil
 }
@@ -38,14 +38,15 @@ func handleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 
 	log.Println(req.Body)
 
-	err := putInSQS(req.Body)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-		}, err
+	res := events.APIGatewayProxyResponse{
+		StatusCode: http.StatusInternalServerError,
 	}
 
-	res := events.APIGatewayProxyResponse{
+	if err := handleMessage(req.Body); err != nil {
+		return res, err
+	}
+
+	res = events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    map[string]string{"Content-Type": "text/plan; charset=utf-8"},
 		Body:       "ok",

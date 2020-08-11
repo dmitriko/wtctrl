@@ -9,3 +9,25 @@ curl \
 dynamo = boto3.resource('dynamodb',endpoint_url='http://localhost:8000', region_name='us-west-2')
 table = dynamo.Table('MainTest')
 table.scan()
+
+
+func putInSQS(text string) error {
+
+    queue_url := os.Getenv("QUEUE_URL")
+    if queue_url == "" {
+        return errors.New("QUEUE_URL env var is not set")
+    }
+
+    sess := session.Must(session.NewSession())
+    svc := sqs.New(sess)
+    send_input := &sqs.SendMessageInput{
+        MessageGroupId: aws.String("tgwebhook"),
+        MessageBody:    aws.String(text),
+        QueueUrl:       aws.String(queue_url),
+    }
+    _, err := svc.SendMessage(send_input)
+    if err != nil {
+        return err
+    }
+    return nil
+}

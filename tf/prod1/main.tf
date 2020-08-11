@@ -92,7 +92,7 @@ resource "aws_lambda_function" "tgwebhook" {
     source_code_hash = data.archive_file.tgwebhook.output_base64sha256
     environment  {
         variables = {
-            QUEUE_URL = aws_sqs_queue.tgwebhook.id
+            TGBOT_SECRET = var.tgbot_secret
         }
     }
 }
