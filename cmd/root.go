@@ -62,7 +62,6 @@ func tgbotInviteUserCmd() *cobra.Command {
 	registerTGBotFlags(cmd)
 	registerUserFlags(cmd)
 	cmd.MarkFlagRequired("title")
-	cmd.MarkFlagRequired("bot-name")
 	return cmd
 
 }
@@ -126,15 +125,27 @@ func inviteUser() error {
 	if err != nil {
 		return err
 	}
-	user, _ := NewUser(userTitle)
+	user, _ := awsapi.NewUser(userTitle)
 	if userTel != "" {
-		user.Tel = userTel
+		if err = user.SetTel(userTel); err != nil {
+			return err
+		}
 	}
 	if userEmail != "" {
-		user.Email = userEmail
+		if err = user.SetEmail(userEmail); err != nil {
+			return err
+		}
 	}
-	bot, _ := NewBot(TGKindBot, tgbotName)
-	inv, _ = NewInvite(user, bot, 24)
-
+	bot, _ := awsapi.NewBot(awsapi.TGBotKind, tgbotName)
+	inv, _ := awsapi.NewInvite(user, bot, 24)
+	err = table.StoreNewUser(user)
+	if err != nil {
+		return err
+	}
+	_, err = table.StoreItem(inv, awsapi.UniqueOp())
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Please, use this url to start messaging: %s \n", inv.Url)
 	return nil
 }
