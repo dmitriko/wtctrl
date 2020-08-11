@@ -9,6 +9,7 @@ terraform {
 variable "table_name" {}
 variable "tgbot_secret" {}
 
+
 locals {
     func_name = "tgwebhook_prod1"
 }
@@ -57,11 +58,26 @@ data "aws_iam_policy_document" "tgwebhook" {
     statement {
         actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["*"]
-//        resources  = [aws_cloudwatch_log_group.tgwebhook.arn]
     }
     statement {
         actions = ["sqs:SendMessage"]
         resources = [aws_sqs_queue.tgwebhook.arn]
+    }
+    statement {
+        actions = [
+                "dynamodb:BatchGet*",
+                "dynamodb:DescribeStream",
+                "dynamodb:DescribeTable",
+                "dynamodb:Get*",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:BatchWrite*",
+                "dynamodb:CreateTable",
+                "dynamodb:Delete*",
+                "dynamodb:Update*",
+                "dynamodb:PutItem"
+            ]
+        resources = [aws_dynamodb_table.main.arn]
     }
 }
 
@@ -93,6 +109,7 @@ resource "aws_lambda_function" "tgwebhook" {
     environment  {
         variables = {
             TGBOT_SECRET = var.tgbot_secret
+            TABLE_NAME = var.table_name
         }
     }
 }

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	NEED_CODE  = "Please, provide invitation code."
-	WRONG_CODE = "This code is wrong or expired"
+	NEED_CODE  = "Please, provide an invitation code."
+	WRONG_CODE = "This code is wrong or expired."
 	WELCOME    = "Welcome!"
 )
 
