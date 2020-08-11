@@ -54,11 +54,16 @@ func tgbotInviteUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "invite",
 		Short: "Create User, Invite in DB and print invite url",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return inviteUser()
+		},
 	}
 	registerTableFlags(cmd)
 	registerTGBotFlags(cmd)
 	registerUserFlags(cmd)
+	cmd.MarkFlagRequired("title")
 	return cmd
+
 }
 
 //Register flags related to DynamoDB
@@ -105,5 +110,21 @@ func registerBot() error {
 		return err
 	}
 	fmt.Printf("Telegram Bot with name %s is registered.\n", tgbotName)
+	return nil
+}
+
+func inviteUser() error {
+	table, _ := awsapi.NewDTable(tableName)
+	if tableRegion != "" {
+		table.Region = tableRegion
+	}
+	if tableEndpoint != "" {
+		table.Endpoint = tableEndpoint
+	}
+	err := table.Connect()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
