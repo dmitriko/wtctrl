@@ -558,7 +558,8 @@ func (t *DTable) StoreNewUser(user *User) error {
 type Email struct {
 	Email     string
 	OwnerPK   string
-	CreatedAt time.Time
+	CreatedAt int64
+	Data      map[string]string
 }
 
 func (e *Email) PK() string {
@@ -571,28 +572,28 @@ func (e *Email) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	created, err := time.Parse(time.RFC3339, item["C"].(string))
-	if err != nil {
-		return err
-	}
 	e.Email = IdFromPk(item["PK"], EmailKeyPrefix)
 	e.OwnerPK = item["O"].(string)
-	e.CreatedAt = created
+	e.CreatedAt = UnmarshalCreated(item["CRTD"])
+	e.Data = UnmarshalDataProp(item["D"])
+
 	return nil
 }
 
 func (e *Email) Marshal() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK": e.PK(),
-		"O":  e.OwnerPK,
-		"C":  e.CreatedAt.Format(time.RFC3339),
+		"PK":   e.PK(),
+		"O":    e.OwnerPK,
+		"CRTD": e.CreatedAt,
+		"D":    e.Data,
 	}
 
 	return dynamodbattribute.MarshalMap(item)
 }
 
 func NewEmail(email, owner_pk string) (*Email, error) {
-	return &Email{Email: email, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+	return &Email{Email: email, OwnerPK: owner_pk,
+		CreatedAt: time.Now().Unix(), Data: make(map[string]string)}, nil
 }
 
 //For telephone number
