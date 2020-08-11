@@ -57,7 +57,7 @@ func handleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	res := events.APIGatewayProxyResponse{
 		StatusCode: http.StatusInternalServerError,
 	}
-
+	log.Println(req.Body)
 	err := handleMessage(req.Body)
 
 	if err != nil {

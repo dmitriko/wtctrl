@@ -3,6 +3,7 @@ package awsapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -40,7 +41,7 @@ func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *tb.Message) (string, error
 	if err != nil {
 		return "", err
 	}
-	inv.Data["accepted"] = string(time.Now().Unix())
+	inv.Data["accepted"] = fmt.Sprintf("%d", time.Now().Unix())
 	_, err = table.StoreItem(inv)
 	if err != nil {
 		//ignoring it

@@ -535,7 +535,7 @@ func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 }
 
 //Store user, telephon number, email in one transaction
-//it fails if number, email or tg id already exist
+//it fails if number or email already exist
 func (t *DTable) StoreNewUser(user *User) error {
 	items := []DMapper{user}
 	if user.Tel != "" {
@@ -770,7 +770,7 @@ type Invite struct {
 	BotPK     string
 	UserPK    string
 	OTP       string
-	CreatedAt time.Time
+	CreatedAt int64
 	TTL       int64
 	Url       string
 	Data      map[string]string
@@ -780,7 +780,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 	inv := &Invite{
 		UserPK:    u.PK(),
 		BotPK:     b.PK(),
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
 		TTL:       int64(valid)*60*60 + time.Now().Unix(),
 	}
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
@@ -806,38 +806,28 @@ func (inv *Invite) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
 	if err != nil {
 		return err
 	}
-	created, err := time.Parse(time.RFC3339, item["C"].(string))
-	if err != nil {
-		return err
-	}
+	inv.CreatedAt = UnmarshalCreated(item["CRTD"])
 	inv.UserPK, _ = item["U"].(string)
 	inv.BotPK = item["B"].(string)
 	inv.OTP = item["O"].(string)
 	inv.Url = item["Url"].(string)
-	ttl, ok := item["T"].(float64)
+	ttl, ok := item["TTL"].(float64)
 	if ok {
 		inv.TTL = int64(ttl)
 	}
-	inv.CreatedAt = created
-	d, ok := item["D"].(map[string]interface{})
-	inv.Data = make(map[string]string)
-	if ok {
-		for k, v := range d {
-			inv.Data[k] = v.(string)
-		}
-	}
+	inv.Data = UnmarshalDataProp(item["D"])
 	return nil
 }
 
 func (inv *Invite) Marshal() (map[string]*dynamodb.AttributeValue, error) {
 	item := map[string]interface{}{
-		"PK":  inv.PK(),
-		"U":   inv.UserPK,
-		"B":   inv.BotPK,
-		"O":   inv.OTP,
-		"T":   inv.TTL,
-		"Url": inv.Url,
-		"C":   inv.CreatedAt.Format(time.RFC3339),
+		"PK":   inv.PK(),
+		"U":    inv.UserPK,
+		"B":    inv.BotPK,
+		"O":    inv.OTP,
+		"TTL":  inv.TTL,
+		"Url":  inv.Url,
+		"CRTD": inv.CreatedAt,
 	}
 	if len(inv.Data) > 0 {
 		item["D"] = inv.Data
