@@ -16,10 +16,21 @@ import (
 )
 
 const (
-	MsgKeyPrefix   = "msg#"
 	NO_SUCH_ITEM   = "NoSuchItem"
 	ALREADY_EXISTS = "AlreadyExists"
-	EmailKeyPrefix = "email#"
+
+	MsgKeyPrefix    = "msg#"
+	EmailKeyPrefix  = "email#"
+	UserKeyPrefix   = "user#"
+	TelKeyPrefix    = "tel#"
+	TGAccKeyPrefix  = "tgacc#"
+	BotKeyPrefix    = "bot#"
+	InviteKeyPrefix = "inv#"
+	FileKeyPrefix   = "file#"
+
+	PicFileKind = "PicFileKind"
+
+	TGBotKind = "tg"
 )
 
 const (
@@ -398,8 +409,6 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, e
 	return nil
 }
 
-const UserKeyPrefix = "user#"
-
 type User struct {
 	ID        string
 	Title     string
@@ -586,8 +595,6 @@ func NewEmail(email, owner_pk string) (*Email, error) {
 	return &Email{Email: email, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }
 
-const TelKeyPrefix = "tel"
-
 //For telephone number
 type Tel struct {
 	Number    string
@@ -628,8 +635,6 @@ func (t *Tel) Marshal() (map[string]*dynamodb.AttributeValue, error) {
 func NewTel(number, owner_pk string) (*Tel, error) {
 	return &Tel{Number: number, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }
-
-const TGAccKeyPrefix = "tgacc"
 
 //For Telegram account
 type TGAcc struct {
@@ -681,9 +686,6 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 	return &TGAcc{TGID: fmt.Sprintf("%d", tgid), OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
 		Data: make(map[string]string)}, nil
 }
-
-const TGBotKind = "tg"
-const BotKeyPrefix = "bot#"
 
 type Bot struct {
 	Name      string
@@ -763,8 +765,6 @@ func UnmarshalDataProp(d interface{}) map[string]string {
 	}
 	return r
 }
-
-const InviteKeyPrefix = "inv"
 
 type Invite struct {
 	BotPK     string
@@ -857,9 +857,6 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	}
 	return nil
 }
-
-const PicFileKind = "PicFileKind"
-const FileKeyPrefix = "file#"
 
 type File struct {
 	ID        string
