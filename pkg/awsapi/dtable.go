@@ -791,7 +791,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 }
 
 func (inv *Invite) PK() string {
-	return fmt.Sprintf("%s#%s#%s", InviteKeyPrefix, inv.BotPK, inv.OTP)
+	return fmt.Sprintf("%s%s#%s", InviteKeyPrefix, inv.BotPK, inv.OTP)
 }
 
 func (inv *Invite) IsValid() bool {
