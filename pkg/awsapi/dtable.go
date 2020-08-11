@@ -21,6 +21,13 @@ const (
 	ALREADY_EXISTS = "AlreadyExists"
 )
 
+const (
+	TGTextMsgKind    = 1
+	TGVoiceMsgKind   = 2
+	TGPhotoMsgKind   = 3
+	TGUnknownMsgKind = 4
+)
+
 //Provides access to DynamoDB table
 type DTable struct {
 	db       *dynamodb.DynamoDB
@@ -227,12 +234,6 @@ func DataOp(d map[string]string) func(m *Msg) error {
 		return nil
 	}
 }
-
-const (
-	TGTextMsgKind  = 1
-	TGVoiceMsgKind = 2
-	TGPhotoMsgKind = 3
-)
 
 //Factory method for Msg
 func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) (*Msg, error) {

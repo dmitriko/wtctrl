@@ -7,7 +7,9 @@ import (
 
 // /start <code> message with valid code
 
-const TGTextMsgTmpl = `{"message_id": 181,
+const TGTextMsgTmpl = `{ "update_id": 45554171,
+  "message": {
+   "message_id": 181,
         "from": {"id": %[1]d,
          "is_bot": false,
          "first_name": "D",
@@ -18,9 +20,11 @@ const TGTextMsgTmpl = `{"message_id": 181,
          "last_name": "K",
          "type": "private"},
         "date": 1571403733,
-        "text": "%[2]s"}`
+        "text": "%[2]s"}
+		}`
 
-const TGAudioMsgTmpl = `{
+const TGVoiceMsgTmpl = `{"update_id":45554177,
+ "message": {
   "message_id": 92,
   "from": {
     "id": %[1]d,
@@ -42,10 +46,12 @@ const TGAudioMsgTmpl = `{
     "file_id": "%[3]s",
     "file_size": 5070
   }
+}
 }`
 
 const TGPhotoMsgTmpl = `
-{
+{"update_id":45554176,
+ "message": {
   "message_id": 67,
   "from": {
     "id": %[1]d,
@@ -81,10 +87,14 @@ const TGPhotoMsgTmpl = `
       "height": 1280
     }
   ]
-}`
+ }
+}
+`
 
 const TGDocMsgTmpl = `
-message_id": 9,
+{"update_id":45554177,
+ "message": {
+    "message_id": 9,
     "from": {
         "id":  %[1]d,
         "is_bot": false,
@@ -254,7 +264,7 @@ func TestScenarioTGNonAuth(t *testing.T) {
 	}
 }
 
-func TestScenarioTGAudio(t *testing.T) {
+func TestScenarioTGVoice(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	tgid := 123456789
@@ -268,7 +278,7 @@ func TestScenarioTGAudio(t *testing.T) {
 			t.Error(e)
 		}
 	}
-	orig := fmt.Sprintf(TGAudioMsgTmpl, tgid, 1, "sometgfileid")
+	orig := fmt.Sprintf(TGVoiceMsgTmpl, tgid, 1, "sometgfileid")
 	_, err := HandleTGMsg(bot, testTable, orig)
 	if err != nil {
 		t.Error(err)
@@ -282,9 +292,11 @@ func TestScenarioTGAudio(t *testing.T) {
 		t.Error("expected 1 Msg in DB")
 	}
 	for _, msg := range lm.Items {
-		if msg.Data["orig_duration"] != "1" || msg.Data["orig_file_id"] != "sometgfileid" ||
-			msg.Data["orig_mime_type"] != "audio/ogg" || msg.Data["orig_file_size"] != "5070" {
-			t.Errorf("expected msg with orig audio data got %+v", msg.Data)
+		if msg.Data["orig"] != orig {
+			t.Errorf("expected %s, got %s", orig, msg.Data["orig"])
+		}
+		if msg.Kind != TGVoiceMsgKind {
+			t.Errorf("msg.Kind is not correct, got %v expected %v", msg.Kind, TGVoiceMsgKind)
 		}
 	}
 }
@@ -316,25 +328,13 @@ func TestScenarioTGPhoto(t *testing.T) {
 	if lm.Len() != 1 {
 		t.Error("expected 1 Msg in DB")
 	}
-	data := map[string]string{
-		"orig_0_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA20AA_NLAwABFgQ",
-		"orig_0_file_size": "12635",
-		"orig_0_width":     "180",
-		"orig_0_height":    "320",
-		"orig_1_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3gAA_RLAwABFgQ",
-		"orig_1_file_size": "49078",
-		"orig_1_width":     "450",
-		"orig_1_height":    "800",
-		"orig_2_file_id":   "AgADAgADkKsxG8qRwUiqYAcM2WqnNUTauQ8ABAEAAwIAA3kAA_FLAwABFgQ",
-		"orig_2_file_size": "73321",
-		"orig_2_width":     "720",
-		"orig_2_height":    "1280",
-	}
 	for _, msg := range lm.Items {
-		for k, _ := range data {
-			if data[k] != msg.Data[k] {
-				t.Errorf("%s are not equal, expected %s, got %s", k, data[k], msg.Data[k])
-			}
+		if msg.Kind != TGPhotoMsgKind {
+			t.Errorf("msg.Kind is not correct, got %v expected %v", msg.Kind, TGPhotoMsgKind)
 		}
+		if msg.Data["orig"] != orig {
+			t.Errorf("expected %s, got %s", orig, msg.Data["orig"])
+		}
+
 	}
 }
