@@ -98,6 +98,9 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 
 	if tgmsg.Photo != nil {
 		msg.Kind = TGPhotoMsgKind
+		if tgmsg.Photo.Caption != "" {
+			msg.Data["text"] = tgmsg.Photo.Caption
+		}
 	}
 
 	if tgmsg.Voice != nil {
