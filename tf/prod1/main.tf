@@ -11,7 +11,8 @@ variable "tgbot_secret" {}
 
 
 locals {
-    func_name = "tgwebhook_prod1"
+    webhook_func_name = "tgwebhook_prod1"
+    dstream_func_name = "dstream_prod1"
 }
 
 provider "telegram" {
@@ -34,12 +35,12 @@ resource "aws_sqs_queue" "tgwebhook" {
 }
 
 resource "aws_cloudwatch_log_group" "tgwebhook" {
-    name = "/aws/lambda/${local.func_name}"
+    name = "/aws/lambda/${local.webhook_func_name}"
     retention_in_days = 7
 }
 
-resource "aws_iam_role" "tgwebhook" {
-    name                = "tgwebhook"
+resource "aws_iam_role" "lambda" {
+    name                = "lambda"
     assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -54,7 +55,7 @@ resource "aws_iam_role" "tgwebhook" {
 POLICY
 }
 
-data "aws_iam_policy_document" "tgwebhook" {
+data "aws_iam_policy_document" "lambda" {
     statement {
         actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["*"]
@@ -81,14 +82,14 @@ data "aws_iam_policy_document" "tgwebhook" {
     }
 }
 
-resource "aws_iam_policy" "tgwebhook" {
-    name = "tgwebhook"
-    policy = data.aws_iam_policy_document.tgwebhook.json
+resource "aws_iam_policy" "lambda" {
+    name = "lambda"
+    policy = data.aws_iam_policy_document.lambda.json
 }
 
-resource "aws_iam_role_policy_attachment" "tgwebhook" {
-    role = aws_iam_role.tgwebhook.name
-    policy_arn = aws_iam_policy.tgwebhook.arn
+resource "aws_iam_role_policy_attachment" "lambda" {
+    role = aws_iam_role.lambda.name
+    policy_arn = aws_iam_policy.lambda.arn
 }
 
 data "archive_file" "tgwebhook" {
@@ -98,12 +99,12 @@ data "archive_file" "tgwebhook" {
 }
 
 resource "aws_lambda_function" "tgwebhook" {
-    function_name = local.func_name
+    function_name = local.webhook_func_name
     runtime = "go1.x"
     handler = "tgwebhook"
     memory_size = 128
     timeout = 10
-    role = aws_iam_role.tgwebhook.arn
+    role = aws_iam_role.lambda.arn
     filename = data.archive_file.tgwebhook.output_path
     source_code_hash = data.archive_file.tgwebhook.output_base64sha256
     environment  {
@@ -132,9 +133,5 @@ resource "aws_lambda_permission" "tgwebhook" {
 resource "telegram_bot_webhook" "tgwebhook" {
     url  = aws_apigatewayv2_api.tgwebhook.api_endpoint
     max_connections = 100
-}
-
-output "webhook_url" {
-    value = aws_apigatewayv2_api.tgwebhook.api_endpoint
 }
 
