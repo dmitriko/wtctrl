@@ -79,7 +79,7 @@ func TestStoreItems(t *testing.T) {
 		t.FailNow()
 	}
 	item := &TItem{}
-	err = item.LoadFromD(resp.Items[0])
+	err = item.Unmarshal(resp.Items[0])
 	if err != nil {
 		t.Error(err)
 	}

@@ -78,7 +78,7 @@ func (item *TItem) PK() string {
 	return item.ID
 }
 
-func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
+func (item *TItem) Marshal() (map[string]*dynamodb.AttributeValue, error) {
 	out := map[string]interface{}{
 		"PK":   item.PK(),
 		"UMS":  item.UMS,
@@ -89,7 +89,7 @@ func (item *TItem) AsDMap() (map[string]*dynamodb.AttributeValue, error) {
 	}
 	return dynamodbattribute.MarshalMap(out)
 }
-func (item *TItem) LoadFromD(av map[string]*dynamodb.AttributeValue) error {
+func (item *TItem) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
 	in := map[string]interface{}{}
 	err := dynamodbattribute.UnmarshalMap(av, &in)
 	if err != nil {
