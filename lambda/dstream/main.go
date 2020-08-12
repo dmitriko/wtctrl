@@ -15,6 +15,16 @@ import (
 	tb "github.com/dmitriko/wtctrl/pkg/telebot"
 )
 
+var table *awsapi.DTable
+
+func init() {
+	table, _ = awsapi.NewDTable(os.Getenv("TABLE_NAME"))
+	err := table.Connect()
+	if err != nil {
+		panic("Could not connect to Dynamo")
+	}
+}
+
 func voiceToText(bot *tb.Bot, voice *tb.Voice) (string, error) {
 	if voice.Duration > 59 {
 		return "", errors.New(fmt.Sprintf("Record should be less then 60 sec, got %d", voice.Duration))
@@ -32,12 +42,7 @@ func voiceToText(bot *tb.Bot, voice *tb.Voice) (string, error) {
 
 // Updates Msg.Data with recognized text
 func updateMsgData(pk, txt string) error {
-	table, _ := awsapi.NewDTable(os.Getenv("TABLE_NAME"))
-	err := table.Connect()
-	if err != nil {
-		return err
-	}
-	_, err = table.UpdateItemData(pk, awsapi.RecognizedTextFieldName, txt)
+	_, err := table.UpdateItemData(pk, awsapi.RecognizedTextFieldName, txt)
 	return err
 }
 
