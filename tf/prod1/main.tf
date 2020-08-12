@@ -8,7 +8,8 @@ terraform {
 
 variable "table_name" {}
 variable "tgbot_secret" {}
-
+variable "speech_key" {}
+variable "azure_region" {}
 
 locals {
     webhook_func_name = "tgwebhook_prod1"
@@ -36,6 +37,11 @@ resource "aws_sqs_queue" "tgwebhook" {
 
 resource "aws_cloudwatch_log_group" "tgwebhook" {
     name = "/aws/lambda/${local.webhook_func_name}"
+    retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "dstream" {
+    name = "/aws/lambda/${local.dstream_func_name}"
     retention_in_days = 7
 }
 
@@ -76,9 +82,10 @@ data "aws_iam_policy_document" "lambda" {
                 "dynamodb:CreateTable",
                 "dynamodb:Delete*",
                 "dynamodb:Update*",
-                "dynamodb:PutItem"
+                "dynamodb:PutItem",
+                "dynamodb:ListStreams"
             ]
-        resources = [aws_dynamodb_table.main.arn]
+        resources = [aws_dynamodb_table.main.arn, aws_dynamodb_table.main.stream_arn]
     }
 }
 
@@ -135,3 +142,33 @@ resource "telegram_bot_webhook" "tgwebhook" {
     max_connections = 100
 }
 
+data "archive_file" "dstream" {
+    type = "zip"
+    source_file = "${path.root}/../../lambda/dstream/dstream"
+    output_path = "/tmp/dstream.zip"
+}
+
+resource "aws_lambda_function" "dstream" {
+    function_name = local.dstream_func_name
+    runtime = "go1.x"
+    handler = "dstream"
+    memory_size = 128
+    timeout = 10
+    role = aws_iam_role.lambda.arn
+    filename = data.archive_file.dstream.output_path
+    source_code_hash = data.archive_file.dstream.output_base64sha256
+    environment  {
+        variables = {
+            TGBOT_SECRET = var.tgbot_secret
+            TABLE_NAME = var.table_name
+            AZURE_SPEECH2TEXT_KEY = var.speech_key
+            AZURE_REGION = var.azure_region
+        }
+    }
+}
+
+resource "aws_lambda_event_source_mapping" "dstream" {
+  event_source_arn  = aws_dynamodb_table.main.stream_arn
+  function_name     = aws_lambda_function.dstream.arn
+  starting_position = "LATEST"
+}

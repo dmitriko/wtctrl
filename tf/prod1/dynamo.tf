@@ -37,6 +37,3 @@ resource "aws_dynamodb_table" "main" {
     
 }
 
-output "stream_arn" {
-    value = aws_dynamodb_table.main.stream_arn
-}

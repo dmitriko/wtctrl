@@ -30,7 +30,8 @@ const (
 
 	PicFileKind = "PicFileKind"
 
-	TGBotKind = "tg"
+	TGBotKind               = "tg"
+	RecognizedTextFieldName = "text_recogn"
 )
 
 const (
