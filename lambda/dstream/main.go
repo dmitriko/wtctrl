@@ -104,7 +104,7 @@ func handleVoiceMsg(pk string, item map[string]events.DynamoDBAttributeValue) {
 	}
 }
 
-func handleMsg(pk string, item map[string]events.DynamoDBAttributeValue) {
+func handleNewMsg(pk string, item map[string]events.DynamoDBAttributeValue) {
 	if item["K"].DataType() == events.DataTypeNumber {
 		kind, _ := item["K"].Integer()
 		if kind == awsapi.TGVoiceMsgKind {
@@ -118,8 +118,8 @@ func handleRequest(ctx context.Context, e events.DynamoDBEvent) {
 	for _, record := range e.Records {
 		pk := record.Change.Keys["PK"].String()
 		fmt.Printf("Processing %s", pk)
-		if strings.HasPrefix(pk, awsapi.MsgKeyPrefix) {
-			handleMsg(pk, record.Change.NewImage)
+		if strings.HasPrefix(pk, awsapi.MsgKeyPrefix) && record.EventName == "INSERT" {
+			handleNewMsg(pk, record.Change.NewImage)
 		}
 
 	}
