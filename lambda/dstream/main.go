@@ -46,7 +46,7 @@ func replyUser(bot *tb.Bot, tgmsg *tb.Message, txt string) error {
 	return err
 }
 
-func handleVoiceMsgOrig(pk, orig string) {
+func runSpeechRecogn(pk, orig string) {
 	var upd tb.Update
 	err := json.Unmarshal([]byte(orig), &upd)
 	if err != nil {
@@ -64,6 +64,11 @@ func handleVoiceMsgOrig(pk, orig string) {
 	})
 	if err != nil {
 		fmt.Printf("ERROR creating bot %s", err.Error())
+		return
+	}
+
+	if upd.Message.Voice.Duration > 59 {
+		_ = replyUser(bot, upd.Message, "it's too long")
 		return
 	}
 
@@ -87,9 +92,11 @@ func handleVoiceMsg(pk string, item map[string]events.DynamoDBAttributeValue) {
 	if item["D"].DataType() == events.DataTypeMap {
 		data := item["D"].Map()
 		orig := data["orig"].String()
-		handleVoiceMsgOrig(pk, orig)
+		_, ok := data[awsapi.RecognizedTextFieldName]
+		if !ok {
+			runSpeechRecogn(pk, orig)
+		}
 	}
-
 }
 
 func handleMsg(pk string, item map[string]events.DynamoDBAttributeValue) {
