@@ -1,3 +1,5 @@
+https://aws.amazon.com/blogs/mobile/building-fine-grained-authorization-using-amazon-cognito-user-pools-groups/#:~:text=In%20the%20Authentication%20Providers%20section,you%20created%20the%20identity%20pool.
+https://qua.name/antolius/making-a-testable-cobra-cli-app
 https://medium.com/rungo/making-external-http-requests-in-go-eb4c015f8839
 https://github.com/aws/aws-appsync-community
 https://medium.com/@dabit3/full-stack-vue-with-graphql-aws-appsync-adc5af474dc9
