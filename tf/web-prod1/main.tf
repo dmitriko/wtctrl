@@ -17,6 +17,10 @@ data "aws_dynamodb_table" "main" {
     name = var.table_name
 }
 
+resource "aws_cloudwatch_log_group" "wsauth" {
+    name = "/aws/lambda/${local.wsauth_func_name}"
+    retention_in_days = 7
+}
 
 resource "aws_iam_role" "api" {
     name                = "apiprod1"
