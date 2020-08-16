@@ -10,22 +10,11 @@ variable "table_name" {}
 variable "tgbot_secret" {}
 
 locals {
-    auth_func_name = "auth_web_prod1"
-    api_func_name = "api_web_prod1"
+    wsauth_func_name = "wsauth_prod1"
 }
 
 data "aws_dynamodb_table" "main" {
     name = var.table_name
-}
-
-resource "aws_cloudwatch_log_group" "tgwebhook" {
-    name = "/aws/lambda/${local.auth_func_name}"
-    retention_in_days = 7
-}
-
-resource "aws_cloudwatch_log_group" "dstream" {
-    name = "/aws/lambda/${local.api_func_name}"
-    retention_in_days = 7
 }
 
 
@@ -86,7 +75,7 @@ data "archive_file" "wsauth" {
 }
 
 resource "aws_lambda_function" "wsauth" {
-    function_name = local.auth_func_name
+    function_name = local.wsauth_func_name
     runtime = "go1.x"
     handler = "wsauth"
     memory_size = 128
@@ -107,7 +96,7 @@ resource "aws_apigatewayv2_api" "wsapi" {
 }
 
 resource "aws_lambda_permission" "wsauth" {
-    statement_id = "wsapiLambda"
+    statement_id = "${aws_lambda_function.wsauth.function_name}Lambda"
     function_name = aws_lambda_function.wsauth.function_name
     action = "lambda:InvokeFunction"
     principal = "apigateway.amazonaws.com"
