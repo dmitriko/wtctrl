@@ -128,6 +128,28 @@ resource "aws_lambda_function" "wsdefault" {
     }
 }
 
+data "archive_file" "wsconn" {
+    type = "zip"
+    source_file = "${path.root}/../../lambda/wsconn/wsconn"
+    output_path = "/tmp/wsconn.zip"
+}
+
+resource "aws_lambda_function" "wsconn" {
+    function_name = "wsconn_prod1"
+    runtime = "go1.x"
+    handler = "wsconn"
+    memory_size = 128
+    timeout = 10
+    role = aws_iam_role.api.arn
+    filename = data.archive_file.wsconn.output_path
+    source_code_hash = data.archive_file.wsconn.output_base64sha256
+    environment  {
+        variables = {
+            TABLE_NAME = var.table_name
+        }
+    }
+}
+
 resource "aws_apigatewayv2_api" "wsapi" {
     name = "wsapi-prod1"
     protocol_type = "WEBSOCKET"
@@ -150,6 +172,14 @@ resource "aws_lambda_permission" "wsdefault" {
     source_arn = "${aws_apigatewayv2_api.wsapi.execution_arn}/*"
 }
 
+resource "aws_lambda_permission" "wsconn" {
+    statement_id = "${aws_lambda_function.wsconn.function_name}Lambda"
+    function_name = aws_lambda_function.wsconn.function_name
+    action = "lambda:InvokeFunction"
+    principal = "apigateway.amazonaws.com"
+    source_arn = "${aws_apigatewayv2_api.wsapi.execution_arn}/*"
+}
+
 resource "aws_apigatewayv2_authorizer" "wsapi" {
     name = "wsapi-auth-prod1"
     api_id = aws_apigatewayv2_api.wsapi.id
@@ -163,6 +193,25 @@ resource "aws_apigatewayv2_route" "wsconn" {
     route_key = "$connect"
     authorization_type = "CUSTOM"
     authorizer_id = aws_apigatewayv2_authorizer.wsapi.id
+    target = "integrations/${aws_apigatewayv2_integration.wsconn.id}"
+}
+
+resource "aws_apigatewayv2_integration" "wsconn" {
+    api_id = aws_apigatewayv2_api.wsapi.id
+    integration_type = "AWS_PROXY"
+    integration_uri =  aws_lambda_function.wsconn.invoke_arn
+}
+
+resource "aws_apigatewayv2_route" "wsdisconn" {
+    api_id = aws_apigatewayv2_api.wsapi.id
+    route_key = "$disconnect"
+    target = "integrations/${aws_apigatewayv2_integration.wsdisconn.id}"
+}
+
+resource "aws_apigatewayv2_integration" "wsdisconn" {
+    api_id = aws_apigatewayv2_api.wsapi.id
+    integration_type = "AWS_PROXY"
+    integration_uri =  aws_lambda_function.wsconn.invoke_arn
 }
 
 resource "aws_apigatewayv2_integration" "wsdefault" {
@@ -185,6 +234,7 @@ resource "aws_apigatewayv2_deployment" "wsapi" {
 
    triggers = {
     redeployment = sha1(join(",", list(
+      jsonencode(aws_apigatewayv2_route.wsdisconn),
       jsonencode(aws_apigatewayv2_route.wsdefault),
       jsonencode(aws_apigatewayv2_route.wsconn),
     )))
