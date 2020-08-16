@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -35,6 +36,7 @@ func allowResp(event events.APIGatewayCustomAuthorizerRequestTypeRequest) events
 
 func handleRequest(ctx context.Context, event events.APIGatewayCustomAuthorizerRequestTypeRequest) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
+	fmt.Printf("%+v", event)
 	if event.QueryStringParameters[secretKey] != secretVal {
 		return events.APIGatewayCustomAuthorizerResponse{}, errors.New("Unauthorized")
 	}
