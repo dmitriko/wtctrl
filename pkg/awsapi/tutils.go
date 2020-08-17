@@ -38,7 +38,7 @@ func createDynamoFromGO(t *testing.T, testTable *DTable) {
 func startLocalDynamo(t *testing.T) *DTable {
 	cmd := exec.Command("docker", "run", "--rm", "-d", "--name", containerName,
 		"-p", "8000:8000", "amazon/dynamodb-local:latest")
-
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		t.Fatal(err)

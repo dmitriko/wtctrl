@@ -1,3 +1,7 @@
+https://medium.com/silo-blog/designing-a-flexible-permissions-system-with-casbin-f5d97fef17b8
+https://www.algolia.com/
+https://chatbotsmagazine.com/building-chatbots-for-wechat-part-1-dba8f160349
+https://medium.com/@likhita507/real-time-chat-application-using-webscockets-in-apigateway-e3ed759c4740
 https://aws.amazon.com/blogs/mobile/building-fine-grained-authorization-using-amazon-cognito-user-pools-groups/#:~:text=In%20the%20Authentication%20Providers%20section,you%20created%20the%20identity%20pool.
 https://qua.name/antolius/making-a-testable-cobra-cli-app
 https://medium.com/rungo/making-external-http-requests-in-go-eb4c015f8839
