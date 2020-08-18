@@ -476,7 +476,8 @@ type Bot struct {
 }
 
 func NewBot(kind, name string) (*Bot, error) {
-	bot := &Bot{Kind: kind, Name: name, Data: make(map[string]string)}
+	bot := &Bot{PK: fmt.Sprintf("%s%s", BotKeyPrefix, ksuid.New().String()),
+		Kind: kind, Name: name, Data: make(map[string]string)}
 	bot.CreatedAt = int64(time.Now().Unix())
 	return bot, nil
 }
