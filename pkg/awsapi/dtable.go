@@ -469,16 +469,16 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 
 type Bot struct {
 	PK        string
-	Name      string
-	Kind      string
-	Secret    string
-	CreatedAt int64
-	Data      map[string]string
+	Name      string `dynamodbav:"N"`
+	Kind      string `dynamodbav:"K"`
+	Secret    string `dynamodbav:"S"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
+	Data      map[string]interface{}
 }
 
 func NewBot(kind, name string) (*Bot, error) {
 	bot := &Bot{PK: fmt.Sprintf("%s%s", BotKeyPrefix, ksuid.New().String()),
-		Kind: kind, Name: name, Data: make(map[string]string)}
+		Kind: kind, Name: name, Data: make(map[string]interface{})}
 	bot.CreatedAt = int64(time.Now().Unix())
 	return bot, nil
 }
