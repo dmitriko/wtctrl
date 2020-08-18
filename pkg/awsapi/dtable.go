@@ -507,7 +507,11 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
 	inv.Data = make(map[string]string)
 	inv.Url = b.InviteUrl(inv.OTP)
-	inv.PK = fmt.Sprintf("%s%s#%s", b.PK, u.PK, inv.OTP)
+	pk, err := MakeInvPK(b, inv.OTP)
+	if err != nil {
+		return nil, err
+	}
+	inv.PK = pk
 	return inv, nil
 }
 
@@ -518,10 +522,19 @@ func (inv *Invite) IsValid() bool {
 	return false
 }
 
+func MakeInvPK(bot *Bot, code string) (string, error) {
+	if bot.PK == "" {
+		return "", errors.New("Bot.PK is empty")
+	}
+	return fmt.Sprintf("%s%s#%s", InviteKeyPrefix, bot.PK, code), nil
+}
+
 func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
-	inv.OTP = code
-	inv.BotPK = bot.PK
-	err := t.FetchItem(inv.PK, inv)
+	pk, err := MakeInvPK(bot, code)
+	if err != nil {
+		return err
+	}
+	err = t.FetchItem(pk, inv)
 	if err != nil {
 		return err
 	}
