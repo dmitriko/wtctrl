@@ -8,8 +8,24 @@ import (
 	"testing"
 	"time"
 
+	dattr "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
+	"github.com/stretchr/testify/assert"
 )
+
+type TItem struct {
+	PK        string
+	UMS       string
+	CreatedAt int64             `dynamodbav:"CRTD"`
+	Data      map[string]string `dynamodbav:"D"`
+}
+
+func NewTestItem(id, ums string) (*TItem, error) {
+	i := &TItem{PK: id, UMS: ums, CreatedAt: time.Now().Unix()}
+	i.Data = make(map[string]string)
+
+	return i, nil
+}
 
 func TestStoreInTrans(t *testing.T) {
 	defer stopLocalDynamo()
@@ -38,12 +54,11 @@ func TestDBUpdateItem(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = testTable.UpdateItemData(item.PK(), "url", "foobar.com")
+	_, err = testTable.UpdateItemData(item.PK, "url", "foobar.com")
 	f := &TItem{}
-	err = testTable.FetchItem(item.PK(), f)
-	if f.Data["url"] != "foobar.com" {
-		t.Errorf("update did not work %+v", f)
-	}
+	err = testTable.FetchItem(item.PK, f)
+	assert.Equal(t, "foobar.com", f.Data["url"])
+
 }
 
 func TestStoreItems(t *testing.T) {
@@ -62,7 +77,7 @@ func TestStoreItems(t *testing.T) {
 		t.Error("Fail to unique store item")
 	}
 	fmsg := &TItem{}
-	err = testTable.FetchItem(msg.PK(), fmsg)
+	err = testTable.FetchItem(msg.PK, fmsg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,11 +94,11 @@ func TestStoreItems(t *testing.T) {
 		t.FailNow()
 	}
 	item := &TItem{}
-	err = item.Unmarshal(resp.Items[0])
+	err = dattr.UnmarshalMap(resp.Items[0], item)
 	if err != nil {
 		t.Error(err)
 	}
-	if item.ID != "foo" || item.UMS != "bar" {
+	if item.PK != "foo" || item.UMS != "bar" {
 		t.Errorf("could not query index, got %+v", item)
 	}
 }
@@ -104,23 +119,12 @@ func TestMsgDb(t *testing.T) {
 		t.Error(err)
 	}
 	dmsg := &Msg{}
-	err = testTable.FetchItem(msg.PK(), dmsg)
+	err = testTable.FetchItem(msg.PK, dmsg)
 	if err != nil {
 		t.Error(err)
 	}
-	if dmsg.ID != msg.ID {
-		t.Error("Could not fetch msg from dynamo")
-	}
-	if dmsg.Data["url"] != "https://google.com" {
-		t.Error("Could not store/fetch msg.Data[url]")
-	}
-
-	if dmsg.AuthorPK != msg.AuthorPK {
-		t.Error("Could not fetch Msg.Author")
-	}
-
 	if !reflect.DeepEqual(dmsg, msg) {
-		t.Errorf("%+v is not eq to %+v", dmsg, msg)
+		t.Errorf("%+v != %+v", dmsg, msg)
 	}
 }
 
@@ -130,7 +134,8 @@ func TestMsgSimple(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	id, err := ksuid.Parse(msg.ID)
+	idstr := PK2ID(MsgKeyPrefix, msg.PK)
+	id, err := ksuid.Parse(idstr)
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +148,7 @@ func TestMsgSimple(t *testing.T) {
 	if int(dur.Hours()) != 48 {
 		t.Errorf("time from msg id is not as expected, but has diff %s", dur.String())
 	}
-	if msg.UserStatus != 5 {
+	if msg.UMS.Status != 5 {
 		t.Error("UserStatus is not correct")
 	}
 	if msg.AuthorPK != "user#user1" {
@@ -163,13 +168,13 @@ func TestMsgList(t *testing.T) {
 	var err error
 	user1, _ := NewUser("user1")
 	user2, _ := NewUser("user2")
-	msg1, err := NewMsg("bot1", user1.PK(), TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(5),
+	msg1, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://example1.com"}))
 
-	msg2, err := NewMsg("bot1", user1.PK(), TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]string{"url": "https://example2.com"}))
 
-	msg3, err := NewMsg("bot1", user2.PK(), TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg3, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 
 		DataOp(map[string]string{"url": "https://example3.com"}))
 
@@ -187,7 +192,7 @@ func TestMsgList(t *testing.T) {
 	if lm.Len() != 1 {
 		t.Errorf("Fetch wrong amount of Msgs %d, expected 1", lm.Len())
 	}
-	if _, ok := lm.Items[msg2.ID]; !ok {
+	if _, ok := lm.Items[msg2.PK]; !ok {
 		t.Error("expected msg2 is fetched")
 	}
 }
@@ -197,46 +202,49 @@ func TestUser(t *testing.T) {
 	testTable := startLocalDynamo(t)
 	var err error
 	usr1, _ := NewUser("Someone")
-	e1, _ := NewEmail("foo@bar", usr1.PK())
+	e1, _ := NewEmail("foo@bar", usr1.PK)
 	_, err = testTable.StoreItem(e1)
 	if err != nil {
 		t.Error(err)
 	}
 	ef := &Email{}
-	err = testTable.FetchItem(e1.PK(), ef)
+	err = testTable.FetchItem(e1.PK, ef)
 	if err != nil {
 		t.Error(err)
 	}
-	if e1.Email != ef.Email || e1.OwnerPK != ef.OwnerPK {
-		t.Errorf("%+v != %+v", e1, ef)
+	if !reflect.DeepEqual(e1, ef) {
+		t.Errorf("%#v != %#v", e1, ef)
 	}
-	t1, _ := NewTel("5555555", usr1.PK())
+
+	t1, _ := NewTel("5555555", usr1.PK)
 	_, err = testTable.StoreItem(t1)
 	if err != nil {
 		t.Error(err)
 	}
 	t_stored := &Tel{}
-	err = testTable.FetchItem(t1.PK(), t_stored)
+	err = testTable.FetchItem(t1.PK, t_stored)
 	if err != nil {
 		t.Error(err)
 	}
-	if t1.Number != t_stored.Number || t1.OwnerPK != t_stored.OwnerPK {
-		t.Errorf("%+v != %+v", t1, t_stored)
+	if !reflect.DeepEqual(t1, t_stored) {
+		t.Errorf("%#v != %#v", t1, t_stored)
 	}
-	tg1, err := NewTGAcc(99999999, usr1.PK())
+
+	tg1, err := NewTGAcc(99999999, usr1.PK)
 	_, err = testTable.StoreItem(tg1)
 	if err != nil {
 		t.Error(err)
 	}
 	tgf := &TGAcc{}
-	err = testTable.FetchItem(tg1.PK(), tgf)
+	err = testTable.FetchItem(tg1.PK, tgf)
 	if err != nil {
 		t.Error(err)
 	}
-	if tg1.TGID != tgf.TGID || tg1.OwnerPK != tgf.OwnerPK {
+	if !reflect.DeepEqual(tg1, tgf) {
 		t.Errorf("%+v != %+v", tg1, tgf)
 	}
 }
+
 func TestUserNew(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
@@ -254,7 +262,7 @@ func TestUserNew(t *testing.T) {
 		t.Error(err)
 	}
 	usr1f := &User{}
-	err = testTable.FetchItem(usr1.PK(), usr1f)
+	err = testTable.FetchItem(usr1.PK, usr1f)
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,7 +274,7 @@ func TestUserNew(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if email.OwnerPK != usr1.PK() {
+	if email.OwnerPK != usr1.PK {
 		t.Error("could not fetch email")
 	}
 	tel := &Tel{}
@@ -274,7 +282,7 @@ func TestUserNew(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if tel.OwnerPK != usr1.PK() {
+	if tel.OwnerPK != usr1.PK {
 		t.Error("could not fetch telephone")
 	}
 	usr2, _ := NewUser("Somebodyelse")
@@ -296,7 +304,7 @@ func TestSetTG(t *testing.T) {
 		t.Error(err)
 	}
 	u := &User{}
-	err = testTable.FetchItem(usr.PK(), u)
+	err = testTable.FetchItem(usr.PK, u)
 	if err != nil {
 		t.Error(err)
 	}
@@ -309,10 +317,10 @@ func TestSetTG(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if tg.OwnerPK != usr.PK() || tg.TGID != "999999999" {
+	if tg.OwnerPK != usr.PK || tg.TGID != "999999999" {
 		t.Errorf("Could not fetch TG data, %#v", tg)
 	}
-	if _, ok := tg.Data[bot.PK()]; !ok {
+	if _, ok := tg.Data[bot.PK]; !ok {
 		t.Error("tg account does not have associated bot")
 	}
 }
@@ -327,7 +335,7 @@ func TestBot(t *testing.T) {
 		t.Error(err)
 	}
 	bf := &Bot{}
-	err = testTable.FetchItem(bot.PK(), bf)
+	err = testTable.FetchItem(bot.PK, bf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -362,7 +370,7 @@ func TestInvite(t *testing.T) {
 		t.Error(err)
 	}
 	invf := &Invite{}
-	err = testTable.FetchItem(inv.PK(), invf)
+	err = testTable.FetchItem(inv.PK, invf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -388,17 +396,5 @@ func TestInvite(t *testing.T) {
 	err = testTable.FetchInvite(bot, "000000", invf2)
 	if err == nil || err.Error() != NO_SUCH_ITEM {
 		t.Error("should not be happening")
-	}
-}
-
-func TestFile(t *testing.T) {
-	defer stopLocalDynamo()
-	testTable := startLocalDynamo(t)
-	user, _ := NewUser("Foobar")
-	f, _ := NewFile(user.PK(), PicFileKind)
-	f.Data["tgid"] = "spamegg"
-	_, err := testTable.StoreItem(f)
-	if err != nil {
-		t.Error(err)
 	}
 }

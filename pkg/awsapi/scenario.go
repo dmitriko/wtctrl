@@ -85,7 +85,7 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 		return "", err
 	}
 
-	msg, err := NewMsg(bot.PK(), user.PK(), TGUnknownMsgKind)
+	msg, err := NewMsg(bot.PK, user.PK, TGUnknownMsgKind)
 	if err != nil {
 		return "", err
 	}

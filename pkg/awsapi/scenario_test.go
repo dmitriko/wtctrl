@@ -181,7 +181,7 @@ func TestScenarioTGAuthText(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(tgid, user.PK())
+	tgacc, _ := NewTGAcc(tgid, user.PK)
 	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {
@@ -270,7 +270,7 @@ func TestScenarioTGVoice(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(tgid, user.PK())
+	tgacc, _ := NewTGAcc(tgid, user.PK)
 	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {
@@ -307,7 +307,7 @@ func TestScenarioTGPhoto(t *testing.T) {
 	tgid := 123456789
 	bot, _ := NewBot(TGBotKind, "foobot")
 	user, _ := NewUser("someuser")
-	tgacc, _ := NewTGAcc(tgid, user.PK())
+	tgacc, _ := NewTGAcc(tgid, user.PK)
 	user.TGID = tgacc.TGID
 	errs := testTable.StoreItems(bot, user, tgacc)
 	for _, e := range errs {

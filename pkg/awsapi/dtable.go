@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	dattr "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
 	"github.com/xlzd/gotp"
 )
@@ -81,12 +81,6 @@ func (t *DTable) EnableTTL() error {
 	return err
 }
 
-type DMapper interface {
-	Marshal() (map[string]*dynamodb.AttributeValue, error)
-	Unmarshal(map[string]*dynamodb.AttributeValue) error
-	PK() string
-}
-
 // Option to check uniqueness of stored item by cheking PK
 func UniqueOp() func(*dynamodb.PutItemInput) error {
 	return func(pii *dynamodb.PutItemInput) error {
@@ -95,9 +89,9 @@ func UniqueOp() func(*dynamodb.PutItemInput) error {
 	}
 }
 
-func (t *DTable) StoreItem(item DMapper,
+func (t *DTable) StoreItem(item interface{},
 	options ...func(*dynamodb.PutItemInput) error) (*dynamodb.PutItemOutput, error) {
-	av, err := item.Marshal()
+	av, err := dattr.MarshalMap(item)
 	if err != nil {
 		return nil, err
 	}
@@ -120,10 +114,10 @@ func (t *DTable) StoreItem(item DMapper,
 
 //Store bunch of items in transactions, make sure they are new
 // by checking PK uniqueness
-func (t *DTable) StoreInTransUniq(items ...DMapper) error {
+func (t *DTable) StoreInTransUniq(items ...interface{}) error {
 	titems := []*dynamodb.TransactWriteItem{}
 	for _, i := range items {
-		av, err := i.Marshal()
+		av, err := dattr.MarshalMap(i)
 		if err != nil {
 			return err
 		}
@@ -140,7 +134,7 @@ func (t *DTable) StoreInTransUniq(items ...DMapper) error {
 	return err
 }
 
-func (t *DTable) StoreItems(items ...DMapper) []error {
+func (t *DTable) StoreItems(items ...interface{}) []error {
 	var output []error
 	for _, item := range items {
 		_, err := t.StoreItem(item)
@@ -149,7 +143,7 @@ func (t *DTable) StoreItems(items ...DMapper) []error {
 	return output
 }
 
-func (t *DTable) FetchItem(pk string, item DMapper) error {
+func (t *DTable) FetchItem(pk string, item interface{}) error {
 	result, err := t.db.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(t.Name),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -164,7 +158,7 @@ func (t *DTable) FetchItem(pk string, item DMapper) error {
 	if len(result.Item) == 0 {
 		return errors.New(NO_SUCH_ITEM)
 	}
-	err = item.Unmarshal(result.Item)
+	err = dattr.UnmarshalMap(result.Item, item)
 	if err != nil {
 		return err
 	}
@@ -199,7 +193,7 @@ func (t *DTable) FetchTGAcc(tgid int, tgacc *TGAcc) error {
 
 func (t *DTable) QueryIndex(
 	name string, cond string, exprValues map[string]interface{}) (*dynamodb.QueryOutput, error) {
-	av, err := dynamodbattribute.MarshalMap(exprValues)
+	av, err := dattr.MarshalMap(exprValues)
 	if err != nil {
 		return nil, err
 	}
@@ -212,14 +206,39 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
+type UMSField struct {
+	PK     string
+	Status int64
+}
+
+func (ums *UMSField) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+	s := fmt.Sprintf("%s#%d", ums.PK, ums.Status)
+	av.S = &s
+	return nil
+}
+
+func (ums *UMSField) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+	parts := strings.Split(*av.S, "#")
+	if len(parts) != 3 {
+		return errors.New(fmt.Sprintf("Could not parse %s", *av.S))
+	}
+	ums.PK = fmt.Sprintf("%s#%s", parts[0], parts[1])
+	n, err := strconv.ParseInt(parts[2], 10, 0)
+	if err != nil {
+		return err
+	}
+	ums.Status = n
+	return nil
+}
+
 type Msg struct {
-	ChannelPK  string
-	AuthorPK   string
-	Kind       int64
-	ID         string
-	UserStatus int
-	CreatedAt  int64
-	Data       map[string]string
+	PK        string
+	ChannelPK string            `dynamodbav:"Ch"`
+	AuthorPK  string            `dynamodbav:"A"`
+	Kind      int64             `dynamodbav:"K"`
+	UMS       UMSField          `dynamodbav:"UMS"`
+	CreatedAt int64             `dynamodbav:"CRTD"`
+	Data      map[string]string `dynamodbav:"D"`
 }
 
 //Option for new msg
@@ -236,7 +255,7 @@ func CreatedAtOp(ts string) func(*Msg) error {
 
 func UserStatusOp(s int) func(*Msg) error {
 	return func(m *Msg) error {
-		m.UserStatus = s
+		m.UMS.Status = int64(s)
 		return nil
 	}
 }
@@ -258,97 +277,21 @@ func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) 
 			return nil, err
 		}
 	}
-	if msg.ID == "" {
+	if msg.PK == "" {
 		id, err := ksuid.NewRandomWithTime(time.Unix(msg.CreatedAt, 0))
 		if err != nil {
 			return nil, err
 		}
-		msg.ID = id.String()
+		msg.PK = fmt.Sprintf("%s%s", MsgKeyPrefix, id.String())
 		msg.CreatedAt = id.Time().Unix() //there is a bit difference from origin, we need this to be stored
 	}
+
+	msg.UMS.PK = msg.AuthorPK
 	return msg, nil
 }
 
-func (m *Msg) PK() string {
-	if m.ID == "" {
-		return ""
-	}
-	return MsgKeyPrefix + m.ID
-}
-
-func (m *Msg) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	ums := fmt.Sprintf("%s#%d", m.AuthorPK, m.UserStatus)
-	item := map[string]interface{}{
-		"PK":   m.PK(),
-		"UMS":  ums,
-		"Ch":   m.ChannelPK,
-		"CRTD": m.CreatedAt,
-		"K":    m.Kind,
-	}
-	if len(m.Data) > 0 {
-		item["D"] = m.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
-}
-
-// Set .Author and .UserStatus from UMS string that is <prefix>#<author>#<status> stored in DB
-func (m *Msg) SetUserStatus(ums string) error {
-	s := strings.Split(ums, "#")
-	if len(s) != 3 {
-		return errors.New("Could not parse " + ums)
-	}
-	m.AuthorPK = s[0] + "#" + s[1]
-	i, err := strconv.Atoi(s[2])
-	if err != nil {
-		return err
-	}
-	m.UserStatus = i
-	return nil
-}
-
-func IdFromPk(pk interface{}, prefix string) string {
-	p := pk.(string)
-	return strings.Replace(p, prefix, "", -1)
-}
-
-func PK2ID(pkin interface{}, prefix string) (string, error) {
-	pk, ok := pkin.(string)
-	if !ok {
-		return "", errors.New(fmt.Sprintf("Could not cast string from %+v", pkin))
-	}
-	return strings.Replace(pk, prefix, "", -1), nil
-}
-
-func (m *Msg) Update(table *DTable) error {
-	return table.FetchItem(m.PK(), m)
-}
-
-func (m *Msg) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	id, err := PK2ID(item["PK"], MsgKeyPrefix)
-	if err != nil {
-		return err
-	}
-	m.ID = id
-	m.CreatedAt = int64(item["CRTD"].(float64))
-	m.Data = UnmarshalDataProp(item["D"])
-	err = m.SetUserStatus(item["UMS"].(string))
-	if err != nil {
-		return err
-	}
-	ch, ok := item["Ch"].(string)
-	if ok {
-		m.ChannelPK = ch
-	}
-	k, ok := item["K"].(float64)
-	if ok {
-		m.Kind = int64(k)
-	}
-	return nil
+func (m *Msg) Reload(table *DTable) error {
+	return table.FetchItem(m.PK, m)
 }
 
 //Represents list of Msg
@@ -365,20 +308,8 @@ func (lm *ListMsg) Len() int {
 	return len(lm.Items)
 }
 
-func GetMsgPK(strtime string) (string, error) {
-	t, err := StrToTime(strtime)
-	if err != nil {
-		return "", err
-	}
-	id, err := ksuid.NewRandomWithTime(t)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s%s", MsgKeyPrefix, id.String()), nil
-}
-
 func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, end string) error {
-	ums := fmt.Sprintf("%s#%d", user.PK(), status)
+	ums := fmt.Sprintf("%s#%d", user.PK, status)
 
 	start_time, err := StrToTime(start)
 	if err != nil {
@@ -405,13 +336,13 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, e
 			}
 			return err
 		}
-		lm.Items[msg.ID] = msg
+		lm.Items[msg.PK] = msg
 	}
 	return nil
 }
 
 type User struct {
-	ID        string
+	PK        string
 	Title     string
 	Email     string
 	Tel       string
@@ -420,78 +351,17 @@ type User struct {
 	Data      map[string]string
 }
 
-func (u *User) PK() string {
-	if u.ID == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s%s", UserKeyPrefix, u.ID)
-}
-
-func (u *User) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   u.PK(),
-		"E":    u.Email,
-		"T":    u.Tel,
-		"TG":   u.TGID,
-		"CRTD": u.CreatedAt,
-	}
-	if len(u.Data) > 0 {
-		item["D"] = u.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
-}
-
-func (u *User) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-
-	id, err := PK2ID(item["PK"], UserKeyPrefix)
-	if err != nil {
-		return err
-	}
-	u.ID = id
-
-	created_at, ok := item["CRTD"].(float64)
-	if ok {
-		u.CreatedAt = int64(created_at)
-	}
-
-	u.Data = make(map[string]string)
-	data, ok := item["D"].(map[string]string)
-	if ok {
-		for k, v := range data {
-			u.Data[k] = v
-		}
-	}
-	email, ok := item["E"].(string)
-	if ok {
-		u.Email = email
-	}
-	t, ok := item["T"].(string)
-	if ok {
-		u.Tel = t
-	}
-	tg, ok := item["TG"].(string)
-	if ok {
-		u.TGID = tg
-	}
-	return nil
-}
-
 func NewUser(title string) (*User, error) {
 	user := &User{Title: title}
 	user.Data = make(map[string]string)
 	kid := ksuid.New()
 	user.CreatedAt = int64(time.Now().Unix())
-	user.ID = kid.String()
+	user.PK = fmt.Sprintf("%s%s", UserKeyPrefix, kid.String())
 	return user, nil
 }
 
 func (u *User) SetTel(t string) error {
-	tel, err := NewTel(t, u.PK())
+	tel, err := NewTel(t, u.PK)
 	if err != nil {
 		return err
 	}
@@ -500,7 +370,7 @@ func (u *User) SetTel(t string) error {
 }
 
 func (u *User) SetEmail(e string) error {
-	email, err := NewEmail(e, u.PK())
+	email, err := NewEmail(e, u.PK)
 	if err != nil {
 		return err
 	}
@@ -513,7 +383,7 @@ func (t *Tel) String() string {
 }
 
 func (e *Email) String() string {
-	return e.Email
+	return strings.Replace(e.PK, EmailKeyPrefix, "", 1)
 }
 
 func (t *TGAcc) String() string {
@@ -521,11 +391,11 @@ func (t *TGAcc) String() string {
 }
 
 func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
-	tg, err := NewTGAcc(tgid, user.PK())
+	tg, err := NewTGAcc(tgid, user.PK)
 	if err != nil {
 		return err
 	}
-	tg.Data[bot.PK()] = "ok"
+	tg.Data[bot.PK] = "ok"
 	_, err = t.StoreItem(tg, UniqueOp())
 	if err != nil {
 		return err
@@ -538,16 +408,16 @@ func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 //Store user, telephon number, email in one transaction
 //it fails if number or email already exist
 func (t *DTable) StoreNewUser(user *User) error {
-	items := []DMapper{user}
+	items := []interface{}{user}
 	if user.Tel != "" {
-		tel, err := NewTel(user.Tel, user.PK())
+		tel, err := NewTel(user.Tel, user.PK)
 		if err != nil {
 			return err
 		}
 		items = append(items, tel)
 	}
 	if user.Email != "" {
-		email, err := NewEmail(user.Email, user.PK())
+		email, err := NewEmail(user.Email, user.PK)
 		if err != nil {
 			return err
 		}
@@ -557,131 +427,37 @@ func (t *DTable) StoreNewUser(user *User) error {
 }
 
 type Email struct {
-	Email     string
-	OwnerPK   string
-	CreatedAt int64
-	Data      map[string]string
-}
-
-func (e *Email) PK() string {
-	return fmt.Sprintf("%s%s", EmailKeyPrefix, e.Email)
-}
-
-func (e *Email) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	e.Email = IdFromPk(item["PK"], EmailKeyPrefix)
-	e.OwnerPK = item["O"].(string)
-	e.CreatedAt = UnmarshalCreated(item["CRTD"])
-	e.Data = UnmarshalDataProp(item["D"])
-
-	return nil
-}
-
-func (e *Email) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   e.PK(),
-		"O":    e.OwnerPK,
-		"CRTD": e.CreatedAt,
-		"D":    e.Data,
-	}
-
-	return dynamodbattribute.MarshalMap(item)
+	PK        string            //email#foo@bar.com
+	OwnerPK   string            `dynamodbav:"O"`
+	CreatedAt int64             `dynamodbav:"CRTD"`
+	Data      map[string]string `dynamodbav:"D,omitempty"`
 }
 
 func NewEmail(email, owner_pk string) (*Email, error) {
-	return &Email{Email: email, OwnerPK: owner_pk,
+	return &Email{PK: fmt.Sprintf("%s%s", EmailKeyPrefix, email), OwnerPK: owner_pk,
 		CreatedAt: time.Now().Unix(), Data: make(map[string]string)}, nil
 }
 
 //For telephone number
 type Tel struct {
+	PK        string
 	Number    string
 	OwnerPK   string
 	CreatedAt time.Time
 }
 
-func (t *Tel) PK() string {
-	return fmt.Sprintf("%s%s", TelKeyPrefix, t.Number)
-}
-
-func (t *Tel) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	created, err := time.Parse(time.RFC3339, item["C"].(string))
-	if err != nil {
-		return err
-	}
-	t.Number = IdFromPk(item["PK"], TelKeyPrefix)
-	t.OwnerPK = item["O"].(string)
-	t.CreatedAt = created
-	return nil
-}
-
-func (t *Tel) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK": t.PK(),
-		"O":  t.OwnerPK,
-		"C":  t.CreatedAt.Format(time.RFC3339),
-	}
-
-	return dynamodbattribute.MarshalMap(item)
-}
-
 func NewTel(number, owner_pk string) (*Tel, error) {
-	return &Tel{Number: number, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+	return &Tel{PK: fmt.Sprintf("%s%s", TelKeyPrefix, number),
+		Number: number, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
 }
 
 //For Telegram account
 type TGAcc struct {
+	PK        string
 	TGID      string
 	OwnerPK   string
 	CreatedAt int64
 	Data      map[string]string
-}
-
-func (t *TGAcc) PK() string {
-	return fmt.Sprintf("%s%s", TGAccKeyPrefix, t.TGID)
-}
-
-func (t *TGAcc) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	t.TGID = IdFromPk(item["PK"], TGAccKeyPrefix)
-	t.OwnerPK = item["O"].(string)
-	t.CreatedAt = UnmarshalCreated(item["CRTD"])
-	t.Data = UnmarshalDataProp(item["D"])
-
-	return nil
-}
-
-func UnmarshalCreated(c interface{}) int64 {
-	crtd, ok := c.(float64)
-	if ok {
-		return int64(crtd)
-	}
-	return 0
-}
-
-func (t *TGAcc) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   t.PK(),
-		"O":    t.OwnerPK,
-		"CRTD": t.CreatedAt,
-	}
-	if len(t.Data) > 0 {
-		item["D"] = t.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
 }
 
 func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
@@ -690,6 +466,7 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 }
 
 type Bot struct {
+	PK        string
 	Name      string
 	Kind      string
 	Secret    string
@@ -707,68 +484,8 @@ func (b *Bot) InviteUrl(otp string) string {
 	return fmt.Sprintf("%s/%s?start=%s", "https://t.me", b.Name, otp)
 }
 
-func (b *Bot) PK() string {
-	return fmt.Sprintf("%s%s#%s", BotKeyPrefix, b.Name, b.Kind)
-}
-
-func (b *Bot) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   b.PK(),
-		"S":    b.Secret,
-		"K":    b.Kind,
-		"CRTD": b.CreatedAt,
-		"N":    b.Name,
-	}
-	if len(b.Data) > 0 {
-		item["D"] = b.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
-}
-
-func (b *Bot) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	created_at, ok := item["CRTD"].(float64)
-	if ok {
-		b.CreatedAt = int64(created_at)
-	}
-	b.Data = UnmarshalDataProp(item["D"])
-	b.Kind, ok = item["K"].(string)
-	if !ok {
-		return errors.New("Kind is not set for bot in db")
-	}
-
-	s, ok := item["S"].(string)
-	if ok {
-		b.Secret = s
-	}
-	b.Name, ok = item["N"].(string)
-	if !ok {
-		return errors.New("Name is not set for bot in db")
-	}
-	return nil
-}
-
-func UnmarshalDataProp(d interface{}) map[string]string {
-	r := make(map[string]string)
-	s, ok := d.(map[string]interface{})
-	if ok {
-		for k, v := range s {
-			val, ok := v.(string)
-			if ok {
-				r[k] = val
-			} else {
-				r[k] = ""
-			}
-		}
-	}
-	return r
-}
-
 type Invite struct {
+	PK        string
 	BotPK     string
 	UserPK    string
 	OTP       string
@@ -780,19 +497,16 @@ type Invite struct {
 
 func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 	inv := &Invite{
-		UserPK:    u.PK(),
-		BotPK:     b.PK(),
+		UserPK:    u.PK,
+		BotPK:     b.PK,
 		CreatedAt: time.Now().Unix(),
 		TTL:       int64(valid)*60*60 + time.Now().Unix(),
 	}
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
 	inv.Data = make(map[string]string)
 	inv.Url = b.InviteUrl(inv.OTP)
+	inv.PK = fmt.Sprintf("%s%s#%s", b.PK, u.PK, inv.OTP)
 	return inv, nil
-}
-
-func (inv *Invite) PK() string {
-	return fmt.Sprintf("%s%s#%s", InviteKeyPrefix, inv.BotPK, inv.OTP)
 }
 
 func (inv *Invite) IsValid() bool {
@@ -802,45 +516,10 @@ func (inv *Invite) IsValid() bool {
 	return false
 }
 
-func (inv *Invite) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	inv.CreatedAt = UnmarshalCreated(item["CRTD"])
-	inv.UserPK, _ = item["U"].(string)
-	inv.BotPK = item["B"].(string)
-	inv.OTP = item["O"].(string)
-	inv.Url = item["Url"].(string)
-	ttl, ok := item["TTL"].(float64)
-	if ok {
-		inv.TTL = int64(ttl)
-	}
-	inv.Data = UnmarshalDataProp(item["D"])
-	return nil
-}
-
-func (inv *Invite) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   inv.PK(),
-		"U":    inv.UserPK,
-		"B":    inv.BotPK,
-		"O":    inv.OTP,
-		"TTL":  inv.TTL,
-		"Url":  inv.Url,
-		"CRTD": inv.CreatedAt,
-	}
-	if len(inv.Data) > 0 {
-		item["D"] = inv.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
-}
-
 func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	inv.OTP = code
-	inv.BotPK = bot.PK()
-	err := t.FetchItem(inv.PK(), inv)
+	inv.BotPK = bot.PK
+	err := t.FetchItem(inv.PK, inv)
 	if err != nil {
 		return err
 	}
@@ -850,52 +529,6 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	return nil
 }
 
-type File struct {
-	ID        string
-	OwnerPK   string
-	Kind      string
-	Data      map[string]string
-	CreatedAt int64
-}
-
-func NewFile(pk, kind string) (*File, error) {
-	f := &File{}
-	f.ID = ksuid.New().String()
-	f.OwnerPK = pk
-	f.Kind = kind
-	f.Data = make(map[string]string)
-	f.CreatedAt = time.Now().Unix()
-	return f, nil
-}
-
-func (f *File) PK() string {
-	return FileKeyPrefix + f.ID
-}
-
-func (f *File) Marshal() (map[string]*dynamodb.AttributeValue, error) {
-	item := map[string]interface{}{
-		"PK":   f.PK(),
-		"O":    f.OwnerPK,
-		"K":    f.Kind,
-		"CRTD": f.CreatedAt,
-	}
-	if len(f.Data) > 0 {
-		item["D"] = f.Data
-	}
-	return dynamodbattribute.MarshalMap(item)
-}
-
-func (f *File) Unmarshal(av map[string]*dynamodb.AttributeValue) error {
-	item := map[string]interface{}{}
-	err := dynamodbattribute.UnmarshalMap(av, &item)
-	if err != nil {
-		return err
-	}
-	f.ID = IdFromPk(item["PK"], FileKeyPrefix)
-	f.OwnerPK = item["O"].(string)
-	f.Kind = item["K"].(string)
-	f.CreatedAt = UnmarshalCreated(item["CRTD"])
-	f.Data = UnmarshalDataProp(item["D"])
-
-	return nil
+func PK2ID(prefix, pk string) string {
+	return strings.Replace(prefix, "", pk, 1)
 }
