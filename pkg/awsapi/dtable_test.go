@@ -214,6 +214,7 @@ func TestUser(t *testing.T) {
 	}
 	if !reflect.DeepEqual(e1, ef) {
 		t.Errorf("%#v != %#v", e1, ef)
+		t.FailNow()
 	}
 
 	t1, _ := NewTel("5555555", usr1.PK)

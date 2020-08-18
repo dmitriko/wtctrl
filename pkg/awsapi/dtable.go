@@ -348,12 +348,12 @@ type User struct {
 	Tel       string
 	TGID      string
 	CreatedAt int64
-	Data      map[string]string
+	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 func NewUser(title string) (*User, error) {
 	user := &User{Title: title}
-	user.Data = make(map[string]string)
+	user.Data = map[string]interface{}(nil)
 	kid := ksuid.New()
 	user.CreatedAt = int64(time.Now().Unix())
 	user.PK = fmt.Sprintf("%s%s", UserKeyPrefix, kid.String())
@@ -427,28 +427,28 @@ func (t *DTable) StoreNewUser(user *User) error {
 }
 
 type Email struct {
-	PK        string            //email#foo@bar.com
-	OwnerPK   string            `dynamodbav:"O"`
-	CreatedAt int64             `dynamodbav:"CRTD"`
-	Data      map[string]string `dynamodbav:"D,omitempty"`
+	PK        string                 //email#foo@bar.com
+	OwnerPK   string                 `dynamodbav:"O"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D,omitempty"`
 }
 
 func NewEmail(email, owner_pk string) (*Email, error) {
 	return &Email{PK: fmt.Sprintf("%s%s", EmailKeyPrefix, email), OwnerPK: owner_pk,
-		CreatedAt: time.Now().Unix(), Data: make(map[string]string)}, nil
+		CreatedAt: time.Now().Unix(), Data: map[string]interface{}(nil)}, nil
 }
 
 //For telephone number
 type Tel struct {
 	PK        string
-	Number    string
-	OwnerPK   string
-	CreatedAt time.Time
+	Number    string `dynamodbav:"NMBR"`
+	OwnerPK   string `dynamodbav:"O"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
 }
 
 func NewTel(number, owner_pk string) (*Tel, error) {
 	return &Tel{PK: fmt.Sprintf("%s%s", TelKeyPrefix, number),
-		Number: number, OwnerPK: owner_pk, CreatedAt: time.Now()}, nil
+		Number: number, OwnerPK: owner_pk, CreatedAt: time.Now().Unix()}, nil
 }
 
 //For Telegram account
@@ -457,12 +457,14 @@ type TGAcc struct {
 	TGID      string
 	OwnerPK   string
 	CreatedAt int64
-	Data      map[string]string
+	Data      map[string]interface{}
 }
 
 func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
-	return &TGAcc{TGID: fmt.Sprintf("%d", tgid), OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
-		Data: make(map[string]string)}, nil
+	return &TGAcc{PK: fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid),
+		TGID:    fmt.Sprintf("%d", tgid),
+		OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
+		Data: map[string]interface{}(nil)}, nil
 }
 
 type Bot struct {
