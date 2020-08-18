@@ -545,5 +545,5 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 }
 
 func PK2ID(prefix, pk string) string {
-	return strings.Replace(prefix, "", pk, 1)
+	return strings.Replace(pk, prefix, "", 1)
 }
