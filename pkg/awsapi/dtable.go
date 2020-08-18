@@ -344,11 +344,11 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, e
 
 type User struct {
 	PK        string
-	Title     string
-	Email     string
-	Tel       string
+	Title     string `dynamodbav:"T"`
+	Email     string `dynamodbav:"E"`
+	Tel       string `dynamodbav:"TL"`
 	TGID      string
-	CreatedAt int64
+	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
@@ -454,10 +454,10 @@ func NewTel(number, owner_pk string) (*Tel, error) {
 //For Telegram account
 type TGAcc struct {
 	PK        string
-	TGID      string
-	OwnerPK   string
-	CreatedAt int64
-	Data      map[string]interface{}
+	TGID      string                 `dynamodbav:"ID"`
+	OwnerPK   string                 `dynamodbav:"O"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
@@ -469,11 +469,11 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 
 type Bot struct {
 	PK        string
-	Name      string `dynamodbav:"N"`
-	Kind      string `dynamodbav:"K"`
-	Secret    string `dynamodbav:"S"`
-	CreatedAt int64  `dynamodbav:"CRTD"`
-	Data      map[string]interface{}
+	Name      string                 `dynamodbav:"N"`
+	Kind      string                 `dynamodbav:"K"`
+	Secret    string                 `dynamodbav:"S"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 func NewBot(kind, name string) (*Bot, error) {
