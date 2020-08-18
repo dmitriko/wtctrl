@@ -162,6 +162,7 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -488,13 +489,13 @@ func (b *Bot) InviteUrl(otp string) string {
 
 type Invite struct {
 	PK        string
-	BotPK     string
-	UserPK    string
-	OTP       string
-	CreatedAt int64
+	BotPK     string `dynamodbav:"B"`
+	UserPK    string `dynamodbav:"U"`
+	OTP       string `dynamodbav:"OTP"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
 	TTL       int64
 	Url       string
-	Data      map[string]string
+	Data      map[string]interface{}
 }
 
 func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
@@ -505,7 +506,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 		TTL:       int64(valid)*60*60 + time.Now().Unix(),
 	}
 	inv.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
-	inv.Data = make(map[string]string)
+	inv.Data = make(map[string]interface{})
 	inv.Url = b.InviteUrl(inv.OTP)
 	pk, err := MakeInvPK(b, inv.OTP)
 	if err != nil {
@@ -540,6 +541,9 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	}
 	if !inv.IsValid() {
 		return errors.New(NO_SUCH_ITEM)
+	}
+	if inv.Data == nil {
+		inv.Data = make(map[string]interface{})
 	}
 	return nil
 }
