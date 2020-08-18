@@ -353,7 +353,7 @@ type User struct {
 
 func NewUser(title string) (*User, error) {
 	user := &User{Title: title}
-	user.Data = map[string]interface{}(nil)
+	user.Data = make(map[string]interface{})
 	kid := ksuid.New()
 	user.CreatedAt = int64(time.Now().Unix())
 	user.PK = fmt.Sprintf("%s%s", UserKeyPrefix, kid.String())
@@ -427,15 +427,14 @@ func (t *DTable) StoreNewUser(user *User) error {
 }
 
 type Email struct {
-	PK        string                 //email#foo@bar.com
-	OwnerPK   string                 `dynamodbav:"O"`
-	CreatedAt int64                  `dynamodbav:"CRTD"`
-	Data      map[string]interface{} `dynamodbav:"D,omitempty"`
+	PK        string //email#foo@bar.com
+	OwnerPK   string `dynamodbav:"O"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
 }
 
 func NewEmail(email, owner_pk string) (*Email, error) {
 	return &Email{PK: fmt.Sprintf("%s%s", EmailKeyPrefix, email), OwnerPK: owner_pk,
-		CreatedAt: time.Now().Unix(), Data: map[string]interface{}(nil)}, nil
+		CreatedAt: time.Now().Unix()}, nil
 }
 
 //For telephone number
@@ -464,7 +463,7 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 	return &TGAcc{PK: fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid),
 		TGID:    fmt.Sprintf("%d", tgid),
 		OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
-		Data: map[string]interface{}(nil)}, nil
+		Data: make(map[string]interface{})}, nil
 }
 
 type Bot struct {

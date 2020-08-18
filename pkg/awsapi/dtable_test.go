@@ -16,13 +16,13 @@ import (
 type TItem struct {
 	PK        string
 	UMS       string
-	CreatedAt int64             `dynamodbav:"CRTD"`
-	Data      map[string]string `dynamodbav:"D"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 func NewTestItem(id, ums string) (*TItem, error) {
 	i := &TItem{PK: id, UMS: ums, CreatedAt: time.Now().Unix()}
-	i.Data = make(map[string]string)
+	i.Data = make(map[string]interface{})
 
 	return i, nil
 }
@@ -202,6 +202,7 @@ func TestUser(t *testing.T) {
 	testTable := startLocalDynamo(t)
 	var err error
 	usr1, _ := NewUser("Someone")
+	usr1.Data["lang"] = "en-US"
 	e1, _ := NewEmail("foo@bar", usr1.PK)
 	_, err = testTable.StoreItem(e1)
 	if err != nil {
@@ -232,6 +233,7 @@ func TestUser(t *testing.T) {
 	}
 
 	tg1, err := NewTGAcc(99999999, usr1.PK)
+	tg1.Data["bot1"] = "ok"
 	_, err = testTable.StoreItem(tg1)
 	if err != nil {
 		t.Error(err)
@@ -242,7 +244,7 @@ func TestUser(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(tg1, tgf) {
-		t.Errorf("%+v != %+v", tg1, tgf)
+		t.Errorf("%#v != %#v", tg1, tgf)
 	}
 }
 
