@@ -1,3 +1,6 @@
+https://github.com/go-validator/validator
+https://github.com/go-ozzo/ozzo-validation
+https://github.com/purpleidea/mgmt
 https://medium.com/silo-blog/designing-a-flexible-permissions-system-with-casbin-f5d97fef17b8
 https://www.algolia.com/
 https://chatbotsmagazine.com/building-chatbots-for-wechat-part-1-dba8f160349
