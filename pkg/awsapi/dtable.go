@@ -498,8 +498,12 @@ type Bot struct {
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
+func GetBotPK(kind, name string) string {
+	return fmt.Sprintf("%s%s#%s", BotKeyPrefix, name, kind)
+}
+
 func NewBot(kind, name string) (*Bot, error) {
-	bot := &Bot{PK: fmt.Sprintf("%s%s", BotKeyPrefix, name),
+	bot := &Bot{PK: GetBotPK(kind, name),
 		Kind: kind, Name: name, Data: make(map[string]interface{})}
 	bot.CreatedAt = int64(time.Now().Unix())
 	bot.SK = bot.PK
