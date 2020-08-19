@@ -13,6 +13,10 @@ var createTableInput = &dynamodb.CreateTableInput{
 			AttributeType: aws.String("S"),
 		},
 		{
+			AttributeName: aws.String("SK"),
+			AttributeType: aws.String("S"),
+		},
+		{
 			AttributeName: aws.String("UMS"),
 			AttributeType: aws.String("S"),
 		},
@@ -29,6 +33,10 @@ var createTableInput = &dynamodb.CreateTableInput{
 		{
 			AttributeName: aws.String("PK"),
 			KeyType:       aws.String("HASH"),
+		},
+		{
+			AttributeName: aws.String("SK"),
+			KeyType:       aws.String("RANGE"),
 		},
 	},
 	GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{

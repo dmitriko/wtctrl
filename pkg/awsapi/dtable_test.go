@@ -15,13 +15,14 @@ import (
 
 type TItem struct {
 	PK        string
+	SK        string
 	UMS       string
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 func NewTestItem(id, ums string) (*TItem, error) {
-	i := &TItem{PK: id, UMS: ums, CreatedAt: time.Now().Unix()}
+	i := &TItem{PK: id, SK: id, UMS: ums, CreatedAt: time.Now().Unix()}
 	i.Data = make(map[string]interface{})
 
 	return i, nil
