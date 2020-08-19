@@ -150,6 +150,9 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 			"PK": {
 				S: aws.String(pk),
 			},
+			"SK": {
+				S: aws.String(pk),
+			},
 		},
 	})
 	if err != nil {
@@ -167,11 +170,15 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 }
 
 func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutput, error) {
+	return t.UpdateItemMap(pk, pk, "D", key, value)
+}
+
+func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.UpdateItemOutput, error) {
 	uii := &dynamodb.UpdateItemInput{
 		TableName:    aws.String(t.Name),
 		ReturnValues: aws.String("ALL_NEW"),
 		ExpressionAttributeNames: map[string]*string{
-			"#Data": aws.String("D"),
+			"#Data": aws.String(fName),
 			"#Key":  aws.String(key),
 		},
 		UpdateExpression: aws.String("SET #Data.#Key = :v"),
@@ -182,6 +189,7 @@ func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutp
 		},
 		Key: map[string]*dynamodb.AttributeValue{
 			"PK": {S: aws.String(pk)},
+			"SK": {S: aws.String(sk)},
 		},
 	}
 	return t.db.UpdateItem(uii)
@@ -234,6 +242,7 @@ func (ums *UMSField) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue
 
 type Msg struct {
 	PK        string
+	SK        string
 	ChannelPK string            `dynamodbav:"Ch"`
 	AuthorPK  string            `dynamodbav:"A"`
 	Kind      int64             `dynamodbav:"K"`
@@ -288,6 +297,7 @@ func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) 
 	}
 
 	msg.UMS.PK = msg.AuthorPK
+	msg.SK = msg.PK
 	return msg, nil
 }
 
@@ -344,6 +354,7 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, e
 
 type User struct {
 	PK        string
+	SK        string
 	Title     string `dynamodbav:"T"`
 	Email     string `dynamodbav:"E"`
 	Tel       string `dynamodbav:"TL"`
@@ -358,6 +369,7 @@ func NewUser(title string) (*User, error) {
 	kid := ksuid.New()
 	user.CreatedAt = int64(time.Now().Unix())
 	user.PK = fmt.Sprintf("%s%s", UserKeyPrefix, kid.String())
+	user.SK = user.PK
 	return user, nil
 }
 
@@ -429,31 +441,38 @@ func (t *DTable) StoreNewUser(user *User) error {
 
 type Email struct {
 	PK        string //email#foo@bar.com
+	SK        string
 	OwnerPK   string `dynamodbav:"O"`
 	CreatedAt int64  `dynamodbav:"CRTD"`
 }
 
 func NewEmail(email, owner_pk string) (*Email, error) {
-	return &Email{PK: fmt.Sprintf("%s%s", EmailKeyPrefix, email), OwnerPK: owner_pk,
-		CreatedAt: time.Now().Unix()}, nil
+	e := &Email{PK: fmt.Sprintf("%s%s", EmailKeyPrefix, email), OwnerPK: owner_pk,
+		CreatedAt: time.Now().Unix()}
+	e.SK = e.PK
+	return e, nil
 }
 
 //For telephone number
 type Tel struct {
 	PK        string
+	SK        string
 	Number    string `dynamodbav:"NMBR"`
 	OwnerPK   string `dynamodbav:"O"`
 	CreatedAt int64  `dynamodbav:"CRTD"`
 }
 
 func NewTel(number, owner_pk string) (*Tel, error) {
-	return &Tel{PK: fmt.Sprintf("%s%s", TelKeyPrefix, number),
-		Number: number, OwnerPK: owner_pk, CreatedAt: time.Now().Unix()}, nil
+	tel := &Tel{PK: fmt.Sprintf("%s%s", TelKeyPrefix, number),
+		Number: number, OwnerPK: owner_pk, CreatedAt: time.Now().Unix()}
+	tel.SK = tel.PK
+	return tel, nil
 }
 
 //For Telegram account
 type TGAcc struct {
 	PK        string
+	SK        string
 	TGID      string                 `dynamodbav:"ID"`
 	OwnerPK   string                 `dynamodbav:"O"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
@@ -461,14 +480,17 @@ type TGAcc struct {
 }
 
 func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
-	return &TGAcc{PK: fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid),
+	tacc := &TGAcc{PK: fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid),
 		TGID:    fmt.Sprintf("%d", tgid),
 		OwnerPK: owner_pk, CreatedAt: time.Now().Unix(),
-		Data: make(map[string]interface{})}, nil
+		Data: make(map[string]interface{})}
+	tacc.SK = tacc.PK
+	return tacc, nil
 }
 
 type Bot struct {
 	PK        string
+	SK        string
 	Name      string                 `dynamodbav:"N"`
 	Kind      string                 `dynamodbav:"K"`
 	Secret    string                 `dynamodbav:"S"`
@@ -480,6 +502,7 @@ func NewBot(kind, name string) (*Bot, error) {
 	bot := &Bot{PK: fmt.Sprintf("%s%s", BotKeyPrefix, ksuid.New().String()),
 		Kind: kind, Name: name, Data: make(map[string]interface{})}
 	bot.CreatedAt = int64(time.Now().Unix())
+	bot.SK = bot.PK
 	return bot, nil
 }
 
@@ -489,6 +512,7 @@ func (b *Bot) InviteUrl(otp string) string {
 
 type Invite struct {
 	PK        string
+	SK        string
 	BotPK     string `dynamodbav:"B"`
 	UserPK    string `dynamodbav:"U"`
 	OTP       string `dynamodbav:"OTP"`
@@ -513,6 +537,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 		return nil, err
 	}
 	inv.PK = pk
+	inv.SK = pk
 	return inv, nil
 }
 
