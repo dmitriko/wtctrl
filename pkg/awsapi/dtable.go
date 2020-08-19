@@ -490,6 +490,7 @@ func NewTGAcc(tgid int, owner_pk string) (*TGAcc, error) {
 
 type Bot struct {
 	PK        string
+	SK        string
 	Name      string                 `dynamodbav:"N"`
 	Kind      string                 `dynamodbav:"K"`
 	Secret    string                 `dynamodbav:"S"`
@@ -501,6 +502,7 @@ func NewBot(kind, name string) (*Bot, error) {
 	bot := &Bot{PK: fmt.Sprintf("%s%s", BotKeyPrefix, ksuid.New().String()),
 		Kind: kind, Name: name, Data: make(map[string]interface{})}
 	bot.CreatedAt = int64(time.Now().Unix())
+	bot.SK = bot.PK
 	return bot, nil
 }
 
@@ -510,6 +512,7 @@ func (b *Bot) InviteUrl(otp string) string {
 
 type Invite struct {
 	PK        string
+	SK        string
 	BotPK     string `dynamodbav:"B"`
 	UserPK    string `dynamodbav:"U"`
 	OTP       string `dynamodbav:"OTP"`
@@ -534,6 +537,7 @@ func NewInvite(u *User, b *Bot, valid int) (*Invite, error) {
 		return nil, err
 	}
 	inv.PK = pk
+	inv.SK = pk
 	return inv, nil
 }
 
