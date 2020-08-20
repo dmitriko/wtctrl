@@ -82,14 +82,21 @@ func tgbot(args map[string]interface{}) error {
 		return errors.New(strings.Join(errs, " "))
 	}
 
-	bot_name := args["--bot-name"].(string)
+	botName := args["--bot-name"].(string)
 	secret := args["--secret"].(string)
 	table, err := tableFromArgs(args)
 	if err != nil {
 		return err
 	}
 	if args["register"].(bool) {
-		return tgbotRegister(table, bot_name, secret)
+		return tgbotRegister(table, botName, secret)
+	}
+	if args["invite"].(bool) {
+		var title, tel, email string
+		tel, _ = args["--tel"].(string)
+		email, _ = args["--email"].(string)
+		title, _ = args["--title"].(string)
+		return tgbotInvite(table, botName, title, email, tel)
 	}
 	return nil
 }
@@ -102,5 +109,35 @@ func tgbotRegister(table *awsapi.DTable, botName, secret string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func tgbotInvite(table *awsapi.DTable, botName, title, email, tel string) error {
+	var err error
+	if title == "" {
+		return errors.New("--title must be provided")
+	}
+	user, _ := awsapi.NewUser(title)
+	if tel != "" {
+		if err = user.SetTel(tel); err != nil {
+			return err
+		}
+	}
+	if email != "" {
+		if err = user.SetEmail(email); err != nil {
+			return err
+		}
+	}
+	bot, _ := awsapi.NewBot(awsapi.TGBotKind, botName)
+	inv, _ := awsapi.NewInvite(user, bot, 24)
+	err = table.StoreNewUser(user)
+	if err != nil {
+		return err
+	}
+	_, err = table.StoreItem(inv, awsapi.UniqueOp())
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Please, use this url to start messaging: %s \n", inv.Url)
 	return nil
 }

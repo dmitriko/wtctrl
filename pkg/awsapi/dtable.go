@@ -566,9 +566,11 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	}
 	err = t.FetchItem(pk, inv)
 	if err != nil {
+		fmt.Printf("Could not fetch invite for PK %s", pk)
 		return err
 	}
 	if !inv.IsValid() {
+		fmt.Printf("%#v is expired \n", inv)
 		return errors.New(NO_SUCH_ITEM)
 	}
 	if inv.Data == nil {
