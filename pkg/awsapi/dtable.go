@@ -582,3 +582,22 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 func PK2ID(prefix, pk string) string {
 	return strings.Replace(pk, prefix, "", 1)
 }
+
+const SecretKeyPrefix = "secrt#"
+
+type Secret struct {
+	PK     string
+	SK     string
+	UserPK string `dynamodbav:"U"`
+	TTL    int64
+}
+
+func NewSecret(u *User, valid int) (*Secret, error) {
+	pk := fmt.Sprintf("%s%s", SecretKeyPrefix, ksuid.New())
+	s := &Secret{PK: pk, SK: pk, UserPK: u.PK, TTL: time.Now().Unix() + int64(valid)}
+	return s, nil
+}
+
+func (s *Secret) IsValid() bool {
+	return time.Now().Unix() < s.TTL
+}
