@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title> Trust with Web Tech Control</title>
+        <link rel="stylesheet prefetch" href="https://unpkg.com/onsenui/css/onsenui.css">
+        <link rel="stylesheet prefetch" href="https://unpkg.com/onsenui/css/onsen-css-components.css">
+        <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+        <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+        <script src="https://unpkg.com/jquery/dist/jquery.min.js"></script>
+    </head>
+    <body>
+
+<ons-splitter>
+    <ons-splitter-side id="menu" side="right" width="220px" collapse swipeable>
+        <ons-page>
+            <ons-list>
+                <ons-list-item onclick="App.loadPage('home.html')" tappable>
+                    Home
+                </ons-list-item>
+            </ons-list>
+        </ons-page>
+    </ons-splitter-side>
+    <ons-splitter-content id="content" page="home.html"></ons-splitter-content>
+</ons-splitter>
+
+<template id="home.html">
+
+<ons-page>
+
+    <ons-toolbar>
+        <div class="right">
+            <ons-toolbar-button onclick="App.openMenu()">
+                <ons-icon icon="md-menu"></ons-icon>
+            </ons-toolbar-button>
+        </div>
+    </ons-toolbar>
+
+    <div class="content" style="width:500px;margin: auto;">
+     <div style="text-align: center; margin-top: 30px;">
+            <p><ons-input id="api-url" placeholder="wss://" modifier="underbar" style="width:100%" ></ons-input></p>
+    </div>
+     <p><ons-button id="conn-btn" modifier="large--quiet" onclick="App.startWSConn()">connect</ons-button></p>
+     <p><textarea id="cmd-el" class="textarea" placeholder="Command to server" style="width:100%; height:4em"></textarea></p>
+     <p><ons-button id="send-btn" modifier="large--quiet" onclick="App.sendCmd()">send</ons-button></p>
+    </div> //content
+   </ons-page>
+
+</template>
+
+
+<script>
+window.App = {};
+
+window.App.initApp = function() {
+    let url = localStorage.getItem("api-url")
+    if (url != null) {
+       window.App.apiUrlInput().value = url
+    }
+    window.App.sendBtn().disabled = true;
+}
+
+window.App.connBtn = () => {
+    return document.getElementById('conn-btn')
+}
+
+window.App.apiUrlInput = () => {
+    return document.getElementById('api-url')
+}
+
+window.App.cmdInput = () => {
+    return document.getElementById('cmd-el')
+}
+
+window.App.sendBtn = () => {
+    return document.getElementById('send-btn')
+}
+
+window.App.openMenu = function() {
+  var menu = document.getElementById('menu');
+  menu.open();
+};
+
+window.App.loadPage = function(page) {
+  var content = document.getElementById('content');
+  var menu = document.getElementById('menu');
+  content.load(page)
+    .then(menu.close.bind(menu));
+};
+
+window.App.sendCmd = function() {
+    var self = this
+    let val = this.cmdInput().value
+    self.socket.send(val)
+    console.log("Sent " + val +" to server.")
+}
+
+window.App.startWSConn = function() {
+    self = this
+
+    console.log("Starting WS connection")
+
+    let url = document.getElementById('api-url').value
+
+    const socket = new WebSocket(url + '?secret=foobar');
+
+    socket.addEventListener('close', function(event) {
+        self.socket = undefined
+        self.connBtn().disabled = false
+        self.sendBtn().disabled = true
+        ons.notification.alert('Closed.');
+    });
+    socket.addEventListener('error', function(event) {
+        ons.notification.alert('Error' + event.data)
+    });
+    socket.addEventListener('open', function (event) {
+        console.log('Connected!');
+        self.connBtn().disabled = true
+        self.sendBtn().disabled = false
+        localStorage.setItem("api-url", url)
+    });
+
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+    });
+    self.socket = socket;
+}
+
+window.onload = window.App.initApp;
+
+    </script>
+
+   <script src="https://unpkg.com/knockout"></script>
+  </body>
+</html>
