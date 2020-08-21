@@ -90,10 +90,10 @@ func UniqueOp() func(*dynamodb.PutItemInput) error {
 }
 
 func (t *DTable) StoreItem(item interface{},
-	options ...func(*dynamodb.PutItemInput) error) (*dynamodb.PutItemOutput, error) {
+	options ...func(*dynamodb.PutItemInput) error) error {
 	av, err := dattr.MarshalMap(item)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	input := &dynamodb.PutItemInput{
 		Item:      av,
@@ -102,14 +102,14 @@ func (t *DTable) StoreItem(item interface{},
 	for _, ops := range options {
 		err := ops(input)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	out, err := t.db.PutItem(input)
+	_, err = t.db.PutItem(input)
 	if err != nil && strings.HasPrefix(err.Error(), "ConditionalCheckFailedException") {
-		return out, errors.New(ALREADY_EXISTS)
+		return errors.New(ALREADY_EXISTS)
 	}
-	return out, err
+	return err
 }
 
 //Store bunch of items in transactions, make sure they are new
@@ -137,7 +137,7 @@ func (t *DTable) StoreInTransUniq(items ...interface{}) error {
 func (t *DTable) StoreItems(items ...interface{}) []error {
 	var output []error
 	for _, item := range items {
-		_, err := t.StoreItem(item)
+		err := t.StoreItem(item)
 		output = append(output, err)
 	}
 	return output
@@ -409,12 +409,12 @@ func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 		return err
 	}
 	tg.Data[bot.PK] = "ok"
-	_, err = t.StoreItem(tg, UniqueOp())
+	err = t.StoreItem(tg, UniqueOp())
 	if err != nil {
 		return err
 	}
 	user.TGID = tg.TGID
-	_, err = t.StoreItem(user)
+	err = t.StoreItem(user)
 	return err
 }
 
@@ -566,7 +566,7 @@ func (t *DTable) FetchInvite(bot *Bot, code string, inv *Invite) error {
 	}
 	err = t.FetchItem(pk, inv)
 	if err != nil {
-		fmt.Printf("Could not fetch invite for PK %s", pk)
+		//	fmt.Printf("Could not fetch invite for PK %s", pk)
 		return err
 	}
 	if !inv.IsValid() {

@@ -42,7 +42,7 @@ func handleTGStartMsg(bot *Bot, table *DTable, tgmsg *tb.Message) (string, error
 		return "", err
 	}
 	inv.Data["accepted"] = fmt.Sprintf("%d", time.Now().Unix())
-	_, err = table.StoreItem(inv)
+	err = table.StoreItem(inv)
 	if err != nil {
 		//ignoring it
 		log.Printf("could not store Invite %+v, reason: %s", inv, err.Error())
@@ -108,6 +108,6 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 		msg.Kind = TGVoiceMsgKind
 	}
 
-	_, err = table.StoreItem(msg)
+	err = table.StoreItem(msg)
 	return "", err
 }

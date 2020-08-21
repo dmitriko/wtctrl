@@ -51,7 +51,7 @@ func TestDBUpdateItem(t *testing.T) {
 	item, _ := NewTestItem("foo", "bar")
 	item.Data["spam"] = "egg"
 	item.Data["url"] = "example.com"
-	_, err := testTable.StoreItem(item)
+	err := testTable.StoreItem(item)
 	if err != nil {
 		t.Error(err)
 	}
@@ -68,12 +68,12 @@ func TestStoreItems(t *testing.T) {
 
 	msg, _ := NewTestItem("foo", "bar")
 	msg.Data["spam"] = "egg"
-	_, err := testTable.StoreItem(msg)
+	err := testTable.StoreItem(msg)
 	if err != nil {
 		t.Error(err)
 	}
 	msg_err, _ := NewTestItem("foo", "baz")
-	_, err = testTable.StoreItem(msg_err, UniqueOp())
+	err = testTable.StoreItem(msg_err, UniqueOp())
 	if err == nil || err.Error() != ALREADY_EXISTS {
 		t.Error("Fail to unique store item")
 	}
@@ -115,7 +115,7 @@ func TestMsgDb(t *testing.T) {
 	if msg.AuthorPK != "user#user1" {
 		t.Error("issue with Author")
 	}
-	_, err = testTable.StoreItem(msg)
+	err = testTable.StoreItem(msg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -205,7 +205,7 @@ func TestUser(t *testing.T) {
 	usr1, _ := NewUser("Someone")
 	usr1.Data["lang"] = "en-US"
 	e1, _ := NewEmail("foo@bar", usr1.PK)
-	_, err = testTable.StoreItem(e1)
+	err = testTable.StoreItem(e1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -220,7 +220,7 @@ func TestUser(t *testing.T) {
 	}
 
 	t1, _ := NewTel("5555555", usr1.PK)
-	_, err = testTable.StoreItem(t1)
+	err = testTable.StoreItem(t1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -235,7 +235,7 @@ func TestUser(t *testing.T) {
 
 	tg1, err := NewTGAcc(99999999, usr1.PK)
 	tg1.Data["bot1"] = "ok"
-	_, err = testTable.StoreItem(tg1)
+	err = testTable.StoreItem(tg1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -334,7 +334,7 @@ func TestBot(t *testing.T) {
 	testTable := startLocalDynamo(t)
 	bot, _ := NewBot(TGBotKind, "foo")
 	bot.Data["foo"] = "bar"
-	_, err := testTable.StoreItem(bot)
+	err := testTable.StoreItem(bot)
 	if err != nil {
 		t.Error(err)
 	}
@@ -369,7 +369,7 @@ func TestInvite(t *testing.T) {
 	if !regexp.MustCompile(`^[0-9]{6}$`).MatchString(inv.OTP) {
 		t.Errorf("OTP is not properly set, %+v", inv)
 	}
-	_, err := testTable.StoreItem(inv, UniqueOp())
+	err := testTable.StoreItem(inv, UniqueOp())
 	if err != nil {
 		t.Error(err)
 	}
@@ -387,7 +387,7 @@ func TestInvite(t *testing.T) {
 		t.Errorf("expected %s got %s", expected_url, url)
 	}
 	inv, _ = NewInvite(user, bot, valid)
-	_, err = testTable.StoreItem(inv)
+	err = testTable.StoreItem(inv)
 	if err != nil {
 		t.Error(err)
 	}
@@ -402,3 +402,11 @@ func TestInvite(t *testing.T) {
 		t.Error("should not be happening")
 	}
 }
+
+/*
+func TestUserSecret(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	assert.Nil(t, testTable.StoreItem(user))
+}*/
