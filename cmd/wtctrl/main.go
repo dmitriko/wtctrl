@@ -16,8 +16,8 @@ func main() {
 
 Usage:
   wtctrl tgbot register [--table=<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] [--secret=<secret>]
-  wtctrl tgbot invite  [--table==<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] --title=<title>  [--email=<email>] [--tel=<telephone>]
-  wtctrl user create-token (--email|--tel)
+  wtctrl tgbot invite  [--table=<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] --title=<title>  [--email=<email>] [--tel=<telephone>]
+  wtctrl user create-token [--table=<table>] [--region=<region>] [--endpoint=<url>] [--tel=<telephone>] [--email=<email>]
   wtctrl -h | --help
 
 Options:
@@ -31,9 +31,13 @@ Options:
 `
 
 	args, _ := docopt.ParseDoc(usage)
+	//fmt.Printf("%#v", args)
 	var err error
-	if args["tgbot"].(bool) {
+	if isTgbot, ok := args["tgbot"]; ok && isTgbot.(bool) {
 		err = tgbot(args)
+	}
+	if args["user"].(bool) {
+		err = user(args)
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -44,16 +48,26 @@ Options:
 var REQUIRED_DEFAULTS = map[string]string{
 	"--bot-name": "TGBOT_NAME",
 	"--secret":   "TGBOT_SECRET",
-	"--table":    "DYNAMO_TABLE",
-	"--region":   "DYNAMO_REGION",
+}
+var TABLE_ARG_DEFAULTS = map[string]string{
+	"--table":  "DYNAMO_TABLE",
+	"--region": "DYNAMO_REGION",
 }
 
 func tableFromArgs(args map[string]interface{}) (*awsapi.DTable, error) {
+	for k, v := range TABLE_ARG_DEFAULTS {
+		if args[k] == nil {
+			args[k] = os.Getenv(v)
+		}
+	}
 	tableName := args["--table"].(string)
 	region := args["--region"].(string)
 	var endpoint string
 	if args["--endpoint"] != nil {
 		endpoint = args["--endpoint"].(string)
+	}
+	if tableName == "" || region == "" {
+		return nil, errors.New("--table and --region must be set")
 	}
 	table, _ := awsapi.NewDTable(tableName)
 	table.Region = region
@@ -65,6 +79,64 @@ func tableFromArgs(args map[string]interface{}) (*awsapi.DTable, error) {
 		return nil, err
 	}
 	return table, nil
+}
+
+func userFromArgs(table *awsapi.DTable, args map[string]interface{}) (*awsapi.User, error) {
+	user := &awsapi.User{}
+	var email, tel string
+	if args["--email"] != nil {
+		email = args["--email"].(string)
+	}
+	if args["--tel"] != nil {
+		tel = args["--tel"].(string)
+	}
+	if tel != "" {
+		item := &awsapi.Tel{}
+		pk := fmt.Sprintf("%s%s", awsapi.TelKeyPrefix, tel)
+		//		fmt.Println("Fetching ", pk)
+		err := table.FetchItem(pk, item)
+		if err != nil {
+			return nil, err
+		}
+		err = table.FetchItem(item.OwnerPK, user)
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+	if email != "" {
+		item := &awsapi.Email{}
+		pk := fmt.Sprintf("%s%s", awsapi.EmailKeyPrefix, email)
+		//		fmt.Println("Fetching ", pk)
+		err := table.FetchItem(pk, item)
+		if err != nil {
+			return nil, err
+		}
+		err = table.FetchItem(item.OwnerPK, user)
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+	return nil, errors.New("--tel OR --email must be set")
+}
+
+func user(args map[string]interface{}) error {
+	table, err := tableFromArgs(args)
+	if err != nil {
+		return err
+	}
+	user, err := userFromArgs(table, args)
+	if err != nil {
+		return err
+	}
+	token, _ := awsapi.NewToken(user, 24)
+	err = table.StoreItem(token)
+	if err != nil {
+		return err
+	}
+	fmt.Println(token.PK)
+	return nil
 }
 
 func tgbot(args map[string]interface{}) error {
@@ -106,7 +178,7 @@ func tgbotRegister(table *awsapi.DTable, botName, secret string) error {
 	fmt.Println("Registering ", botName)
 	bot, _ := awsapi.NewBot(awsapi.TGBotKind, botName)
 	bot.Secret = secret
-	_, err := table.StoreItem(bot, awsapi.UniqueOp())
+	err := table.StoreItem(bot, awsapi.UniqueOp())
 	if err != nil {
 		return err
 	}
@@ -135,7 +207,7 @@ func tgbotInvite(table *awsapi.DTable, botName, title, email, tel string) error 
 	if err != nil {
 		return err
 	}
-	_, err = table.StoreItem(inv, awsapi.UniqueOp())
+	err = table.StoreItem(inv, awsapi.UniqueOp())
 	if err != nil {
 		return err
 	}
