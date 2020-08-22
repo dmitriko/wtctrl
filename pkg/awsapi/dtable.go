@@ -634,18 +634,25 @@ func (s *Secret) IsValid() bool {
 const WSConnKeyPrefix = "wsconn#"
 
 type WSConn struct {
-	PK        string
-	SK        string
-	TTL       int64
-	CreatedAt int64 `dynamodbav":"CRTD"`
+	PK         string
+	SK         string
+	TTL        int64
+	DomainName string `dynamodbav":"D"`
+	Stage      string `dynamodbav":"S"`
+	CreatedAt  int64  `dynamodbav":"CRTD"`
 }
 
-func NewWSConn(user *User, id string) (*WSConn, error) {
+func NewWSConn(user *User, id, domain, stage string) (*WSConn, error) {
 	created := time.Now().Unix()
 	c := &WSConn{PK: user.PK,
-		SK:        fmt.Sprintf("%s%s", WSConnKeyPrefix, id),
-		TTL:       (created + 24*60*60),
-		CreatedAt: created}
+		SK:         fmt.Sprintf("%s%s", WSConnKeyPrefix, id),
+		TTL:        (created + 24*60*60),
+		DomainName: domain,
+		Stage:      stage,
+		CreatedAt:  created}
 	return c, nil
+}
 
+func (c *WSConn) Endpoint() string {
+	return fmt.Sprintf("https://%s/%s", c.DomainName, c.Stage)
 }
