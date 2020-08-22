@@ -522,7 +522,7 @@ type Bot struct {
 	SK        string
 	Name      string                 `dynamodbav:"N"`
 	Kind      string                 `dynamodbav:"K"`
-	Secret    string                 `dynamodbav:"S"`
+	Token     string                 `dynamodbav:"S"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
@@ -612,9 +612,9 @@ func PK2ID(prefix, pk string) string {
 	return strings.Replace(pk, prefix, "", 1)
 }
 
-const SecretKeyPrefix = "secrt#"
+const TokenKeyPrefix = "token#"
 
-type Secret struct {
+type Token struct {
 	PK     string
 	SK     string
 	UserPK string `dynamodbav:"U"`
@@ -622,13 +622,13 @@ type Secret struct {
 	ONEOFF bool `dynamodbav:"OF"`
 }
 
-func NewSecret(u *User, valid int) (*Secret, error) {
-	pk := fmt.Sprintf("%s%s", SecretKeyPrefix, ksuid.New())
-	s := &Secret{PK: pk, SK: pk, UserPK: u.PK, TTL: time.Now().Unix() + int64(valid*60*60)}
+func NewToken(u *User, valid int) (*Token, error) {
+	pk := fmt.Sprintf("%s%s", TokenKeyPrefix, ksuid.New())
+	s := &Token{PK: pk, SK: pk, UserPK: u.PK, TTL: time.Now().Unix() + int64(valid*60*60)}
 	return s, nil
 }
 
-func (s *Secret) IsValid() bool {
+func (s *Token) IsValid() bool {
 	return time.Now().Unix() < s.TTL
 }
 

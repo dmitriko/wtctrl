@@ -24,12 +24,12 @@ func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
 func HandleWSAuthReq(table *DTable, params map[string]string, arn string) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
 	resp := events.APIGatewayCustomAuthorizerResponse{}
-	secretPK, ok := params["secret"]
+	tokenPK, ok := params["token"]
 	if !ok {
-		return resp, errors.New("Secret is not provided.")
+		return resp, errors.New("Token is not provided.")
 	}
-	secret := &Secret{}
-	err := table.FetchItem(secretPK, secret)
+	token := &Token{}
+	err := table.FetchItem(tokenPK, token)
 	if err != nil {
 		if err.Error() == NO_SUCH_ITEM {
 			resp.PolicyDocument = getAuthPolicy("Deny", arn)
@@ -37,15 +37,15 @@ func HandleWSAuthReq(table *DTable, params map[string]string, arn string) (
 		}
 		return resp, err
 	}
-	if !secret.IsValid() {
+	if !token.IsValid() {
 		resp.PolicyDocument = getAuthPolicy("Deny", arn)
 		return resp, nil
 	}
-	resp.PrincipalID = secret.UserPK
+	resp.PrincipalID = token.UserPK
 	resp.PolicyDocument = getAuthPolicy("Allow", arn)
-	if secret.ONEOFF {
-		secret.TTL = time.Now().Unix()
-		err = table.StoreItem(secret)
+	if token.ONEOFF {
+		token.TTL = time.Now().Unix()
+		err = table.StoreItem(token)
 		if err != nil {
 			fmt.Println("ERROR", err.Error())
 		}

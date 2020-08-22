@@ -17,6 +17,7 @@ func main() {
 Usage:
   wtctrl tgbot register [--table=<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] [--secret=<secret>]
   wtctrl tgbot invite  [--table==<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] --title=<title>  [--email=<email>] [--tel=<telephone>]
+  wtctrl user create-token (--email|--tel)
   wtctrl -h | --help
 
 Options:

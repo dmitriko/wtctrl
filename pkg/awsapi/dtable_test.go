@@ -433,12 +433,12 @@ func TestInvite(t *testing.T) {
 	}
 }
 
-func TestUserSecret(t *testing.T) {
+func TestUserToken(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
 	assert.Nil(t, testTable.StoreItem(user))
-	s, _ := NewSecret(user, 24)
+	s, _ := NewToken(user, 24)
 	assert.True(t, s.IsValid())
 	s.TTL = time.Now().Unix()
 	assert.False(t, s.IsValid())
