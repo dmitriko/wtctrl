@@ -2,6 +2,8 @@ package awsapi
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -19,7 +21,7 @@ func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
 	}
 }
 
-func handleWSAuthReq(table *DTable, params map[string]string, arn string) (
+func HandleWSAuthReq(table *DTable, params map[string]string, arn string) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
 	resp := events.APIGatewayCustomAuthorizerResponse{}
 	secretPK, ok := params["secret"]
@@ -41,5 +43,12 @@ func handleWSAuthReq(table *DTable, params map[string]string, arn string) (
 	}
 	resp.PrincipalID = secret.UserPK
 	resp.PolicyDocument = getAuthPolicy("Allow", arn)
+	if secret.ONEOFF {
+		secret.TTL = time.Now().Unix()
+		err = table.StoreItem(secret)
+		if err != nil {
+			fmt.Println("ERROR", err.Error())
+		}
+	}
 	return resp, nil
 }

@@ -619,6 +619,7 @@ type Secret struct {
 	SK     string
 	UserPK string `dynamodbav:"U"`
 	TTL    int64
+	ONEOFF bool `dynamodbav:"OF"`
 }
 
 func NewSecret(u *User, valid int) (*Secret, error) {
