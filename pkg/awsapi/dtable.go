@@ -244,6 +244,22 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
+func (t *DTable) DeletSubItem(pk, sk string) error {
+	input := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"PK": {
+				S: aws.String(pk),
+			},
+			"SK": {
+				S: aws.String(sk),
+			},
+		},
+		TableName: aws.String(t.Name),
+	}
+	_, err := t.db.DeleteItem(input)
+	return err
+}
+
 type UMSField struct {
 	PK     string
 	Status int64

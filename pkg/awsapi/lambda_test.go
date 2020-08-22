@@ -58,4 +58,13 @@ func TestWSConnDiscon(t *testing.T) {
 	err = testTable.FetchSubItem(user.PK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId), conn)
 	assert.Nil(t, err)
 	assert.Equal(t, "https://foobar.com/prod", conn.Endpoint())
+
+	disconnReq := getProxyContext("DISCONNECT", domain, stage, connId, user.PK)
+	err = HandleWSConnReq(testTable, disconnReq)
+	assert.Nil(t, err)
+	dconn := &WSConn{}
+	err = testTable.FetchSubItem(user.PK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId), dconn)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, NO_SUCH_ITEM, err.Error())
+	}
 }

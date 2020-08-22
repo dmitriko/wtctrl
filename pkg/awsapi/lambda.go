@@ -60,7 +60,7 @@ func storeWSConn(table *DTable, domain, stage, connId, userPK string) error {
 }
 
 func clearWSConn(table *DTable, connId, userPK string) error {
-	return nil
+	return table.DeletSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
 }
 
 func HandleWSConnReq(table *DTable, ctx events.APIGatewayWebsocketProxyRequestContext) error {
