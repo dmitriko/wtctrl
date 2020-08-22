@@ -464,6 +464,10 @@ func (t *DTable) StoreNewUser(user *User) error {
 	return t.StoreInTransUniq(items...)
 }
 
+func (u *User) FetchWSConns(table *DTable, out interface{}) error {
+	return table.FetchItemsWithPrefix(u.PK, WSConnKeyPrefix, out)
+}
+
 type Email struct {
 	PK        string //email#foo@bar.com
 	SK        string
@@ -619,10 +623,29 @@ type Secret struct {
 
 func NewSecret(u *User, valid int) (*Secret, error) {
 	pk := fmt.Sprintf("%s%s", SecretKeyPrefix, ksuid.New())
-	s := &Secret{PK: pk, SK: pk, UserPK: u.PK, TTL: time.Now().Unix() + int64(valid)}
+	s := &Secret{PK: pk, SK: pk, UserPK: u.PK, TTL: time.Now().Unix() + int64(valid*60*60)}
 	return s, nil
 }
 
 func (s *Secret) IsValid() bool {
 	return time.Now().Unix() < s.TTL
+}
+
+const WSConnKeyPrefix = "wsconn#"
+
+type WSConn struct {
+	PK        string
+	SK        string
+	TTL       int64
+	CreatedAt int64 `dynamodbav":"CRTD"`
+}
+
+func NewWSConn(user *User, id string) (*WSConn, error) {
+	created := time.Now().Unix()
+	c := &WSConn{PK: user.PK,
+		SK:        fmt.Sprintf("%s%s", WSConnKeyPrefix, id),
+		TTL:       (created + 24*60*60),
+		CreatedAt: created}
+	return c, nil
+
 }
