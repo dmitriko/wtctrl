@@ -2,45 +2,26 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/dmitriko/wtctrl/pkg/awsapi"
 )
 
-const secretKey = "secret"
-const secretVal = "foobar"
+var table *awsapi.DTable
 
-func allowResp(event events.APIGatewayCustomAuthorizerRequestTypeRequest) events.APIGatewayCustomAuthorizerResponse {
-
-	resp := events.APIGatewayCustomAuthorizerResponse{PrincipalID: "foo"}
-
-	resp.PolicyDocument = events.APIGatewayCustomAuthorizerPolicy{
-		Version: "2012-10-17",
-		Statement: []events.IAMPolicyStatement{
-			{
-				Action:   []string{"execute-api:Invoke"},
-				Effect:   "Allow",
-				Resource: []string{event.MethodArn},
-			},
-		},
+func init() {
+	table, _ = awsapi.NewDTable(os.Getenv("TABLE_NAME"))
+	err := table.Connect()
+	if err != nil {
+		panic("Could not connect to Dynamo")
 	}
-
-	resp.Context = map[string]interface{}{
-		"foo": "bar",
-	}
-
-	return resp
 }
 
 func handleRequest(ctx context.Context, event events.APIGatewayCustomAuthorizerRequestTypeRequest) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
-	fmt.Printf("%+v", event)
-	if event.QueryStringParameters[secretKey] != secretVal {
-		return events.APIGatewayCustomAuthorizerResponse{}, errors.New("Unauthorized")
-	}
-	return allowResp(event), nil
+	return awsapi.HandleWSAuthReq(table, event.QueryStringParameters, event.MethodArn)
 }
 
 func main() {
