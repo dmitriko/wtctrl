@@ -39,7 +39,10 @@
 
     <div class="content" style="width:500px;margin: auto;">
      <div style="text-align: center; margin-top: 30px;">
-            <p><ons-input id="api-url" placeholder="wss://" modifier="underbar" style="width:100%" ></ons-input></p>
+      <p><ons-input id="api-url" placeholder="wss://" modifier="underbar" style="width:100%" ></ons-input></p>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+      <p><ons-input id="token" placeholder="token" modifier="underbar" style="width:100%" ></ons-input></p>
     </div>
      <p><ons-button id="conn-btn" modifier="large--quiet" onclick="App.startWSConn()">connect</ons-button></p>
      <p><textarea id="cmd-el" class="textarea" placeholder="Command to server" style="width:100%; height:4em"></textarea></p>
@@ -58,6 +61,10 @@ window.App.initApp = function() {
     if (url != null) {
        window.App.apiUrlInput().value = url
     }
+    let token = localStorage.getItem("token")
+    if (token != null) {
+        window.App.tokenInput().value = token
+    }
     window.App.sendBtn().disabled = true;
 }
 
@@ -71,6 +78,10 @@ window.App.apiUrlInput = () => {
 
 window.App.cmdInput = () => {
     return document.getElementById('cmd-el')
+}
+
+window.App.tokenInput = () => {
+    return document.getElementById("token")
 }
 
 window.App.sendBtn = () => {
@@ -101,9 +112,15 @@ window.App.startWSConn = function() {
 
     console.log("Starting WS connection")
 
-    let url = document.getElementById('api-url').value
-
-    const socket = new WebSocket(url + '?secret=foobar');
+    let url = self.apiUrlInput().value
+    let token = self.tokenInput().value
+    if (url == "" || token == "") {
+        ons.notification.alert("token and url must be set")
+        return
+    }
+    const wssurl = url + '?token=' + token
+    console.log(wssurl)
+    const socket = new WebSocket(wssurl);
 
     socket.addEventListener('close', function(event) {
         self.socket = undefined
@@ -119,6 +136,7 @@ window.App.startWSConn = function() {
         self.connBtn().disabled = true
         self.sendBtn().disabled = false
         localStorage.setItem("api-url", url)
+        localStorage.setItem("token", token)
     });
 
     socket.addEventListener('message', function (event) {
