@@ -448,8 +448,8 @@ func TestWSConn(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
-	conn1, _ := NewWSConn(user, "someidA=", "foobar.com", "prod")
-	conn2, _ := NewWSConn(user, "someidB=", "eggspam.com", "prod")
+	conn1, _ := NewWSConn(user.PK, "someidA=", "foobar.com", "prod")
+	conn2, _ := NewWSConn(user.PK, "someidB=", "eggspam.com", "prod")
 	assert.Nil(t, testTable.StoreItem(conn1))
 	assert.Nil(t, testTable.StoreItem(conn2))
 	conns := []WSConn{}

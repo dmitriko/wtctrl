@@ -144,6 +144,10 @@ func (t *DTable) StoreItems(items ...interface{}) []error {
 }
 
 func (t *DTable) FetchItem(pk string, item interface{}) error {
+	return t.FetchSubItem(pk, pk, item)
+}
+
+func (t *DTable) FetchSubItem(pk, sk string, item interface{}) error {
 	result, err := t.db.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(t.Name),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -151,7 +155,7 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 				S: aws.String(pk),
 			},
 			"SK": {
-				S: aws.String(pk),
+				S: aws.String(sk),
 			},
 		},
 	})
@@ -647,9 +651,9 @@ type WSConn struct {
 	CreatedAt  int64  `dynamodbav":"CRTD"`
 }
 
-func NewWSConn(user *User, id, domain, stage string) (*WSConn, error) {
+func NewWSConn(userPK, id, domain, stage string) (*WSConn, error) {
 	created := time.Now().Unix()
-	c := &WSConn{PK: user.PK,
+	c := &WSConn{PK: userPK,
 		SK:         fmt.Sprintf("%s%s", WSConnKeyPrefix, id),
 		TTL:        (created + 24*60*60),
 		DomainName: domain,
