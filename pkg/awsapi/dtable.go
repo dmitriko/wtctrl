@@ -522,7 +522,7 @@ type Bot struct {
 	SK        string
 	Name      string                 `dynamodbav:"N"`
 	Kind      string                 `dynamodbav:"K"`
-	Token     string                 `dynamodbav:"S"`
+	Secret    string                 `dynamodbav:"S"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
