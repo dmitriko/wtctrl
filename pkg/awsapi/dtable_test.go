@@ -16,7 +16,7 @@ import (
 type TItem struct {
 	PK        string
 	SK        string
-	UMS       string
+	UMS       string                 `dynamodbav:",omitempty"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
 }
@@ -26,6 +26,36 @@ func NewTestItem(id, ums string) (*TItem, error) {
 	i.Data = make(map[string]interface{})
 
 	return i, nil
+}
+
+func NewSubItem(pk, sk string) (*TItem, error) {
+	i := &TItem{PK: pk, SK: sk, CreatedAt: time.Now().Unix()}
+	return i, nil
+}
+
+func TestSubItemsPrefix(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+
+	pk := "someid"
+	sk1 := "foo#a"
+	sk2 := "bar#a"
+	sk3 := "foo#b"
+	i1, _ := NewSubItem(pk, sk1)
+	i2, _ := NewSubItem(pk, sk2)
+	i3, _ := NewSubItem(pk, sk3)
+	errs := testTable.StoreItems(i1, i2, i3)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	fooItems := []TItem{}
+	err := testTable.FetchItemsWithPrefix(pk, "foo", &fooItems)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(fooItems))
+	assert.Equal(t, i1.PK, fooItems[0].PK)
+	assert.Equal(t, i3.PK, fooItems[1].PK)
 }
 
 func TestStoreInTrans(t *testing.T) {

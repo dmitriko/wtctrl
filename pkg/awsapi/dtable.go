@@ -169,6 +169,31 @@ func (t *DTable) FetchItem(pk string, item interface{}) error {
 	return nil
 }
 
+func (t *DTable) FetchItemsWithPrefix(pk, prefix string, out interface{}) error {
+	cond := "PK = :pk AND begins_with(SK, :prefix)"
+	qi := &dynamodb.QueryInput{
+		TableName:              aws.String(t.Name),
+		KeyConditionExpression: aws.String(cond),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":prefix": {
+				S: aws.String(prefix),
+			},
+			":pk": {
+				S: aws.String(pk),
+			},
+		},
+	}
+
+	resp, err := t.db.Query(qi)
+	if err != nil {
+		return err
+	}
+	if len(resp.Items) > 0 {
+		return dattr.UnmarshalListOfMaps(resp.Items, out)
+	}
+	return nil
+}
+
 func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutput, error) {
 	return t.UpdateItemMap(pk, pk, "D", key, value)
 }
