@@ -57,4 +57,5 @@ func TestWSConnDiscon(t *testing.T) {
 	conn := &WSConn{}
 	err = testTable.FetchSubItem(user.PK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId), conn)
 	assert.Nil(t, err)
+	assert.Equal(t, "https://foobar.com/prod", conn.Endpoint())
 }
