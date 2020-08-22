@@ -632,6 +632,10 @@ func (s *Token) IsValid() bool {
 	return time.Now().Unix() < s.TTL
 }
 
+func (s *Token) Id() string {
+	return PK2ID(TokenKeyPrefix, s.PK)
+}
+
 const WSConnKeyPrefix = "wsconn#"
 
 type WSConn struct {

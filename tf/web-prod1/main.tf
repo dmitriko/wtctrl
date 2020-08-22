@@ -185,7 +185,7 @@ resource "aws_apigatewayv2_authorizer" "wsapi" {
     api_id = aws_apigatewayv2_api.wsapi.id
     authorizer_type = "REQUEST"
     authorizer_uri = aws_lambda_function.wsauth.invoke_arn
-    identity_sources = ["route.request.querystring.secret"]
+    identity_sources = ["route.request.querystring.token"]
 }
 
 resource "aws_apigatewayv2_route" "wsconn" {

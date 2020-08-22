@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -21,6 +22,7 @@ func init() {
 
 func handleRequest(ctx context.Context, event events.APIGatewayCustomAuthorizerRequestTypeRequest) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
+	fmt.Printf("got event %#v", event)
 	return awsapi.HandleWSAuthReq(table, event.QueryStringParameters, event.MethodArn)
 }
 

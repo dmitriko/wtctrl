@@ -24,12 +24,13 @@ func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
 func HandleWSAuthReq(table *DTable, params map[string]string, arn string) (
 	events.APIGatewayCustomAuthorizerResponse, error) {
 	resp := events.APIGatewayCustomAuthorizerResponse{}
-	tokenPK, ok := params["token"]
+	tokenID, ok := params["token"]
 	if !ok {
 		return resp, errors.New("Token is not provided.")
 	}
 	token := &Token{}
-	err := table.FetchItem(tokenPK, token)
+	pk := fmt.Sprintf("%s%s", TokenKeyPrefix, tokenID)
+	err := table.FetchItem(pk, token)
 	if err != nil {
 		if err.Error() == NO_SUCH_ITEM {
 			resp.PolicyDocument = getAuthPolicy("Deny", arn)
