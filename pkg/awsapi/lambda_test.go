@@ -1,8 +1,10 @@
 package awsapi
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
@@ -67,4 +69,38 @@ func TestWSConnDiscon(t *testing.T) {
 	if assert.NotNil(t, err) {
 		assert.Equal(t, NO_SUCH_ITEM, err.Error())
 	}
+}
+
+func collectOutput(ctx context.Context, out *[]string, inCh <-chan []byte, doneCh <-chan bool) {
+	for {
+		select {
+		case <-doneCh:
+			return
+		case <-ctx.Done():
+			return
+		case s := <-inCh:
+			*out = append(*out, string(s))
+		}
+	}
+}
+
+func TestWSGotCmd(t *testing.T) {
+	//defer stopLocalDynamo()
+	//testTable := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	_ = getProxyContext("MESSAGE", domain, stage, connId, user.PK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	cmd := `{"name":"ping", "id":"somerandom"}`
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	var output []string
+	go collectOutput(ctx, &output, outCh, doneCh)
+	err := handleUserCmd(ctx, user.PK, cmd, outCh)
+	assert.Nil(t, err)
+	doneCh <- true
+	assert.Equal(t, 1, len(output))
 }
