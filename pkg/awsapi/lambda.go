@@ -152,11 +152,11 @@ func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh
 
 type WSSender struct {
 	Conns    []*WSConn
-	ToUserCh chan<- []byte
+	ToUserCh <-chan []byte
 	Sess     *session.Session
 }
 
-func NewWSSender(table *DTable, userPK string, toUserCh chan<- []byte) (*WSSender, error) {
+func NewWSSender(table *DTable, userPK string, toUserCh <-chan []byte) (*WSSender, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -172,7 +172,24 @@ func NewWSSender(table *DTable, userPK string, toUserCh chan<- []byte) (*WSSende
 	return &WSSender{Conns: conns, ToUserCh: toUserCh, Sess: sess}, err
 }
 
-func (s *WSSender) Start(ctx context.Context) {
-	//	lostConns := map[string]interface{}{}
-
+func (s *WSSender) Start(ctx context.Context, doneCh <-chan bool) {
+	lostConns := map[string]interface{}{}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-doneCh:
+			return
+		case data := <-s.ToUserCh:
+			for _, conn := range s.Conns {
+				if _, ok := lostConns[conn.SK]; !ok {
+					err := conn.Send(s.Sess, data)
+					if err != nil {
+						fmt.Println("Could not send to conn", conn.SK, err.Error())
+						lostConns[conn.SK] = true
+					}
+				}
+			}
+		}
+	}
 }

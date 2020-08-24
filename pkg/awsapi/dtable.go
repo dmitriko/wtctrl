@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	apimngmt "github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	dattr "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
@@ -684,4 +685,15 @@ func (c *WSConn) Endpoint() string {
 
 func (c *WSConn) Id() string {
 	return PK2ID(WSConnKeyPrefix, c.SK)
+}
+
+func (c *WSConn) Send(sess *session.Session, data []byte) error {
+	api := apimngmt.New(sess, &aws.Config{
+		Endpoint: aws.String(c.Endpoint()),
+	})
+	_, err := api.PostToConnection(&apimngmt.PostToConnectionInput{
+		ConnectionId: aws.String(c.Id()),
+		Data:         data,
+	})
+	return err
 }
