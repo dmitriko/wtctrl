@@ -681,3 +681,7 @@ func NewWSConn(userPK, id, domain, stage string) (*WSConn, error) {
 func (c *WSConn) Endpoint() string {
 	return fmt.Sprintf("https://%s/%s", c.DomainName, c.Stage)
 }
+
+func (c *WSConn) Id() string {
+	return PK2ID(WSConnKeyPrefix, c.SK)
+}

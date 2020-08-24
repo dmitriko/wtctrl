@@ -84,9 +84,27 @@ func collectOutput(ctx context.Context, out *[]string, inCh <-chan []byte, doneC
 	}
 }
 
-func TestWSGotCmd(t *testing.T) {
-	//defer stopLocalDynamo()
-	//testTable := startLocalDynamo(t)
+func TestWSNewSender(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	conn, _ := NewWSConn(user.PK, connId, domain, stage)
+	err := table.StoreItem(conn)
+	assert.Nil(t, err)
+	toUserCh := make(chan []byte)
+	sender, err := NewWSSender(table, user.PK, toUserCh)
+	assert.Nil(t, err)
+	if assert.Equal(t, 1, len(sender.Conns)) {
+		assert.Equal(t, connId, sender.Conns[0].Id())
+	}
+}
+
+func TestWSGotCmdPing(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
 	domain := "foobar.com"
 	connId := "someid="
@@ -99,7 +117,7 @@ func TestWSGotCmd(t *testing.T) {
 	defer cancel()
 	var output []string
 	go collectOutput(ctx, &output, outCh, doneCh)
-	err := handleUserCmd(ctx, user.PK, cmd, outCh)
+	err := handleUserCmd(ctx, testTable, user.PK, cmd, outCh)
 	assert.Nil(t, err)
 	doneCh <- true
 	assert.Equal(t, 1, len(output))

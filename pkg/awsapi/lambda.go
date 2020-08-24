@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
@@ -103,7 +104,8 @@ type CmdResp struct {
 	SecNum int    `json:"number"`
 }
 
-func (cmd *UserCmd) Perform(ctx context.Context, out chan<- []byte, done chan<- error) {
+func (cmd *UserCmd) Perform(
+	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
 	switch cmd.Name {
 	case "ping":
 		done <- sendWithContext(ctx, out, &CmdResp{
@@ -131,7 +133,7 @@ func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) er
 }
 
 // SetCmd, CreateCmd, FetchCmd, DeleteCmd, PingCmd
-func handleUserCmd(ctx context.Context, userPK, cmd string, outCh chan<- []byte) error {
+func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh chan<- []byte) error {
 	var err error
 	userCmd := &UserCmd{}
 	err = json.Unmarshal([]byte(cmd), userCmd)
@@ -139,11 +141,38 @@ func handleUserCmd(ctx context.Context, userPK, cmd string, outCh chan<- []byte)
 		return err
 	}
 	doneCh := make(chan error)
-	go userCmd.Perform(ctx, outCh, doneCh)
+	go userCmd.Perform(ctx, table, userPK, outCh, doneCh)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	case err := <-doneCh:
 		return err
 	}
+}
+
+type WSSender struct {
+	Conns    []*WSConn
+	ToUserCh chan<- []byte
+	Sess     *session.Session
+}
+
+func NewWSSender(table *DTable, userPK string, toUserCh chan<- []byte) (*WSSender, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	conns := []*WSConn{}
+	err = table.FetchItemsWithPrefix(userPK, WSConnKeyPrefix, &conns)
+	if err != nil {
+		return nil, err
+	}
+	if len(conns) == 0 {
+		return nil, errors.New("There are no connections to send")
+	}
+	return &WSSender{Conns: conns, ToUserCh: toUserCh, Sess: sess}, err
+}
+
+func (s *WSSender) Start(ctx context.Context) {
+	//	lostConns := map[string]interface{}{}
+
 }
