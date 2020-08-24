@@ -50,10 +50,16 @@ resource "aws_iam_role" "api" {
 POLICY
 }
 
+//["${aws_apigatewayv2_api.wsapi.execution_arn}/prod1/*"]
+//actions = ["execute-api:Invoke"]
 data "aws_iam_policy_document" "api" {
     statement {
         actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["*"]
+    }
+    statement {
+        actions = ["execute-api:Invoke", "execute-api:ManageConnections"]
+        resources = ["arn:aws:execute-api:*:*:*"]
     }
     statement {
         actions = [
@@ -117,7 +123,7 @@ resource "aws_lambda_function" "wsdefault" {
     runtime = "go1.x"
     handler = "wsdefault"
     memory_size = 128
-    timeout = 10
+    timeout = 29
     role = aws_iam_role.api.arn
     filename = data.archive_file.wsdefault.output_path
     source_code_hash = data.archive_file.wsdefault.output_base64sha256

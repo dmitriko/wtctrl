@@ -3,6 +3,7 @@ package awsapi
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -688,9 +689,14 @@ func (c *WSConn) Id() string {
 }
 
 func (c *WSConn) Send(sess *session.Session, data []byte) error {
-	api := apimngmt.New(sess, &aws.Config{
-		Endpoint: aws.String(c.Endpoint()),
-	})
+	conf := &aws.Config{Endpoint: aws.String(c.Endpoint())}
+	if sess.Config.Region != nil {
+		conf.Region = sess.Config.Region
+	} else {
+		conf.Region = aws.String(os.Getenv("AWS_REGION"))
+	}
+	conf.Region = aws.String("us-west-2")
+	api := apimngmt.New(sess, conf)
 	_, err := api.PostToConnection(&apimngmt.PostToConnectionInput{
 		ConnectionId: aws.String(c.Id()),
 		Data:         data,

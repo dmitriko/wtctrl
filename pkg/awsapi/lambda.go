@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -134,6 +135,7 @@ func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) er
 
 // SetCmd, CreateCmd, FetchCmd, DeleteCmd, PingCmd
 func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh chan<- []byte) error {
+	fmt.Println("Handling user wire", cmd)
 	var err error
 	userCmd := &UserCmd{}
 	err = json.Unmarshal([]byte(cmd), userCmd)
@@ -192,4 +194,30 @@ func (s *WSSender) Start(ctx context.Context, doneCh <-chan bool) {
 			}
 		}
 	}
+}
+
+func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTable) (
+	events.APIGatewayProxyResponse, error) {
+	resp := events.APIGatewayProxyResponse{StatusCode: 500}
+	ctx, cancel := context.WithTimeout(context.Background(), 28*time.Second)
+	defer cancel()
+	userPK, err := extractUserPK(req.RequestContext)
+	if err != nil {
+		return resp, err
+	}
+	toUserCh := make(chan []byte)
+	stopSendingCh := make(chan bool)
+	sender, err := NewWSSender(table, userPK, toUserCh)
+	if err != nil {
+		return resp, err
+	}
+	go sender.Start(ctx, stopSendingCh)
+	err = handleUserCmd(ctx, table, userPK, req.Body, toUserCh)
+	stopSendingCh <- true
+	if err != nil {
+		return resp, err
+	}
+	resp.StatusCode = http.StatusOK
+	resp.Body = "ok"
+	return resp, nil
 }

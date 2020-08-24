@@ -147,7 +147,7 @@ func user(args map[string]interface{}) error {
 func userSendWS(table *awsapi.DTable, user *awsapi.User, msg string) error {
 	conns := []*awsapi.WSConn{}
 	sess := session.New(&aws.Config{
-		Region: aws.String("eu-west-2"),
+		Region: aws.String("us-west-2"),
 	})
 	err := user.FetchWSConns(table, &conns)
 	if err != nil {
