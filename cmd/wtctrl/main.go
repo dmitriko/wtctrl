@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/dmitriko/wtctrl/pkg/awsapi"
 	"github.com/docopt/docopt-go"
 )
@@ -18,6 +20,7 @@ Usage:
   wtctrl tgbot register [--table=<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] [--secret=<secret>]
   wtctrl tgbot invite  [--table=<table>] [--region=<region>] [--endpoint=<url>] [--bot-name=<name>] --title=<title>  [--email=<email>] [--tel=<telephone>]
   wtctrl user create-token [--table=<table>] [--region=<region>] [--endpoint=<url>] [--tel=<telephone>] [--email=<email>]
+  wtctrl user send-ws [--table=<table>] [--region=<region>] [--endpoint=<url>] [--tel=<telephone>] [--email=<email>] -m=<message>
   wtctrl -h | --help
 
 Options:
@@ -28,6 +31,7 @@ Options:
   --bot-name=<name>   Name of Telegram bot, default to $TGBOT_NAME
   --secret=<secret>   Secret code of the bot, defaut to $TGBOT_SECRET
   --title=<title>     Title the only required flag to create new user via invite
+  -m=<message>        Text send to user
 `
 
 	args, _ := docopt.ParseDoc(usage)
@@ -130,12 +134,44 @@ func user(args map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	token, _ := awsapi.NewToken(user, 24)
-	err = table.StoreItem(token)
+	if args["create-token"].(bool) {
+		return userCreateToken(table, user)
+	}
+	if args["send-ws"].(bool) {
+		m := args["-m"].(string)
+		return userSendWS(table, user, m)
+	}
+	return errors.New("No proper command was given.")
+}
+
+func userSendWS(table *awsapi.DTable, user *awsapi.User, msg string) error {
+	conns := []*awsapi.WSConn{}
+	sess := session.New(&aws.Config{
+		Region: aws.String("eu-west-2"),
+	})
+	err := user.FetchWSConns(table, &conns)
 	if err != nil {
 		return err
 	}
-	fmt.Println(token.PK)
+	if len(conns) == 0 {
+		return errors.New("User has no open connections")
+	}
+	for _, conn := range conns {
+		err = conn.Send(sess, []byte(msg))
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+	return nil
+}
+
+func userCreateToken(table *awsapi.DTable, user *awsapi.User) error {
+	token, _ := awsapi.NewToken(user, 24)
+	err := table.StoreItem(token)
+	if err != nil {
+		return err
+	}
+	fmt.Println(awsapi.PK2ID(awsapi.TokenKeyPrefix, token.PK))
 	return nil
 }
 
