@@ -685,3 +685,9 @@ func (c *WSConn) Endpoint() string {
 func (c *WSConn) Id() string {
 	return PK2ID(WSConnKeyPrefix, c.SK)
 }
+
+func (c *WSConn) Send(data []byte) error {
+	sender, _ := NewWSSender(c.Endpoint(), c.Id(), nil)
+
+	return sender.Send(data)
+}

@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/dmitriko/wtctrl/pkg/awsapi"
 	"github.com/docopt/docopt-go"
 )
@@ -146,9 +144,6 @@ func user(args map[string]interface{}) error {
 
 func userSendWS(table *awsapi.DTable, user *awsapi.User, msg string) error {
 	conns := []*awsapi.WSConn{}
-	sess := session.New(&aws.Config{
-		Region: aws.String("us-west-2"),
-	})
 	err := user.FetchWSConns(table, &conns)
 	if err != nil {
 		return err
@@ -157,7 +152,7 @@ func userSendWS(table *awsapi.DTable, user *awsapi.User, msg string) error {
 		return errors.New("User has no open connections")
 	}
 	for _, conn := range conns {
-		err = conn.Send(sess, []byte(msg))
+		err = conn.Send([]byte(msg))
 		if err != nil {
 			fmt.Println(err.Error())
 		}
