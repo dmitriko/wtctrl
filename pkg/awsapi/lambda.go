@@ -196,7 +196,6 @@ func (s *WSSender) Send(data []byte) error {
 	} else {
 		conf.Region = aws.String(os.Getenv("AWS_REGION"))
 	}
-	conf.Region = aws.String("us-west-2") // TODO remove me
 	api := apimngmt.New(s.Sess, conf)
 	_, err := api.PostToConnection(&apimngmt.PostToConnectionInput{
 		ConnectionId: aws.String(s.ConnId),
