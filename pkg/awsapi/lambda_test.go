@@ -85,21 +85,11 @@ func collectOutput(ctx context.Context, out *[]string, inCh <-chan []byte, doneC
 }
 
 func TestWSNewSender(t *testing.T) {
-	defer stopLocalDynamo()
-	table := startLocalDynamo(t)
-	user, _ := NewUser("foo")
-	domain := "foobar.com"
 	connId := "someid="
-	stage := "prod"
-	conn, _ := NewWSConn(user.PK, connId, domain, stage)
-	err := table.StoreItem(conn)
-	assert.Nil(t, err)
 	toUserCh := make(chan []byte)
-	sender, err := NewWSSender(table, user.PK, toUserCh)
+	endpoint := "https://foobar.com/stage"
+	_, err := NewWSSender(endpoint, connId, toUserCh)
 	assert.Nil(t, err)
-	if assert.Equal(t, 1, len(sender.Conns)) {
-		assert.Equal(t, connId, sender.Conns[0].Id())
-	}
 }
 
 func TestWSGotCmdPing(t *testing.T) {

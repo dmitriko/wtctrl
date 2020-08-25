@@ -3,14 +3,12 @@ package awsapi
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	apimngmt "github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	dattr "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
@@ -686,20 +684,4 @@ func (c *WSConn) Endpoint() string {
 
 func (c *WSConn) Id() string {
 	return PK2ID(WSConnKeyPrefix, c.SK)
-}
-
-func (c *WSConn) Send(sess *session.Session, data []byte) error {
-	conf := &aws.Config{Endpoint: aws.String(c.Endpoint())}
-	if sess.Config.Region != nil {
-		conf.Region = sess.Config.Region
-	} else {
-		conf.Region = aws.String(os.Getenv("AWS_REGION"))
-	}
-	conf.Region = aws.String("us-west-2")
-	api := apimngmt.New(sess, conf)
-	_, err := api.PostToConnection(&apimngmt.PostToConnectionInput{
-		ConnectionId: aws.String(c.Id()),
-		Data:         data,
-	})
-	return err
 }

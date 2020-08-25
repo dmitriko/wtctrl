@@ -6,10 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	apimngmt "github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
 func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
@@ -67,6 +70,7 @@ func clearWSConn(table *DTable, connId, userPK string) error {
 	return table.DeletSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
 }
 
+//Exracts User's PK from Authorizer property of ProxyRequestContext
 func extractUserPK(ctx events.APIGatewayWebsocketProxyRequestContext) (string, error) {
 	authData, ok := ctx.Authorizer.(map[string]interface{})
 	if !ok {
@@ -80,6 +84,7 @@ func extractUserPK(ctx events.APIGatewayWebsocketProxyRequestContext) (string, e
 	return principalId.(string), nil
 }
 
+//Handles websocket connected/disconnected
 func HandleWSConnReq(table *DTable, ctx events.APIGatewayWebsocketProxyRequestContext) error {
 	userPK, err := extractUserPK(ctx)
 	if err != nil {
@@ -153,29 +158,21 @@ func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh
 }
 
 type WSSender struct {
-	Conns    []*WSConn
+	Endpoint string
+	ConnId   string
 	ToUserCh <-chan []byte
 	Sess     *session.Session
 }
 
-func NewWSSender(table *DTable, userPK string, toUserCh <-chan []byte) (*WSSender, error) {
+func NewWSSender(endpoint, connId string, toUserCh <-chan []byte) (*WSSender, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
-	conns := []*WSConn{}
-	err = table.FetchItemsWithPrefix(userPK, WSConnKeyPrefix, &conns)
-	if err != nil {
-		return nil, err
-	}
-	if len(conns) == 0 {
-		return nil, errors.New("There are no connections to send")
-	}
-	return &WSSender{Conns: conns, ToUserCh: toUserCh, Sess: sess}, err
+	return &WSSender{Endpoint: endpoint, ConnId: connId, ToUserCh: toUserCh, Sess: sess}, nil
 }
 
 func (s *WSSender) Start(ctx context.Context, doneCh <-chan bool) {
-	lostConns := map[string]interface{}{}
 	for {
 		select {
 		case <-ctx.Done():
@@ -183,17 +180,29 @@ func (s *WSSender) Start(ctx context.Context, doneCh <-chan bool) {
 		case <-doneCh:
 			return
 		case data := <-s.ToUserCh:
-			for _, conn := range s.Conns {
-				if _, ok := lostConns[conn.SK]; !ok {
-					err := conn.Send(s.Sess, data)
-					if err != nil {
-						fmt.Println("Could not send to conn", conn.SK, err.Error())
-						lostConns[conn.SK] = true
-					}
-				}
+			err := s.Send(data)
+			if err != nil {
+				fmt.Println("ERROR", err.Error())
+				return
 			}
 		}
 	}
+}
+
+func (s *WSSender) Send(data []byte) error {
+	conf := &aws.Config{Endpoint: aws.String(s.Endpoint)}
+	if s.Sess.Config.Region != nil {
+		conf.Region = s.Sess.Config.Region
+	} else {
+		conf.Region = aws.String(os.Getenv("AWS_REGION"))
+	}
+	conf.Region = aws.String("us-west-2") // TODO remove me
+	api := apimngmt.New(s.Sess, conf)
+	_, err := api.PostToConnection(&apimngmt.PostToConnectionInput{
+		ConnectionId: aws.String(s.ConnId),
+		Data:         data,
+	})
+	return err
 }
 
 func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTable) (
@@ -207,7 +216,9 @@ func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTabl
 	}
 	toUserCh := make(chan []byte)
 	stopSendingCh := make(chan bool)
-	sender, err := NewWSSender(table, userPK, toUserCh)
+	connId := req.RequestContext.ConnectionID
+	endpoint := fmt.Sprintf("https://%s/%s", req.RequestContext.DomainName, req.RequestContext.Stage)
+	sender, err := NewWSSender(endpoint, connId, toUserCh)
 	if err != nil {
 		return resp, err
 	}
