@@ -240,9 +240,9 @@ resource "aws_apigatewayv2_deployment" "wsapi" {
 
    triggers = {
     redeployment = sha1(join(",", list(
-      jsonencode(aws_apigatewayv2_route.wsdisconn),
-      jsonencode(aws_apigatewayv2_route.wsdefault),
-      jsonencode(aws_apigatewayv2_route.wsconn),
+      jsonencode(aws_lambda_function.wsauth),
+      jsonencode(aws_lambda_function.wsdefault),
+      jsonencode(aws_lambda_function.wsconn),
     )))
   }
 

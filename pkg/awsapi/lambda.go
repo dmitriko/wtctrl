@@ -97,32 +97,42 @@ func HandleWSConnReq(table *DTable, ctx events.APIGatewayWebsocketProxyRequestCo
 	}
 }
 
-type UserCmd struct {
+type PingCmd struct {
 	Name string `json:"name"`
-	Id   string `json:"id"`
 }
 
 type CmdResp struct {
 	Name   string `json:"name"`
-	Id     string `json:"id"`
+	Id     string `json:"id,omitempty"`
 	Body   string `json:"body"`
 	Status string `json:"status"`
-	SecNum int    `json:"number"`
+	SecNum int    `json:"number,omitempty"`
+}
+type UserCmd interface {
+	Perform(context.Context, *DTable, string, chan<- []byte, chan<- error)
 }
 
-func (cmd *UserCmd) Perform(
-	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
-	switch cmd.Name {
-	case "ping":
-		done <- sendWithContext(ctx, out, &CmdResp{
-			Name:   cmd.Name,
-			Id:     cmd.Id,
-			Status: "done",
-			Body:   "pong",
-		})
-	default:
-		done <- errors.New(fmt.Sprintf("Got unknown command %s", cmd.Name))
+func UnmarshalCmd(data []byte) (UserCmd, error) {
+	var s struct {
+		Name string `json:"name"`
 	}
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return nil, err
+	}
+	if s.Name == "ping" {
+		return &PingCmd{Name: "ping"}, nil
+	}
+	return nil, errors.New(fmt.Sprintf("Uknown command, %s", string(data)))
+}
+
+func (cmd *PingCmd) Perform(
+	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
+	done <- sendWithContext(ctx, out, &CmdResp{
+		Name:   cmd.Name,
+		Status: "done",
+		Body:   "pong",
+	})
 }
 
 func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) error {
@@ -142,8 +152,7 @@ func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) er
 func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh chan<- []byte) error {
 	fmt.Println("Handling user wire", cmd)
 	var err error
-	userCmd := &UserCmd{}
-	err = json.Unmarshal([]byte(cmd), userCmd)
+	userCmd, err := UnmarshalCmd([]byte(cmd))
 	if err != nil {
 		return err
 	}
@@ -206,7 +215,7 @@ func (s *WSSender) Send(data []byte) error {
 
 func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTable) (
 	events.APIGatewayProxyResponse, error) {
-	resp := events.APIGatewayProxyResponse{StatusCode: 500}
+	resp := events.APIGatewayProxyResponse{StatusCode: 400}
 	ctx, cancel := context.WithTimeout(context.Background(), 28*time.Second)
 	defer cancel()
 	userPK, err := extractUserPK(req.RequestContext)
@@ -225,8 +234,10 @@ func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTabl
 	err = handleUserCmd(ctx, table, userPK, req.Body, toUserCh)
 	stopSendingCh <- true
 	if err != nil {
+		fmt.Println("ERROR", err.Error())
 		return resp, err
 	}
+
 	resp.StatusCode = http.StatusOK
 	resp.Body = "ok"
 	return resp, nil

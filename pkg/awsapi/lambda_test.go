@@ -112,3 +112,10 @@ func TestWSGotCmdPing(t *testing.T) {
 	doneCh <- true
 	assert.Equal(t, 1, len(output))
 }
+
+func TestCmdUnmarshal(t *testing.T) {
+	input := `{"name":"msgfetchbyday", "subscr": true, "days":20, "status":0}`
+	_, err := UnmarshalCmd([]byte(input))
+	assert.Nil(t, err)
+	//	assert.Equal(t, "msgfetchbyday", cmd.Name())
+}

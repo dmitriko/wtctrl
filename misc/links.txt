@@ -1,3 +1,4 @@
+https://github.com/stuartforrest-infinity/go-aws-websockets/
 https://www.uglydirtylittlestrawberry.co.uk/posts/aws-api-gateway-websockets-golang-serverless/
 https://www.jeffersonfrank.com/aws-blog/aws-lambda-design-considerations/
 https://jenil.github.io/bulmaswatch/
