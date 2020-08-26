@@ -216,7 +216,7 @@ func TestMsgList(t *testing.T) {
 		}
 	}
 	lm := NewListMsg()
-	err = lm.FetchByUserStatus(testTable, user1, 5, "-3d", "now")
+	err = lm.FetchByUserStatus(testTable, user1.PK, 5, "-3d", "now")
 	if err != nil {
 		t.Error(err)
 	}

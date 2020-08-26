@@ -364,8 +364,8 @@ func (lm *ListMsg) Len() int {
 	return len(lm.Items)
 }
 
-func (lm *ListMsg) FetchByUserStatus(t *DTable, user *User, status int, start, end string) error {
-	ums := fmt.Sprintf("%s#%d", user.PK, status)
+func (lm *ListMsg) FetchByUserStatus(t *DTable, userPK string, status int, start, end string) error {
+	ums := fmt.Sprintf("%s#%d", userPK, status)
 
 	start_time, err := StrToTime(start)
 	if err != nil {

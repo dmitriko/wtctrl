@@ -196,7 +196,7 @@ func TestScenarioTGAuthText(t *testing.T) {
 		t.Error(err)
 	}
 	lm := NewListMsg()
-	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	err = lm.FetchByUserStatus(testTable, user.PK, 0, "-2d", "now")
 	if err != nil {
 		t.Error(err)
 	}
@@ -284,7 +284,7 @@ func TestScenarioTGVoice(t *testing.T) {
 		t.Error(err)
 	}
 	lm := NewListMsg()
-	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	err = lm.FetchByUserStatus(testTable, user.PK, 0, "-2d", "now")
 	if err != nil {
 		t.Error(err)
 	}
@@ -321,7 +321,7 @@ func TestScenarioTGPhoto(t *testing.T) {
 		t.Error(err)
 	}
 	lm := NewListMsg()
-	err = lm.FetchByUserStatus(testTable, user, 0, "-2d", "now")
+	err = lm.FetchByUserStatus(testTable, user.PK, 0, "-2d", "now")
 	if err != nil {
 		t.Error(err)
 	}
