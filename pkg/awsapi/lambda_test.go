@@ -2,6 +2,7 @@ package awsapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -125,7 +126,6 @@ func TestCmdUnmarshal(t *testing.T) {
 func TestCmdFetchByDays(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
-	input := `{"name":"msgfetchbydays", "subs": true, "days":20, "status":0}`
 	domain := "foobar.com"
 	connId := "someid="
 	stage := "prod"
@@ -151,10 +151,21 @@ func TestCmdFetchByDays(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	var output []string
+
+	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
+	input := `{"name":"msgfetchbydays", "days":20, "status":0, "desc":true}`
 	err = handleUserCmd(ctx, testTable, user1.PK, input, outCh)
 	if assert.Nil(t, err) {
 		doneCh <- true
 	}
 	assert.Equal(t, 2, len(output))
+	m1 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[0]), &m1)
+	assert.Nil(t, err)
+	m2 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[1]), &m2)
+	assert.Nil(t, err)
+	assert.Equal(t, msg4.PK, m1["PK"].(string))
+	assert.Equal(t, msg1.Data["text"], m2["data"].(map[string]interface{})["text"].(string))
 }

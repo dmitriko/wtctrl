@@ -131,7 +131,6 @@ func (cmd *PingCmd) Perform(
 
 type MsgFetchByDays struct {
 	Name   string `json:"name"`
-	Subs   bool   `json:"subs"`
 	Days   int    `json:"days"`
 	Status int    `json:"status"`
 	Desc   bool   `json:"desc"`
@@ -147,6 +146,7 @@ func MsgView(msg *Msg) ([]byte, error) {
 	out["owner"] = msg.AuthorPK
 	out["created"] = msg.CreatedAt
 	out["data"] = msg.Data
+	out["status"] = msg.UMS.Status
 	return json.Marshal(out)
 }
 
