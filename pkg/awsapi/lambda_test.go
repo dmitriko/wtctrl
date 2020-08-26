@@ -194,4 +194,17 @@ func TestCmdStartStopSubscr(t *testing.T) {
 	s := &Subscription{}
 	assert.Nil(t, table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s))
 
+	output = make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	input = `{"name":"unsubscr", "status":0, "umspk":"user#user1", "id":"foo"}`
+	err = handleUserCmd(ctx, table, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	assert.Equal(t, 1, len(output))
+	s2 := &Subscription{}
+	err = table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s2)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, NO_SUCH_ITEM, err.Error())
+	}
 }

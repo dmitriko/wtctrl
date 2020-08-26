@@ -69,7 +69,7 @@ func storeWSConn(table *DTable, domain, stage, connId, userPK string) error {
 }
 
 func clearWSConn(table *DTable, connId, userPK string) error {
-	return table.DeletSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
+	return table.DeleteSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
 }
 
 //Exracts User's PK from Authorizer property of ProxyRequestContext
@@ -172,6 +172,36 @@ func (cmd *MsgFetchByDays) Perform(
 	done <- nil
 }
 
+type UnsubscribeCmd struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	UMSPK     string `json:"umspk"`
+	MsgStatus int    `json:"status"`
+}
+
+func (cmd *UnsubscribeCmd) Perform(
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext,
+	out chan<- []byte, done chan<- error) {
+	userPK, err := extractUserPK(reqCtx)
+	if err != nil {
+		done <- err
+		return
+	}
+	items := []Subscription{}
+	err = table.FetchItemsWithPrefix(userPK, SubscriptionKeyPrefix, &items)
+	if err != nil {
+		done <- err
+		return
+	}
+	for _, s := range items {
+		_ = table.DeleteSubItem(s.PK, s.SK)
+	}
+	done <- sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Status: "ok",
+	})
+}
+
 type SubscribeCmd struct {
 	Id        string `json:"id"`
 	Name      string `json:"name"`
@@ -212,6 +242,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 		"ping":           &PingCmd{},
 		"msgfetchbydays": &MsgFetchByDays{},
 		"subscr":         &SubscribeCmd{},
+		"unsubscr":       &UnsubscribeCmd{},
 	}
 	var s struct {
 		Name string `json:"name"`

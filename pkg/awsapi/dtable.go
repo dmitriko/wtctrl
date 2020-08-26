@@ -245,7 +245,7 @@ func (t *DTable) QueryIndex(
 	return t.db.Query(qi)
 }
 
-func (t *DTable) DeletSubItem(pk, sk string) error {
+func (t *DTable) DeleteSubItem(pk, sk string) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"PK": {
