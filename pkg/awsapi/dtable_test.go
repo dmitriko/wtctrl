@@ -457,3 +457,17 @@ func TestWSConn(t *testing.T) {
 	assert.Equal(t, conns[0].SK, fmt.Sprintf("%s%s", WSConnKeyPrefix, "someidA="))
 	assert.Equal(t, conns[0].Endpoint(), "https://foobar.com/prod")
 }
+
+func TestSubscriptionItem(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	domain := "https://foobar.com"
+	connId := "someid="
+	stage := "prod"
+	status := 0
+	user, _ := NewUser("foo")
+	s1, _ := NewSubscription(user.PK, user.PK, status, domain, stage, connId)
+	assert.Nil(t, table.StoreItem(s1))
+	assert.Equal(t, "https://foobar.com/prod", s1.Endpoint())
+	assert.Equal(t, connId, s1.ConnectionId())
+}

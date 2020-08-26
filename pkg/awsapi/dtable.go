@@ -720,3 +720,43 @@ func (c *WSConn) Send(data []byte) error {
 
 	return sender.Send(data)
 }
+
+const SubscriptionKeyPrefix = "subs#"
+
+type Subscription struct {
+	PK        string
+	SK        string
+	OwnerPK   string            `dynamodbav:"O"`
+	Domain    string            `dynamodbav:"D"`
+	Stage     string            `dynamodbav:"S"`
+	UMS       UMSField          `dynamodbav:"UMS"`
+	CreatedAt int64             `dynamodbav:"CRTD"`
+	TTL       int64             `dynamodbav:"TTL"`
+	Data      map[string]string `dynamodbav:"D,omitempty"`
+}
+
+func NewSubscription(ownerPK, umsPK string, umsStatus int, domain, stage, connId string) (*Subscription, error) {
+	s := &Subscription{}
+	s.UMS.PK = umsPK
+	s.UMS.Status = int64(umsStatus)
+	s.Domain = domain
+	s.Stage = stage
+	s.TTL = time.Now().Unix() + 24*60*60
+	s.CreatedAt = time.Now().Unix()
+	s.PK = ownerPK
+	s.SK = fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
+	return s, nil
+}
+
+func (s *Subscription) Endpoint() string {
+	return fmt.Sprintf("%s/%s", s.Domain, s.Stage)
+}
+
+func (s *Subscription) ConnectionId() string {
+	return PK2ID(SubscriptionKeyPrefix, s.SK)
+}
+
+func (s *Subscription) Send(data []byte) error {
+	sender, _ := NewWSSender(s.Endpoint(), s.ConnectionId(), nil)
+	return sender.Send(data)
+}
