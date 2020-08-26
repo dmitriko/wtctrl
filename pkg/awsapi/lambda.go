@@ -101,10 +101,10 @@ func HandleWSConnReq(table *DTable, ctx events.APIGatewayWebsocketProxyRequestCo
 
 type CmdResp struct {
 	Name   string `json:"name"`
-	Id     string `json:"id,omitempty"`
-	Body   string `json:"body"`
+	Id     string `json:"id"`
 	Status string `json:"status"`
 	SecNum int    `json:"number,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 type UserCmd interface {
@@ -113,14 +113,14 @@ type UserCmd interface {
 
 type PingCmd struct {
 	Name string `json:"name"`
+	Id   string `json:"id"`
 }
 
 func (cmd *PingCmd) Perform(
 	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
 	done <- sendWithContext(ctx, out, &CmdResp{
-		Name:   cmd.Name,
-		Status: "done",
-		Body:   "pong",
+		Id:     cmd.Id,
+		Status: "pong",
 	})
 }
 
@@ -129,10 +129,6 @@ type MsgFetchByDays struct {
 	Days   int    `json:"days"`
 	Status int    `json:"status"`
 	Desc   bool   `json:"desc"`
-}
-
-func (cmd *MsgFetchByDays) GetName() string {
-	return cmd.Name
 }
 
 func MsgView(msg *Msg) ([]byte, error) {
@@ -176,10 +172,46 @@ func (cmd *MsgFetchByDays) Perform(
 	done <- nil
 }
 
+type SubscribeCmd struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	UMSPK     string `json:"umspk"`
+	MsgStatus int    `json:"status"`
+}
+
+func (cmd *SubscribeCmd) Perform(
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext,
+	out chan<- []byte, done chan<- error) {
+	userPK, err := extractUserPK(reqCtx)
+	if err != nil {
+		done <- err
+		return
+	}
+	if userPK != cmd.UMSPK {
+		done <- sendWithContext(ctx, out, &CmdResp{
+			Id:     cmd.Id,
+			Status: "error",
+			Error:  "no permissions",
+		})
+		return
+	}
+	s, _ := NewSubscription(userPK, cmd.UMSPK, cmd.MsgStatus, reqCtx.DomainName, reqCtx.Stage, reqCtx.ConnectionID)
+	err = table.StoreItem(s)
+	if err != nil {
+		done <- err
+		return
+	}
+	done <- sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Status: "ok",
+	})
+}
+
 func UnmarshalCmd(data []byte) (UserCmd, error) {
 	cmds := map[string]UserCmd{
 		"ping":           &PingCmd{},
 		"msgfetchbydays": &MsgFetchByDays{},
+		"subscr":         &SubscribeCmd{},
 	}
 	var s struct {
 		Name string `json:"name"`
@@ -190,7 +222,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 	}
 	c, ok := cmds[s.Name]
 	if !ok {
-		return nil, fmt.Errorf("Uknown command, %s", string(data))
+		return nil, fmt.Errorf("Unkown command, %s", string(data))
 	}
 	err = json.Unmarshal(data, c)
 	if err != nil {

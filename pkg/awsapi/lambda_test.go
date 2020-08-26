@@ -93,7 +93,7 @@ func TestWSNewSender(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWSGotCmdPing(t *testing.T) {
+func TestCmdGotPing(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)
 	user, _ := NewUser("foo")
@@ -154,7 +154,7 @@ func TestCmdFetchByDays(t *testing.T) {
 
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
-	input := `{"name":"msgfetchbydays", "days":20, "status":0, "desc":true}`
+	input := `{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}`
 	err = handleUserCmd(ctx, testTable, reqCtx, input, outCh)
 	if assert.Nil(t, err) {
 		doneCh <- true
@@ -168,4 +168,30 @@ func TestCmdFetchByDays(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, msg4.PK, m1["PK"].(string))
 	assert.Equal(t, msg1.Data["text"], m2["data"].(map[string]interface{})["text"].(string))
+}
+
+func TestCmdStartStopSubscr(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	userPK := "user#user1"
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, userPK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	output := make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	input := `{"name":"subscr", "status":0, "umspk":"user#user1", "id":"foo"}`
+	err := handleUserCmd(ctx, table, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	assert.Equal(t, 1, len(output))
+	s := &Subscription{}
+	assert.Nil(t, table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s))
+
 }
