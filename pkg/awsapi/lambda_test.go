@@ -100,7 +100,7 @@ func TestWSGotCmdPing(t *testing.T) {
 	domain := "foobar.com"
 	connId := "someid="
 	stage := "prod"
-	_ = getProxyContext("MESSAGE", domain, stage, connId, user.PK)
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user.PK)
 	outCh := make(chan []byte)
 	doneCh := make(chan bool)
 	cmd := `{"name":"ping", "id":"somerandom"}`
@@ -108,7 +108,7 @@ func TestWSGotCmdPing(t *testing.T) {
 	defer cancel()
 	var output []string
 	go collectOutput(ctx, &output, outCh, doneCh)
-	err := handleUserCmd(ctx, testTable, user.PK, cmd, outCh)
+	err := handleUserCmd(ctx, testTable, reqCtx, cmd, outCh)
 	assert.Nil(t, err)
 	doneCh <- true
 	assert.Equal(t, 1, len(output))
@@ -119,7 +119,7 @@ func TestCmdUnmarshal(t *testing.T) {
 	cmd, err := UnmarshalCmd([]byte(input))
 	assert.Nil(t, err)
 	if assert.NotNil(t, cmd) {
-		assert.Equal(t, "msgfetchbydays", cmd.GetName())
+		assert.Equal(t, "msgfetchbydays", cmd.(*MsgFetchByDays).Name)
 	}
 }
 
@@ -145,7 +145,7 @@ func TestCmdFetchByDays(t *testing.T) {
 			t.Error(e)
 		}
 	}
-	_ = getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
 	outCh := make(chan []byte)
 	doneCh := make(chan bool)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -155,7 +155,7 @@ func TestCmdFetchByDays(t *testing.T) {
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
 	input := `{"name":"msgfetchbydays", "days":20, "status":0, "desc":true}`
-	err = handleUserCmd(ctx, testTable, user1.PK, input, outCh)
+	err = handleUserCmd(ctx, testTable, reqCtx, input, outCh)
 	if assert.Nil(t, err) {
 		doneCh <- true
 	}

@@ -108,20 +108,15 @@ type CmdResp struct {
 }
 
 type UserCmd interface {
-	Perform(context.Context, *DTable, string, chan<- []byte, chan<- error)
-	GetName() string
+	Perform(context.Context, *DTable, events.APIGatewayWebsocketProxyRequestContext, chan<- []byte, chan<- error)
 }
 
 type PingCmd struct {
 	Name string `json:"name"`
 }
 
-func (cmd *PingCmd) GetName() string {
-	return cmd.Name
-}
-
 func (cmd *PingCmd) Perform(
-	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
 	done <- sendWithContext(ctx, out, &CmdResp{
 		Name:   cmd.Name,
 		Status: "done",
@@ -151,10 +146,15 @@ func MsgView(msg *Msg) ([]byte, error) {
 }
 
 func (cmd *MsgFetchByDays) Perform(
-	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
+	userPK, err := extractUserPK(reqCtx)
+	if err != nil {
+		done <- err
+		return
+	}
 	start := fmt.Sprintf("-%dd", cmd.Days)
 	listMsg := NewListMsg()
-	err := listMsg.FetchByUserStatus(table, userPK, cmd.Status, start, "now")
+	err = listMsg.FetchByUserStatus(table, userPK, cmd.Status, start, "now")
 	var sortMeth func() []*Msg
 	if cmd.Desc {
 		sortMeth = listMsg.Desc
@@ -213,17 +213,18 @@ func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) er
 }
 
 // SetCmd, CreateCmd, FetchCmd, DeleteCmd, PingCmd
-func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh chan<- []byte) error {
+func handleUserCmd(ctx context.Context, table *DTable,
+	reqCtx events.APIGatewayWebsocketProxyRequestContext, cmd string, outCh chan<- []byte) error {
+	var err error
 	if lambdaDebug {
 		fmt.Println("Handling user wire", cmd)
 	}
-	var err error
 	userCmd, err := UnmarshalCmd([]byte(cmd))
 	if err != nil {
 		return err
 	}
 	doneCh := make(chan error)
-	go userCmd.Perform(ctx, table, userPK, outCh, doneCh)
+	go userCmd.Perform(ctx, table, reqCtx, outCh, doneCh)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -284,10 +285,6 @@ func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTabl
 	resp := events.APIGatewayProxyResponse{StatusCode: 400}
 	ctx, cancel := context.WithTimeout(context.Background(), 28*time.Second)
 	defer cancel()
-	userPK, err := extractUserPK(req.RequestContext)
-	if err != nil {
-		return resp, err
-	}
 	toUserCh := make(chan []byte)
 	stopSendingCh := make(chan bool)
 	connId := req.RequestContext.ConnectionID
@@ -297,7 +294,7 @@ func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTabl
 		return resp, err
 	}
 	go sender.Start(ctx, stopSendingCh)
-	err = handleUserCmd(ctx, table, userPK, req.Body, toUserCh)
+	err = handleUserCmd(ctx, table, req.RequestContext, req.Body, toUserCh)
 	stopSendingCh <- true
 	if err != nil {
 		fmt.Println("ERROR", err.Error())
