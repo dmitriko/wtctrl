@@ -206,7 +206,6 @@ func TestMsgList(t *testing.T) {
 		DataOp(map[string]string{"url": "https://example2.com"}))
 
 	msg3, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-
 		DataOp(map[string]string{"url": "https://example3.com"}))
 
 	errs := testTable.StoreItems(msg1, msg2, msg3)

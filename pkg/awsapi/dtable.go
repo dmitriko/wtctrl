@@ -3,6 +3,7 @@ package awsapi
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -395,6 +396,34 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, userPK string, status int, start
 		lm.Items[msg.PK] = msg
 	}
 	return nil
+}
+
+func (lm *ListMsg) GetPKs() []string {
+	keys := make([]string, 0, len(lm.Items))
+	for k := range lm.Items {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (lm *ListMsg) Asc() []*Msg {
+	result := make([]*Msg, 0, len(lm.Items))
+	ids := lm.GetPKs()
+	sort.Strings(ids)
+	for _, k := range ids {
+		result = append(result, lm.Items[k])
+	}
+	return result
+}
+
+func (lm *ListMsg) Desc() []*Msg {
+	result := make([]*Msg, 0, len(lm.Items))
+	ids := lm.GetPKs()
+	sort.Sort(sort.Reverse(sort.StringSlice(ids)))
+	for _, k := range ids {
+		result = append(result, lm.Items[k])
+	}
+	return result
 }
 
 type User struct {

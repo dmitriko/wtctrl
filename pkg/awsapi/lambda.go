@@ -15,6 +15,8 @@ import (
 	apimngmt "github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
+var lambdaDebug bool
+
 func getAuthPolicy(effect, arn string) events.APIGatewayCustomAuthorizerPolicy {
 	return events.APIGatewayCustomAuthorizerPolicy{
 		Version: "2012-10-17",
@@ -97,10 +99,6 @@ func HandleWSConnReq(table *DTable, ctx events.APIGatewayWebsocketProxyRequestCo
 	}
 }
 
-type PingCmd struct {
-	Name string `json:"name"`
-}
-
 type CmdResp struct {
 	Name   string `json:"name"`
 	Id     string `json:"id,omitempty"`
@@ -108,22 +106,18 @@ type CmdResp struct {
 	Status string `json:"status"`
 	SecNum int    `json:"number,omitempty"`
 }
+
 type UserCmd interface {
 	Perform(context.Context, *DTable, string, chan<- []byte, chan<- error)
+	GetName() string
 }
 
-func UnmarshalCmd(data []byte) (UserCmd, error) {
-	var s struct {
-		Name string `json:"name"`
-	}
-	err := json.Unmarshal(data, &s)
-	if err != nil {
-		return nil, err
-	}
-	if s.Name == "ping" {
-		return &PingCmd{Name: "ping"}, nil
-	}
-	return nil, errors.New(fmt.Sprintf("Uknown command, %s", string(data)))
+type PingCmd struct {
+	Name string `json:"name"`
+}
+
+func (cmd *PingCmd) GetName() string {
+	return cmd.Name
 }
 
 func (cmd *PingCmd) Perform(
@@ -133,6 +127,76 @@ func (cmd *PingCmd) Perform(
 		Status: "done",
 		Body:   "pong",
 	})
+}
+
+type MsgFetchByDays struct {
+	Name   string `json:"name"`
+	Subs   bool   `json:"subs"`
+	Days   int    `json:"days"`
+	Status int    `json:"status"`
+	Desc   bool   `json:"desc"`
+}
+
+func (cmd *MsgFetchByDays) GetName() string {
+	return cmd.Name
+}
+
+func MsgView(msg *Msg) ([]byte, error) {
+	out := make(map[string]interface{})
+	out["PK"] = msg.PK
+	out["owner"] = msg.AuthorPK
+	out["created"] = msg.CreatedAt
+	out["data"] = msg.Data
+	return json.Marshal(out)
+}
+
+func (cmd *MsgFetchByDays) Perform(
+	ctx context.Context, table *DTable, userPK string, out chan<- []byte, done chan<- error) {
+	start := fmt.Sprintf("-%dd", cmd.Days)
+	listMsg := NewListMsg()
+	err := listMsg.FetchByUserStatus(table, userPK, cmd.Status, start, "now")
+	var sortMeth func() []*Msg
+	if cmd.Desc {
+		sortMeth = listMsg.Desc
+	} else {
+		sortMeth = listMsg.Asc
+	}
+	for _, m := range sortMeth() {
+		b, err := MsgView(m)
+		if err == nil {
+			out <- b
+		} else {
+			fmt.Println("ERROR", err.Error())
+		}
+	}
+	if err != nil {
+		done <- err
+		return
+	}
+	done <- nil
+}
+
+func UnmarshalCmd(data []byte) (UserCmd, error) {
+	cmds := map[string]UserCmd{
+		"ping":           &PingCmd{},
+		"msgfetchbydays": &MsgFetchByDays{},
+	}
+	var s struct {
+		Name string `json:"name"`
+	}
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return nil, err
+	}
+	c, ok := cmds[s.Name]
+	if !ok {
+		return nil, fmt.Errorf("Uknown command, %s", string(data))
+	}
+	err = json.Unmarshal(data, c)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) error {
@@ -150,7 +214,9 @@ func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) er
 
 // SetCmd, CreateCmd, FetchCmd, DeleteCmd, PingCmd
 func handleUserCmd(ctx context.Context, table *DTable, userPK, cmd string, outCh chan<- []byte) error {
-	fmt.Println("Handling user wire", cmd)
+	if lambdaDebug {
+		fmt.Println("Handling user wire", cmd)
+	}
 	var err error
 	userCmd, err := UnmarshalCmd([]byte(cmd))
 	if err != nil {
