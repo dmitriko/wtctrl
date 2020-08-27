@@ -751,6 +751,7 @@ func NewSubscription(ownerPK, umsPK string, umsStatus int, domain, stage, connId
 	sB := &Subscription{UMS: ums, Domain: domain, Stage: stage, TTL: sA.TTL, CreatedAt: sA.CreatedAt}
 	sB.PK = ums
 	sB.SK = sA.SK
+	sB.OwnerPK = ownerPK
 	return sA, sB, nil
 }
 

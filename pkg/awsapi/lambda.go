@@ -74,15 +74,13 @@ func storeWSConn(table *DTable, domain, stage, connId, userPK string) error {
 func clearWSConn(table *DTable, connId, userPK string) error {
 	var err1, err2, err3, err4 error
 	err1 = table.DeleteSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
-	var sbs Subscriptions
-	// Go thru all Subscriptions for given connection and delete related parts (B)
-	err2 = table.FetchItemsWithPrefix(userPK, SubscriptionKeyPrefix, sbs)
-	if err2 != nil {
-		for _, s := range sbs {
-			err3 = table.DeleteSubItem(s.UMS, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId))
-			err4 = table.DeleteSubItem(s.PK, s.SK)
-		}
+	sA := &Subscription{}
+	err2 = table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), sA)
+	if err2 == nil {
+		err3 = table.DeleteSubItem(sA.UMS, sA.SK) //deletes part B
+		err4 = table.DeleteSubItem(sA.PK, sA.SK)
 	}
+
 	var out []string
 	errs := []error{err1, err2, err3, err4}
 	for _, e := range errs {
@@ -242,6 +240,7 @@ func (cmd *SubscribeCmd) Perform(
 		done <- sendWithContext(ctx, out, &CmdResp{
 			Id:     cmd.Id,
 			Status: "error",
+			Name:   cmd.Name,
 			Error:  "no permissions",
 		})
 		return
@@ -260,6 +259,7 @@ func (cmd *SubscribeCmd) Perform(
 	done <- sendWithContext(ctx, out, &CmdResp{
 		Id:     cmd.Id,
 		Status: "ok",
+		Name:   cmd.Name,
 	})
 }
 
