@@ -466,8 +466,30 @@ func TestSubscriptionItem(t *testing.T) {
 	stage := "prod"
 	status := 0
 	user, _ := NewUser("foo")
-	s1, _ := NewSubscription(user.PK, user.PK, status, domain, stage, connId)
+	s1, s2, _ := NewSubscription(user.PK, user.PK, status, domain, stage, connId)
 	assert.Nil(t, table.StoreItem(s1))
+	assert.Nil(t, table.StoreItem(s2))
 	assert.Equal(t, "https://foobar.com/prod", s1.Endpoint())
 	assert.Equal(t, connId, s1.ConnectionId())
+	assert.Equal(t, s1.SK, s2.SK)
+	assert.NotEqual(t, s1.PK, s2.PK)
+}
+
+func TestSubscriptionByUMS(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	domain := "https://foobar.com"
+	connId1 := "someid="
+	connId2 := "otherid="
+	stage := "prod"
+	status1 := 0
+	status2 := 1
+	user, _ := NewUser("foo")
+	s1, _, _ := NewSubscription(user.PK, user.PK, status1, domain, stage, connId1)
+	s2, _, _ := NewSubscription(user.PK, user.PK, status2, domain, stage, connId2)
+	assert.Nil(t, table.StoreItem(s1))
+	assert.Nil(t, table.StoreItem(s2))
+	//	var subs Subscriptions
+	//	err := table.FetchSubsWithUMS(user.PK, status2, &subs)
+	//	assert.Nil(t, err)
 }

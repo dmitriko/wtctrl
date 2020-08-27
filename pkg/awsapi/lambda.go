@@ -176,7 +176,7 @@ type UnsubscribeCmd struct {
 	Id        string `json:"id"`
 	Name      string `json:"name"`
 	UMSPK     string `json:"umspk"`
-	MsgStatus int    `json:"status"`
+	MsgStatus int64  `json:"status"`
 }
 
 func (cmd *UnsubscribeCmd) Perform(
@@ -187,15 +187,12 @@ func (cmd *UnsubscribeCmd) Perform(
 		done <- err
 		return
 	}
-	items := []Subscription{}
-	err = table.FetchItemsWithPrefix(userPK, SubscriptionKeyPrefix, &items)
-	if err != nil {
-		done <- err
-		return
-	}
-	for _, s := range items {
-		_ = table.DeleteSubItem(s.PK, s.SK)
-	}
+	connId := reqCtx.ConnectionID
+	ums := fmt.Sprintf("%s#%d", cmd.UMSPK, cmd.MsgStatus)
+	sk := fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
+	_ = table.DeleteSubItem(userPK, sk)
+	_ = table.DeleteSubItem(ums, sk)
+
 	done <- sendWithContext(ctx, out, &CmdResp{
 		Id:     cmd.Id,
 		Status: "ok",
@@ -225,8 +222,13 @@ func (cmd *SubscribeCmd) Perform(
 		})
 		return
 	}
-	s, _ := NewSubscription(userPK, cmd.UMSPK, cmd.MsgStatus, reqCtx.DomainName, reqCtx.Stage, reqCtx.ConnectionID)
-	err = table.StoreItem(s)
+	sa, sb, _ := NewSubscription(userPK, cmd.UMSPK, cmd.MsgStatus, reqCtx.DomainName, reqCtx.Stage, reqCtx.ConnectionID)
+	err = table.StoreItem(sa)
+	if err != nil {
+		done <- err
+		return
+	}
+	err = table.StoreItem(sb)
 	if err != nil {
 		done <- err
 		return

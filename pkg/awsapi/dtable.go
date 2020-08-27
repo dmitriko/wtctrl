@@ -728,23 +728,30 @@ type Subscription struct {
 	OwnerPK   string            `dynamodbav:"O"`
 	Domain    string            `dynamodbav:"D"`
 	Stage     string            `dynamodbav:"S"`
-	UMS       UMSField          `dynamodbav:"UMS"`
+	UMS       string            `dynamodbav:"U"` // we don't need it in index
 	CreatedAt int64             `dynamodbav:"CRTD"`
 	TTL       int64             `dynamodbav:"TTL"`
 	Data      map[string]string `dynamodbav:"D,omitempty"`
 }
 
-func NewSubscription(ownerPK, umsPK string, umsStatus int, domain, stage, connId string) (*Subscription, error) {
-	s := &Subscription{}
-	s.UMS.PK = umsPK
-	s.UMS.Status = int64(umsStatus)
-	s.Domain = domain
-	s.Stage = stage
-	s.TTL = time.Now().Unix() + 24*60*60
-	s.CreatedAt = time.Now().Unix()
-	s.SK = ownerPK
-	s.PK = fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
-	return s, nil
+// we have to store 2 objects in db for one subcription
+// A) PK UserPK, SK Prefix+ConnId
+// B) PK UMS, SK Prefix+ConnId
+func NewSubscription(ownerPK, umsPK string, umsStatus int, domain, stage, connId string) (
+	*Subscription, *Subscription, error) {
+	ums := fmt.Sprintf("%s#%d", umsPK, umsStatus)
+	sA := &Subscription{}
+	sA.UMS = ums
+	sA.Domain = domain
+	sA.Stage = stage
+	sA.TTL = time.Now().Unix() + 24*60*60
+	sA.CreatedAt = time.Now().Unix()
+	sA.PK = ownerPK
+	sA.SK = fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
+	sB := &Subscription{UMS: ums, Domain: domain, Stage: stage, TTL: sA.TTL, CreatedAt: sA.CreatedAt}
+	sB.PK = ums
+	sB.SK = sA.SK
+	return sA, sB, nil
 }
 
 func (s *Subscription) Endpoint() string {

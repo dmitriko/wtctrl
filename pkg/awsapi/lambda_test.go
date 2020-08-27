@@ -171,7 +171,7 @@ func TestCmdFetchByDays(t *testing.T) {
 }
 
 func TestCmdStartStopSubscr(t *testing.T) {
-	defer stopLocalDynamo()
+	stopLocalDynamo()
 	table := startLocalDynamo(t)
 	domain := "foobar.com"
 	connId := "someid="
@@ -191,8 +191,10 @@ func TestCmdStartStopSubscr(t *testing.T) {
 		doneCh <- true
 	}
 	assert.Equal(t, 1, len(output))
-	s := &Subscription{}
-	assert.Nil(t, table.FetchSubItem(fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), userPK, s))
+	sA := &Subscription{}
+	sB := &Subscription{}
+	assert.Nil(t, table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), sA))
+	assert.Nil(t, table.FetchSubItem("user#user1#0", fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), sB))
 
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
@@ -202,8 +204,13 @@ func TestCmdStartStopSubscr(t *testing.T) {
 		doneCh <- true
 	}
 	assert.Equal(t, 1, len(output))
-	s2 := &Subscription{}
-	err = table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s2)
+	s2A := &Subscription{}
+	err = table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s2A)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, NO_SUCH_ITEM, err.Error())
+	}
+	s2B := &Subscription{}
+	err = table.FetchSubItem("user#user1#0", fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s2B)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, NO_SUCH_ITEM, err.Error())
 	}
