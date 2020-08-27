@@ -192,7 +192,7 @@ func TestCmdStartStopSubscr(t *testing.T) {
 	}
 	assert.Equal(t, 1, len(output))
 	s := &Subscription{}
-	assert.Nil(t, table.FetchSubItem(userPK, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), s))
+	assert.Nil(t, table.FetchSubItem(fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId), userPK, s))
 
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)

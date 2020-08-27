@@ -1,6 +1,7 @@
 package awsapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -20,16 +21,14 @@ const (
 	NO_SUCH_ITEM   = "NoSuchItem"
 	ALREADY_EXISTS = "AlreadyExists"
 
-	MsgKeyPrefix    = "msg#"
-	EmailKeyPrefix  = "email#"
-	UserKeyPrefix   = "user#"
-	TelKeyPrefix    = "tel#"
-	TGAccKeyPrefix  = "tgacc#"
-	BotKeyPrefix    = "bot#"
-	InviteKeyPrefix = "inv#"
-	FileKeyPrefix   = "file#"
-
-	PicFileKind = "PicFileKind"
+	MsgKeyPrefix          = "msg#"
+	EmailKeyPrefix        = "email#"
+	UserKeyPrefix         = "user#"
+	TelKeyPrefix          = "tel#"
+	TGAccKeyPrefix        = "tgacc#"
+	BotKeyPrefix          = "bot#"
+	InviteKeyPrefix       = "inv#"
+	SubscriptionKeyPrefix = "subs#"
 
 	TGBotKind               = "tg"
 	RecognizedTextFieldName = "text_recogn"
@@ -41,6 +40,8 @@ const (
 	TGPhotoMsgKind   = 3
 	TGUnknownMsgKind = 4
 )
+
+type Subscriptions []*Subscription
 
 //Provides access to DynamoDB table
 type DTable struct {
@@ -721,8 +722,6 @@ func (c *WSConn) Send(data []byte) error {
 	return sender.Send(data)
 }
 
-const SubscriptionKeyPrefix = "subs#"
-
 type Subscription struct {
 	PK        string
 	SK        string
@@ -743,8 +742,8 @@ func NewSubscription(ownerPK, umsPK string, umsStatus int, domain, stage, connId
 	s.Stage = stage
 	s.TTL = time.Now().Unix() + 24*60*60
 	s.CreatedAt = time.Now().Unix()
-	s.PK = ownerPK
-	s.SK = fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
+	s.SK = ownerPK
+	s.PK = fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId)
 	return s, nil
 }
 
@@ -753,10 +752,22 @@ func (s *Subscription) Endpoint() string {
 }
 
 func (s *Subscription) ConnectionId() string {
-	return PK2ID(SubscriptionKeyPrefix, s.SK)
+	return PK2ID(SubscriptionKeyPrefix, s.PK)
 }
 
-func (s *Subscription) Send(data []byte) error {
+type SubscrEvent struct {
+	EventName string `json:"event_name"`
+	Name      string `json:"name"`
+	PK        string `json:"pk"`
+	UMS       string `json:"ums"`
+}
+
+func (s *Subscription) SendDBEvent(pk, name, ums string) error {
 	sender, _ := NewWSSender(s.Endpoint(), s.ConnectionId(), nil)
+	event := SubscrEvent{PK: pk, EventName: name, Name: "dbevent", UMS: ums}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
 	return sender.Send(data)
 }
