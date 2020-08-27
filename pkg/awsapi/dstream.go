@@ -106,7 +106,7 @@ func notifySubsciptions(table *DTable, pk, eventName string, item map[string]eve
 	var subs Subscriptions
 	if item["UMS"].DataType() == events.DataTypeString {
 		ums := item["UMS"].String()
-		err := table.FetchItemsWithPrefix(ums, SubscriptionKeyPrefix, subs)
+		err := table.FetchItemsWithPrefix(ums, SubscriptionKeyPrefix, &subs)
 		if err != nil {
 			fmt.Println("ERROR", err.Error())
 			return

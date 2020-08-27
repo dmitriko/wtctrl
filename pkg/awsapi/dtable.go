@@ -726,7 +726,7 @@ type Subscription struct {
 	PK        string
 	SK        string
 	OwnerPK   string            `dynamodbav:"O"`
-	Domain    string            `dynamodbav:"D"`
+	Domain    string            `dynamodbav:"DN"`
 	Stage     string            `dynamodbav:"S"`
 	UMS       string            `dynamodbav:"U"` // we don't need it in index
 	CreatedAt int64             `dynamodbav:"CRTD"`

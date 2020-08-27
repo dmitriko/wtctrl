@@ -1,3 +1,7 @@
+
+{"name":"subscr", "status":0, "umspk":"user#1gKk4ltY2UuMc9poYZaCPFArCLY", "id":"foo"}
+1ggrWyJEYGJQY0Zn5rNdt0U409J
+
 curl \
     --header "Ocp-Apim-Subscription-Key: ${SPEECHSDK_SPEECH_KEY}" \
     --header "Content-type: audio/wav; codecs=audio/pcm; samplerate=16000" \

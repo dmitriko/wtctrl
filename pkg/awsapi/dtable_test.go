@@ -473,6 +473,13 @@ func TestSubscriptionItem(t *testing.T) {
 	assert.Equal(t, connId, s1.ConnectionId())
 	assert.Equal(t, s1.SK, s2.SK)
 	assert.NotEqual(t, s1.PK, s2.PK)
+	s3 := &Subscription{}
+	err := table.FetchSubItem(user.PK, s1.SK, s3)
+	assert.Nil(t, err)
+	if !reflect.DeepEqual(s1, s3) {
+		t.Errorf("%#v != %#v", s1, s3)
+	}
+
 }
 
 func TestSubscriptionByUMS(t *testing.T) {
