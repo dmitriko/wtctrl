@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -68,8 +69,31 @@ func storeWSConn(table *DTable, domain, stage, connId, userPK string) error {
 	return table.StoreItem(conn)
 }
 
+//Clears WSConn and Subscriptions related to that connection
+// Don't worry too much about errors since TTL is there, but anyway
 func clearWSConn(table *DTable, connId, userPK string) error {
-	return table.DeleteSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
+	var err1, err2, err3, err4 error
+	err1 = table.DeleteSubItem(userPK, fmt.Sprintf("%s%s", WSConnKeyPrefix, connId))
+	var sbs Subscriptions
+	// Go thru all Subscriptions for given connection and delete related parts (B)
+	err2 = table.FetchItemsWithPrefix(userPK, SubscriptionKeyPrefix, sbs)
+	if err2 != nil {
+		for _, s := range sbs {
+			err3 = table.DeleteSubItem(s.UMS, fmt.Sprintf("%s%s", SubscriptionKeyPrefix, connId))
+			err4 = table.DeleteSubItem(s.PK, s.SK)
+		}
+	}
+	var out []string
+	errs := []error{err1, err2, err3, err4}
+	for _, e := range errs {
+		if e != nil {
+			out = append(out, e.Error())
+		}
+	}
+	if len(out) > 0 {
+		return errors.New(strings.Join(out, ", "))
+	}
+	return nil
 }
 
 //Exracts User's PK from Authorizer property of ProxyRequestContext
