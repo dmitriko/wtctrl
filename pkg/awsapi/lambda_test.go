@@ -171,7 +171,7 @@ func TestCmdFetchByDays(t *testing.T) {
 }
 
 func TestCmdStartStopSubscr(t *testing.T) {
-	stopLocalDynamo()
+	defer stopLocalDynamo()
 	table := startLocalDynamo(t)
 	domain := "foobar.com"
 	connId := "someid="

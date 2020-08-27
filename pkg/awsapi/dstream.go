@@ -102,18 +102,40 @@ func handleNewMsg(pk string, table *DTable, item map[string]events.DynamoDBAttri
 	}
 }
 
-func HandleDBEvent(ctx context.Context, table *DTable, e events.DynamoDBEvent) {
-	outputJson, err := json.Marshal(e)
-	if err != nil {
-		fmt.Printf("could not marshal event. details: %v", err)
-		return
+func notifySubsciptions(table *DTable, pk, eventName string, item map[string]events.DynamoDBAttributeValue) {
+	var subs Subscriptions
+	if item["UMS"].DataType() == events.DataTypeString {
+		ums := item["UMS"].String()
+		err := table.FetchItemsWithPrefix(ums, SubscriptionKeyPrefix, subs)
+		if err != nil {
+			fmt.Println("ERROR", err.Error())
+			return
+		}
+		for _, s := range subs {
+			err = s.SendDBEvent(pk, eventName, ums)
+			if err != nil {
+				fmt.Println("ERROR", err.Error())
+			}
+		}
 	}
-	fmt.Printf("\n%s\n", outputJson)
+}
+
+func HandleDBEvent(ctx context.Context, table *DTable, e events.DynamoDBEvent) {
+	/*	outputJson, err := json.Marshal(e)
+		if err != nil {
+			fmt.Printf("could not marshal event. details: %v", err)
+			return
+		}
+		fmt.Printf("\n%s\n", outputJson)
+	*/
+
 	for _, record := range e.Records {
 		pk := record.Change.Keys["PK"].String()
-		//fmt.Printf("Processing %#v", record)
-		if strings.HasPrefix(pk, MsgKeyPrefix) && record.EventName == "INSERT" {
-			handleNewMsg(pk, table, record.Change.NewImage)
+		if strings.HasPrefix(pk, MsgKeyPrefix) {
+			notifySubsciptions(table, pk, record.EventName, record.Change.NewImage)
+			if record.EventName == "INSERT" {
+				handleNewMsg(pk, table, record.Change.NewImage)
+			}
 		}
 
 	}

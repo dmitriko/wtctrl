@@ -759,7 +759,7 @@ func (s *Subscription) Endpoint() string {
 }
 
 func (s *Subscription) ConnectionId() string {
-	return PK2ID(SubscriptionKeyPrefix, s.PK)
+	return PK2ID(SubscriptionKeyPrefix, s.SK)
 }
 
 type SubscrEvent struct {
