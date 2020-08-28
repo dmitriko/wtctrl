@@ -209,18 +209,11 @@ func notifySubsciptions(table *DTable, pk, eventName string, item map[string]eve
 }
 
 func HandleDBEvent(ctx context.Context, table *DTable, e events.DynamoDBEvent) {
-	/*	outputJson, err := json.Marshal(e)
-		if err != nil {
-			fmt.Printf("could not marshal event. details: %v", err)
-			return
-		}
-		fmt.Printf("\n%s\n", outputJson)
-	*/
-
 	for _, record := range e.Records {
 		pk := record.Change.Keys["PK"].String()
-		fmt.Println("Processing", pk)
-		if strings.HasPrefix(pk, MsgKeyPrefix) {
+		sk := record.Change.Keys["SK"].String()
+		fmt.Println("Processing", pk, sk)
+		if strings.HasPrefix(pk, MsgKeyPrefix) && strings.HasPrefix(sk, MsgKeyPrefix) {
 			notifySubsciptions(table, pk, record.EventName, record.Change.NewImage)
 			if record.EventName == "INSERT" {
 				handleNewMsg(pk, table, record.Change.NewImage)

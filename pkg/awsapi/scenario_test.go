@@ -3,6 +3,8 @@ package awsapi
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // /start <code> message with valid code
@@ -204,6 +206,8 @@ func TestScenarioTGAuthText(t *testing.T) {
 		t.Error("expected 1 Msg in DB")
 	}
 	for _, msg := range lm.Items {
+		assert.Nil(t, msg.Reload(testTable))
+
 		txt, ok := msg.Data["text"]
 		if !ok && txt != text {
 			t.Errorf("expected msg with text %s got %+v", text, msg)
@@ -292,6 +296,7 @@ func TestScenarioTGVoice(t *testing.T) {
 		t.Error("expected 1 Msg in DB")
 	}
 	for _, msg := range lm.Items {
+		assert.Nil(t, msg.Reload(testTable))
 		if msg.Data["orig"] != orig {
 			t.Errorf("expected %s, got %s", orig, msg.Data["orig"])
 		}
@@ -329,6 +334,7 @@ func TestScenarioTGPhoto(t *testing.T) {
 		t.Error("expected 1 Msg in DB")
 	}
 	for _, msg := range lm.Items {
+		assert.Nil(t, msg.Reload(testTable))
 		if msg.Kind != TGPhotoMsgKind {
 			t.Errorf("msg.Kind is not correct, got %v expected %v", msg.Kind, TGPhotoMsgKind)
 		}

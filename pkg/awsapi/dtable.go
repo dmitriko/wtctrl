@@ -387,14 +387,18 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, userPK string, status int, start
 	// so we fetch whole item here
 	for _, item := range resp.Items {
 		msg := &Msg{}
-		pk := *item["PK"].S
-		err = t.FetchItem(pk, msg)
+		err = dattr.UnmarshalMap(item, msg)
 		if err != nil {
-			if err.Error() == NO_SUCH_ITEM {
-				continue
-			}
-			return err
+			continue
 		}
+		/*		pk := *item["PK"].S
+				err = t.FetchItem(pk, msg)
+				if err != nil {
+					if err.Error() == NO_SUCH_ITEM {
+						continue
+					}
+					return err
+				}*/
 		lm.Items[msg.PK] = msg
 	}
 	return nil
