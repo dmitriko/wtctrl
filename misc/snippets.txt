@@ -1,4 +1,4 @@
-
+{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}
 {"name":"subscr", "status":0, "umspk":"user#1gKk4ltY2UuMc9poYZaCPFArCLY", "id":"foo"}
 1ggrWyJEYGJQY0Zn5rNdt0U409J
 

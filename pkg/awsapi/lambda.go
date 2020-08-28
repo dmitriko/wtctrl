@@ -150,19 +150,33 @@ func (cmd *PingCmd) Perform(
 }
 
 type MsgFetchByDays struct {
+	Id     string `json:"id"`
 	Name   string `json:"name"`
 	Days   int    `json:"days"`
 	Status int    `json:"status"`
 	Desc   bool   `json:"desc"`
 }
 
-func MsgView(msg *Msg) ([]byte, error) {
+//It shows PK, CreatedAt, Status and Kind
+func MsgIndexView(msg *Msg) ([]byte, error) {
 	out := make(map[string]interface{})
 	out["PK"] = msg.PK
-	out["owner"] = msg.AuthorPK
 	out["created"] = msg.CreatedAt
-	out["data"] = msg.Data
+	out["owner"] = msg.UMS.PK
 	out["status"] = msg.UMS.Status
+	out["kind"] = msg.Kind
+	out["name"] = "msg_index"
+	return json.Marshal(out)
+}
+
+func MsgView(msg *Msg, files []*MsgFile) ([]byte, error) {
+	out := make(map[string]interface{})
+	out["PK"] = msg.PK
+	out["created"] = msg.CreatedAt
+	out["owner"] = msg.UMS.PK
+	out["status"] = msg.UMS.Status
+	out["kind"] = msg.Kind
+	out["name"] = "msg_index"
 	return json.Marshal(out)
 }
 
@@ -182,10 +196,20 @@ func (cmd *MsgFetchByDays) Perform(
 	} else {
 		sortMeth = listMsg.Asc
 	}
+	_ = sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Name:   cmd.Name,
+		Status: "started",
+	})
 	for _, m := range sortMeth() {
-		b, err := MsgView(m)
+		b, err := MsgIndexView(m)
 		if err == nil {
-			out <- b
+			select {
+			case <-ctx.Done():
+				fmt.Println("ERROR", ctx.Err())
+				return
+			case out <- b:
+			}
 		} else {
 			fmt.Println("ERROR", err.Error())
 		}
@@ -194,7 +218,11 @@ func (cmd *MsgFetchByDays) Perform(
 		done <- err
 		return
 	}
-	done <- nil
+	done <- sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Name:   cmd.Name,
+		Status: "done",
+	})
 }
 
 type UnsubscribeCmd struct {

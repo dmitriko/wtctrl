@@ -159,15 +159,26 @@ func TestCmdFetchByDays(t *testing.T) {
 	if assert.Nil(t, err) {
 		doneCh <- true
 	}
-	assert.Equal(t, 2, len(output))
-	m1 := make(map[string]interface{})
-	err = json.Unmarshal([]byte(output[0]), &m1)
+	assert.Equal(t, 4, len(output))
+
+	resp1 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[0]), &resp1)
 	assert.Nil(t, err)
-	m2 := make(map[string]interface{})
-	err = json.Unmarshal([]byte(output[1]), &m2)
+
+	resp2 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[1]), &resp2)
 	assert.Nil(t, err)
-	assert.Equal(t, msg4.PK, m1["PK"].(string))
-	assert.Equal(t, msg1.PK, m2["PK"].(string))
+
+	resp3 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[2]), &resp3)
+	assert.Nil(t, err)
+
+	resp4 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[3]), &resp4)
+	assert.Nil(t, err)
+
+	assert.Equal(t, msg4.PK, resp2["PK"].(string))
+	assert.Equal(t, msg1.PK, resp3["PK"].(string))
 }
 
 func TestCmdStartStopSubscr(t *testing.T) {
