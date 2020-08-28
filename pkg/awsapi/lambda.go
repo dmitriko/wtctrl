@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	apimngmt "github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 var lambdaDebug bool
@@ -169,15 +170,50 @@ func MsgIndexView(msg *Msg) ([]byte, error) {
 	return json.Marshal(out)
 }
 
-func MsgView(msg *Msg, files []*MsgFile) ([]byte, error) {
-	out := make(map[string]interface{})
-	out["PK"] = msg.PK
-	out["created"] = msg.CreatedAt
-	out["owner"] = msg.UMS.PK
-	out["status"] = msg.UMS.Status
-	out["kind"] = msg.Kind
-	out["name"] = "msg_index"
-	return json.Marshal(out)
+type MsgView struct {
+	PK        string                 `json:"pk"`
+	CreatedAt int64                  `json:"created"`
+	Owner     string                 `json:"owner"`
+	Author    string                 `json: "author"`
+	Status    int64                  `json:"status"`
+	Kind      int64                  `json:"kind"`
+	Name      string                 `json:"name"`
+	Files     map[string]interface{} `json:"files"`
+}
+
+func preSignUrl(bucket, key string) (string, error) {
+	sess, _ := session.NewSession(&aws.Config{
+		Region: aws.String("us-west-2")},
+	)
+	svc := s3.New(sess)
+	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	return req.Presign(24 * time.Hour)
+
+}
+
+func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
+	view := &MsgView{}
+	view.PK = msg.PK
+	view.CreatedAt = msg.CreatedAt
+	view.Owner = msg.UMS.PK
+	view.Status = msg.UMS.Status
+	view.Kind = msg.Kind
+	view.Name = "imsg"
+	view.Files = make(map[string]interface{})
+	for _, f := range files {
+		fdata := make(map[string]interface{})
+		urlStr, err := preSignUrl(f.Bucket, f.Key)
+		if err == nil {
+			fdata["url"] = urlStr
+		} else {
+			return nil, err
+		}
+		view.Files[f.FileKind] = fdata
+	}
+	return view, nil
 }
 
 func (cmd *MsgFetchByDays) Perform(
@@ -252,6 +288,48 @@ func (cmd *UnsubscribeCmd) Perform(
 	})
 }
 
+type FetchMsgCmd struct {
+	Name string `json:"name"`
+	PK   string `json:"pk"`
+}
+
+func (cmd *FetchMsgCmd) Perform(ctx context.Context, table *DTable,
+	reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
+	msg := &Msg{}
+	err := table.FetchItem(cmd.PK, msg)
+	if err != nil {
+		done <- sendWithContext(ctx, out, &CmdResp{
+			Id:     cmd.PK,
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	var files []*MsgFile
+	err = table.FetchItemsWithPrefix(cmd.PK, MsgFileKeyPrefix, &files)
+	if err != nil {
+		done <- sendWithContext(ctx, out, &CmdResp{
+			Id:     cmd.PK,
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	v, _ := NewMsgView(msg, files)
+	b, err := json.Marshal(v)
+	if err == nil {
+		select {
+		case <-ctx.Done():
+			fmt.Println("ERROR", ctx.Err())
+			return
+		case out <- b:
+		}
+	} else {
+		fmt.Println("ERROR", err.Error())
+	}
+	done <- nil
+}
+
 type SubscribeCmd struct {
 	Id        string `json:"id"`
 	Name      string `json:"name"`
@@ -300,6 +378,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 		"msgfetchbydays": &MsgFetchByDays{},
 		"subscr":         &SubscribeCmd{},
 		"unsubscr":       &UnsubscribeCmd{},
+		"fetchmsg":       &FetchMsgCmd{},
 	}
 	var s struct {
 		Name string `json:"name"`

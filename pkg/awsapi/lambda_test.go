@@ -123,6 +123,42 @@ func TestCmdUnmarshal(t *testing.T) {
 	}
 }
 
+func TestCmdMsgFetch(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	user1, _ := NewUser("user1")
+	msg1, _ := NewMsg("bot1", user1.PK, TGTextMsgKind)
+	pic1, _ := NewMsgFile(msg1.PK, FileKindTgThumb, "image/jpeg", "wtctrl-udatab", "bar")
+	assert.Nil(t, testTable.StoreItem(pic1))
+	assert.Nil(t, testTable.StoreItem(msg1))
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	output := make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	input := fmt.Sprintf(`{"name":"fetchmsg", "pk":"%s"}`, msg1.PK)
+	err := handleUserCmd(ctx, testTable, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	assert.Equal(t, 1, len(output))
+	resp := make(map[string]interface{})
+	assert.Nil(t, json.Unmarshal([]byte(output[0]), &resp))
+	assert.Equal(t, msg1.PK, resp["pk"].(string))
+
+	fdata := resp["files"].(map[string]interface{})
+	thumb, ok := fdata["thumb"].(map[string]interface{})
+	assert.True(t, ok)
+	url, ok := thumb["url"].(string)
+	assert.True(t, ok)
+	assert.True(t, len(url) > 0)
+}
+
 func TestCmdFetchByDays(t *testing.T) {
 	defer stopLocalDynamo()
 	testTable := startLocalDynamo(t)

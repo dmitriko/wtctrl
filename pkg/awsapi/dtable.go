@@ -811,6 +811,7 @@ func NewMsgFile(pk, kind, mime, bucket, key string) (*MsgFile, error) {
 	f.PK = pk
 	f.SK = fmt.Sprintf("%s%s", MsgFileKeyPrefix, kind)
 	f.Mime = mime
+	f.FileKind = kind
 	f.Bucket = bucket
 	f.Key = key
 	f.CreatedAt = time.Now().Unix()
