@@ -174,7 +174,7 @@ type MsgView struct {
 	PK        string                 `json:"pk"`
 	CreatedAt int64                  `json:"created"`
 	Owner     string                 `json:"owner"`
-	Author    string                 `json: "author"`
+	Author    string                 `json:"author"`
 	Status    int64                  `json:"status"`
 	Kind      int64                  `json:"kind"`
 	Name      string                 `json:"name"`
@@ -202,6 +202,7 @@ func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
 	view.Status = msg.UMS.Status
 	view.Kind = msg.Kind
 	view.Name = "imsg"
+	view.Author = msg.AuthorPK
 	view.Files = make(map[string]interface{})
 	for _, f := range files {
 		fdata := make(map[string]interface{})
