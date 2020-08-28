@@ -54,7 +54,7 @@ POLICY
 //actions = ["execute-api:Invoke"]
 
 data "aws_s3_bucket" "images" {
-    name = "wtctrl-udatab"
+    bucket = "wtctrl-udatab"
 }
 
 data "aws_iam_policy_document" "api" {
@@ -68,7 +68,7 @@ data "aws_iam_policy_document" "api" {
     }
     statement {
         actions = ["s3:*"]
-        resources = ["${aws_s3_bucket.images.arn}/*", aws_s3_bucket.images.arn]
+        resources = ["${data.aws_s3_bucket.images.arn}/*", data.aws_s3_bucket.images.arn]
    }
    statement {
         actions = [
