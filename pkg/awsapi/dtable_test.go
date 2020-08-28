@@ -500,3 +500,17 @@ func TestSubscriptionByUMS(t *testing.T) {
 	//	err := table.FetchSubsWithUMS(user.PK, status2, &subs)
 	//	assert.Nil(t, err)
 }
+
+func TestMsgFile(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	msg, _ := NewMsg("bot1", "user#user1", TGPhotoMsgKind)
+	f1, _ := NewMsgFile(msg.PK, FileKindTgThumb, "image/jpeg", "somebucket", "somekey")
+	f1.Data["foo"] = "bar"
+	assert.Nil(t, table.StoreItem(f1))
+	f2 := &MsgFile{}
+	assert.Nil(t, table.FetchSubItem(msg.PK, f1.SK, f2))
+	if !reflect.DeepEqual(f1, f2) {
+		t.Errorf("%#v != %#v", f1, f2)
+	}
+}

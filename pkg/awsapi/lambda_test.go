@@ -180,7 +180,7 @@ func TestCmdStartStopSubscr(t *testing.T) {
 	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, userPK)
 	outCh := make(chan []byte)
 	doneCh := make(chan bool)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	output := make([]string, 0)

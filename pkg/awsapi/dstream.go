@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dmitriko/wtctrl/pkg/azr"
 	tb "github.com/dmitriko/wtctrl/pkg/telebot"
 )
@@ -92,6 +96,82 @@ func handleVoiceMsg(pk string, table *DTable, item map[string]events.DynamoDBAtt
 	}
 }
 
+func handleTGPhotoMsg(pk string, table *DTable, item map[string]events.DynamoDBAttributeValue) {
+	fmt.Println("Handling photo message.")
+	bucket := os.Getenv("IMG_BUCKET")
+	if bucket == "" {
+		fmt.Println("IMG_BUCKET evn var is not set")
+	}
+	bot, err := tb.NewBot(tb.Settings{
+		Token:       os.Getenv("TGBOT_SECRET"),
+		Synchronous: true,
+	})
+	if err != nil {
+		fmt.Printf("ERROR creating bot %s", err.Error())
+		return
+	}
+	var upd tb.Update
+	if item["D"].DataType() == events.DataTypeMap {
+		data := item["D"].Map()
+		orig := data["orig"].String()
+		err := json.Unmarshal([]byte(orig), &upd)
+		if err != nil {
+			fmt.Printf("ERROR: %s", err.Error())
+			return
+		}
+		if upd.Message != nil && upd.Message.Photo != nil {
+			downloadPics(table, pk, upd.Message.Photo, bot, bucket)
+		}
+	}
+}
+
+func storeS3(sess *session.Session, bucket, key string, file io.ReadCloser) error {
+	uploader := s3manager.NewUploader(sess)
+	_, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   file,
+	})
+	return err
+}
+
+func createMsgFile(table *DTable, pk string, pic *tb.PhotoSize, bucket string, i int) {
+	kindMap := map[int]string{
+		0: FileKindTgThumb,
+		1: FileKindTgMediumPic,
+		2: FileKindTgBigPic,
+	}
+	fkind := kindMap[i]
+	if fkind == "" {
+		fkind = "unknown"
+	}
+	f, _ := NewMsgFile(pk, fkind, "image/jpeg", bucket, pic.UniqueID)
+	f.Data["height"] = pic.Height
+	f.Data["width"] = pic.Width
+	f.Data["size"] = pic.FileSize
+	err := table.StoreItem(f)
+	if err != nil {
+		fmt.Println("ERROR storing MsgFile", err.Error())
+	}
+}
+
+func downloadPics(table *DTable, pk string, photo *tb.Photo, bot *tb.Bot, bucket string) {
+	fmt.Printf("Going to download pics for %#v", photo)
+	sess, _ := session.NewSession()
+
+	for i, pic := range photo.Sizes {
+		file, err := bot.GetFile(&pic.File)
+		if err == nil {
+			err = storeS3(sess, bucket, pic.UniqueID, file)
+			if err == nil {
+				createMsgFile(table, pk, &pic, bucket, i)
+			}
+		} else {
+			fmt.Println("ERROR", err.Error())
+		}
+	}
+}
+
 func handleNewMsg(pk string, table *DTable, item map[string]events.DynamoDBAttributeValue) {
 	if item["K"].DataType() == events.DataTypeNumber {
 		kind, _ := item["K"].Integer()
@@ -99,10 +179,18 @@ func handleNewMsg(pk string, table *DTable, item map[string]events.DynamoDBAttri
 			handleVoiceMsg(pk, table, item)
 			return
 		}
+		if kind == TGPhotoMsgKind {
+			handleTGPhotoMsg(pk, table, item)
+			return
+		}
 	}
 }
 
 func notifySubsciptions(table *DTable, pk, eventName string, item map[string]events.DynamoDBAttributeValue) {
+	var kind int64
+	if item["K"].DataType() == events.DataTypeNumber {
+		kind, _ = item["K"].Integer()
+	}
 	var subs Subscriptions
 	if item["UMS"].DataType() == events.DataTypeString {
 		ums := item["UMS"].String()
@@ -112,7 +200,7 @@ func notifySubsciptions(table *DTable, pk, eventName string, item map[string]eve
 			return
 		}
 		for _, s := range subs {
-			err = s.SendDBEvent(pk, eventName, ums)
+			err = s.SendDBEvent(pk, eventName, ums, kind)
 			if err != nil {
 				fmt.Println("ERROR", err.Error())
 			}
@@ -131,6 +219,7 @@ func HandleDBEvent(ctx context.Context, table *DTable, e events.DynamoDBEvent) {
 
 	for _, record := range e.Records {
 		pk := record.Change.Keys["PK"].String()
+		fmt.Println("Processing", pk)
 		if strings.HasPrefix(pk, MsgKeyPrefix) {
 			notifySubsciptions(table, pk, record.EventName, record.Change.NewImage)
 			if record.EventName == "INSERT" {

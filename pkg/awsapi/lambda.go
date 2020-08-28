@@ -80,6 +80,9 @@ func clearWSConn(table *DTable, connId, userPK string) error {
 		err3 = table.DeleteSubItem(sA.UMS, sA.SK) //deletes part B
 		err4 = table.DeleteSubItem(sA.PK, sA.SK)
 	}
+	if err2 != nil && err2.Error() == NO_SUCH_ITEM {
+		return err1
+	}
 
 	var out []string
 	errs := []error{err1, err2, err3, err4}

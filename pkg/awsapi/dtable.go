@@ -39,6 +39,7 @@ const (
 	TGVoiceMsgKind   = 2
 	TGPhotoMsgKind   = 3
 	TGUnknownMsgKind = 4
+	TGDocMsgKind     = 5
 )
 
 type Subscriptions []*Subscription
@@ -768,14 +769,47 @@ type SubscrEvent struct {
 	Name      string `json:"name"`
 	PK        string `json:"pk"`
 	UMS       string `json:"ums"`
+	MsgKind   int64  `json:"kind"`
 }
 
-func (s *Subscription) SendDBEvent(pk, name, ums string) error {
+func (s *Subscription) SendDBEvent(pk, name, ums string, kind int64) error {
 	sender, _ := NewWSSender(s.Endpoint(), s.ConnectionId(), nil)
-	event := SubscrEvent{PK: pk, EventName: name, Name: "dbevent", UMS: ums}
+	event := SubscrEvent{PK: pk, EventName: name, Name: "dbevent", UMS: ums, MsgKind: kind}
 	data, err := json.Marshal(event)
+	fmt.Printf("Sending %s to %s", data, s.ConnectionId())
 	if err != nil {
 		return err
 	}
 	return sender.Send(data)
+}
+
+const (
+	MsgFileKeyPrefix    = "file#"
+	FileKindTgThumb     = "thumb"
+	FileKindTgMediumPic = "mediumpic"
+	FileKindTgBigPic    = "bigpic"
+	FileKindTgVoice     = "voice"
+)
+
+type MsgFile struct {
+	PK        string
+	SK        string
+	FileKind  string                 `dynamodbav:"FK"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D,omitempty"`
+	Mime      string                 `dynamodbav:"M"`
+	Bucket    string                 `dynamodbav:"B"`
+	Key       string                 `dynamodbav:"K"`
+}
+
+func NewMsgFile(pk, kind, mime, bucket, key string) (*MsgFile, error) {
+	f := &MsgFile{}
+	f.PK = pk
+	f.SK = fmt.Sprintf("%s%s", MsgFileKeyPrefix, kind)
+	f.Mime = mime
+	f.Bucket = bucket
+	f.Key = key
+	f.CreatedAt = time.Now().Unix()
+	f.Data = make(map[string]interface{})
+	return f, nil
 }

@@ -20,6 +20,18 @@ provider "telegram" {
     bot_token = var.tgbot_secret
 }
 
+resource "aws_s3_bucket" "images" {
+    bucket = "wtctrl-udatab"
+    acl = "private"
+    
+    lifecycle_rule {
+        enabled = true
+        expiration {
+            days = 90
+        }
+    }
+}
+
 resource "aws_sqs_queue" "errors" {
     name = "errors.fifo"
     fifo_queue = true
@@ -65,6 +77,14 @@ data "aws_iam_policy_document" "lambda" {
     statement {
         actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         resources = ["*"]
+    }
+    statement {
+        actions = ["execute-api:Invoke", "execute-api:ManageConnections"]
+        resources = ["arn:aws:execute-api:*:*:*"]
+    }
+    statement {
+        actions = ["s3:*"]
+        resources = ["${aws_s3_bucket.images.arn}/*", aws_s3_bucket.images.arn]
     }
     statement {
         actions = ["sqs:SendMessage"]
@@ -163,6 +183,7 @@ resource "aws_lambda_function" "dstream" {
             TABLE_NAME = var.table_name
             AZURE_SPEECH2TEXT_KEY = var.speech_key
             AZURE_REGION = var.azure_region
+            IMG_BUCKET = aws_s3_bucket.images.id
         }
     }
 }
