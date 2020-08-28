@@ -125,18 +125,19 @@ func handleTGPhotoMsg(pk string, table *DTable, item map[string]events.DynamoDBA
 	}
 }
 
-func storeS3(sess *session.Session, bucket, key string, file io.ReadCloser) error {
+func storeS3(sess *session.Session, bucket, key, contentType string, file io.ReadCloser) error {
 	defer file.Close()
 	uploader := s3manager.NewUploader(sess)
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		Body:   file,
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        file,
+		ContentType: aws.String(contentType),
 	})
 	return err
 }
 
-func createMsgFile(table *DTable, pk string, pic *tb.PhotoSize, bucket string, i int) {
+func createMsgFilePic(table *DTable, pk string, pic *tb.PhotoSize, key, bucket string, i int) {
 	kindMap := map[int]string{
 		0: FileKindTgThumb,
 		1: FileKindTgMediumPic,
@@ -146,7 +147,7 @@ func createMsgFile(table *DTable, pk string, pic *tb.PhotoSize, bucket string, i
 	if fkind == "" {
 		fkind = "unknown"
 	}
-	f, _ := NewMsgFile(pk, fkind, "image/jpeg", bucket, pic.UniqueID)
+	f, _ := NewMsgFile(pk, fkind, "image/jpeg", bucket, key)
 	f.Data["height"] = pic.Height
 	f.Data["width"] = pic.Width
 	f.Data["size"] = pic.FileSize
@@ -163,9 +164,10 @@ func downloadPics(table *DTable, pk string, photo *tb.Photo, bot *tb.Bot, bucket
 	for i, pic := range photo.Sizes {
 		file, err := bot.GetFile(&pic.File)
 		if err == nil {
-			err = storeS3(sess, bucket, pic.UniqueID, file)
+			key := fmt.Sprintf("%s.jpg", pic.UniqueID)
+			err = storeS3(sess, bucket, key, "image/jpeg", file)
 			if err == nil {
-				createMsgFile(table, pk, &pic, bucket, i)
+				createMsgFilePic(table, pk, &pic, key, bucket, i)
 			}
 		} else {
 			fmt.Println("ERROR", err.Error())

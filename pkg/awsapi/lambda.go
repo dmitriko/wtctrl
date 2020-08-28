@@ -170,17 +170,6 @@ func MsgIndexView(msg *Msg) ([]byte, error) {
 	return json.Marshal(out)
 }
 
-type MsgView struct {
-	PK        string                 `json:"pk"`
-	CreatedAt int64                  `json:"created"`
-	Owner     string                 `json:"owner"`
-	Author    string                 `json:"author"`
-	Status    int64                  `json:"status"`
-	Kind      int64                  `json:"kind"`
-	Name      string                 `json:"name"`
-	Files     map[string]interface{} `json:"files"`
-}
-
 func preSignUrl(bucket, key string) (string, error) {
 	sess, _ := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-2")},
@@ -192,6 +181,17 @@ func preSignUrl(bucket, key string) (string, error) {
 	})
 	return req.Presign(24 * time.Hour)
 
+}
+
+type MsgView struct {
+	PK        string                 `json:"pk"`
+	CreatedAt int64                  `json:"created"`
+	Owner     string                 `json:"owner"`
+	Author    string                 `json:"author"`
+	Status    int64                  `json:"status"`
+	Kind      int64                  `json:"kind"`
+	Name      string                 `json:"name"`
+	Files     map[string]interface{} `json:"files"`
 }
 
 func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
