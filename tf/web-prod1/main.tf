@@ -52,6 +52,11 @@ POLICY
 
 //["${aws_apigatewayv2_api.wsapi.execution_arn}/prod1/*"]
 //actions = ["execute-api:Invoke"]
+
+data "aws_s3_bucket" "images" {
+    name = "wtctrl-udatab"
+}
+
 data "aws_iam_policy_document" "api" {
     statement {
         actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -62,6 +67,10 @@ data "aws_iam_policy_document" "api" {
         resources = ["arn:aws:execute-api:*:*:*"]
     }
     statement {
+        actions = ["s3:*"]
+        resources = ["${aws_s3_bucket.images.arn}/*", aws_s3_bucket.images.arn]
+   }
+   statement {
         actions = [
                 "dynamodb:BatchGet*",
                 "dynamodb:DescribeStream",
