@@ -346,6 +346,9 @@ func (cmd *SubscribeCmd) Perform(
 		done <- err
 		return
 	}
+	if cmd.UMSPK == "" {
+		cmd.UMSPK = userPK
+	}
 	if userPK != cmd.UMSPK {
 		done <- sendWithContext(ctx, out, &CmdResp{
 			Id:     cmd.Id,
