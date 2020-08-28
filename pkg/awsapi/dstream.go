@@ -126,6 +126,7 @@ func handleTGPhotoMsg(pk string, table *DTable, item map[string]events.DynamoDBA
 }
 
 func storeS3(sess *session.Session, bucket, key string, file io.ReadCloser) error {
+	defer file.Close()
 	uploader := s3manager.NewUploader(sess)
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
