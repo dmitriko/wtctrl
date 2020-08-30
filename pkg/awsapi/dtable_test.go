@@ -19,6 +19,7 @@ type TItem struct {
 	UMS       string                 `dynamodbav:",omitempty"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
+	Amount    int64                  `dynamodbav:"AMNT"`
 }
 
 func NewTestItem(id, ums string) (*TItem, error) {
@@ -31,6 +32,16 @@ func NewTestItem(id, ums string) (*TItem, error) {
 func NewSubItem(pk, sk string) (*TItem, error) {
 	i := &TItem{PK: pk, SK: sk, CreatedAt: time.Now().Unix()}
 	return i, nil
+}
+
+func TestIncrement(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	item, _ := NewTestItem("foo", "bar")
+	assert.Nil(t, table.StoreItem(item))
+	assert.Nil(t, table.IncrProp(item.PK, item.SK, "AMNT", 2))
+	assert.Nil(t, table.FetchItem(item.PK, item))
+	assert.Equal(t, int64(2), item.Amount)
 }
 
 func TestSubItemsPrefix(t *testing.T) {

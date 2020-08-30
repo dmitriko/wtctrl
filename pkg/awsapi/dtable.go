@@ -227,6 +227,29 @@ func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.Upda
 	return t.db.UpdateItem(uii)
 }
 
+func (t *DTable) IncrProp(pk, sk, propName string, amount int64) error {
+	exprVals, err := dattr.MarshalMap(map[string]int64{
+		":v": amount},
+	)
+	if err != nil {
+		return err
+	}
+	uii := &dynamodb.UpdateItemInput{
+		TableName: aws.String(t.Name),
+		ExpressionAttributeNames: map[string]*string{
+			"#PropName": aws.String(propName),
+		},
+		UpdateExpression:          aws.String("ADD #PropName :v"),
+		ExpressionAttributeValues: exprVals,
+		Key: map[string]*dynamodb.AttributeValue{
+			"PK": {S: aws.String(pk)},
+			"SK": {S: aws.String(sk)},
+		},
+	}
+	_, err = t.db.UpdateItem(uii)
+	return err
+}
+
 func (t *DTable) FetchTGAcc(tgid int, tgacc *TGAcc) error {
 	pk := fmt.Sprintf("%s%d", TGAccKeyPrefix, tgid)
 	return t.FetchItem(pk, tgacc)
