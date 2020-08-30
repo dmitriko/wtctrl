@@ -841,3 +841,27 @@ func NewMsgFile(pk, kind, mime, bucket, key string) (*MsgFile, error) {
 	f.Data = make(map[string]interface{})
 	return f, nil
 }
+
+const LoginRequestKeyPrefix = "inreq#"
+
+type LoginRequest struct {
+	PK        string
+	SK        string
+	UserPK    string
+	CreatedAt int64 `dynamodbav:"CRTD"`
+	OTP       string
+	Status    int64 // 0 just created, 1 accepted, 2 too many attemts
+	TTL       int64
+	Attempts  int64 `dynamodbav:"ATMPS"`
+}
+
+func NewLoginRequest(userPK string) (*LoginRequest, error) {
+	req := &LoginRequest{}
+	req.PK = fmt.Sprintf("%s%s", LoginRequestKeyPrefix, ksuid.New().String())
+	req.SK = req.PK
+	req.UserPK = userPK
+	req.CreatedAt = time.Now().Unix()
+	req.TTL = req.CreatedAt + 3*60
+	req.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
+	return req, nil
+}

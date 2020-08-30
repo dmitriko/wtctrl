@@ -525,3 +525,17 @@ func TestMsgFile(t *testing.T) {
 		t.Errorf("%#v != %#v", f1, f2)
 	}
 }
+
+func TestLoginReq(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	req, _ := NewLoginRequest(user.PK)
+	assert.Equal(t, 6, len(req.OTP))
+	assert.Nil(t, table.StoreItem(req))
+	r2 := &LoginRequest{}
+	assert.Nil(t, table.FetchItem(req.PK, r2))
+	if !reflect.DeepEqual(req, r2) {
+		t.Errorf("%#v != %#v", req, r2)
+	}
+}
