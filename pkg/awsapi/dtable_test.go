@@ -364,7 +364,14 @@ func TestSetTG(t *testing.T) {
 	if tg.OwnerPK != usr.PK || tg.TGID != "999999999" {
 		t.Errorf("Could not fetch TG data, %#v", tg)
 	}
-	if _, ok := tg.Data[bot.PK]; !ok {
+	var found bool
+	for _, botPK := range usr.Bots {
+		if botPK == bot.PK {
+			found = true
+			break
+		}
+	}
+	if !found {
 		t.Error("tg account does not have associated bot")
 	}
 }

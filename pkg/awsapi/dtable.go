@@ -458,9 +458,10 @@ func (lm *ListMsg) Desc() []*Msg {
 type User struct {
 	PK        string
 	SK        string
-	Title     string `dynamodbav:"T"`
-	Email     string `dynamodbav:"E"`
-	Tel       string `dynamodbav:"TL"`
+	Title     string   `dynamodbav:"T"`
+	Email     string   `dynamodbav:"E"`
+	Tel       string   `dynamodbav:"TL"`
+	Bots      []string `dynamodbav:"B,set"`
 	TGID      string
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D"`
@@ -516,7 +517,13 @@ func (t *DTable) StoreUserTG(user *User, tgid int, bot *Bot) error {
 	if err != nil {
 		return err
 	}
-	tg.Data[bot.PK] = "ok"
+	if user.Bots == nil {
+		user.Bots = []string{bot.PK}
+	} else {
+		user.Bots = append(user.Bots, bot.PK)
+
+	}
+
 	err = t.StoreItem(tg, UniqueOp())
 	if err != nil {
 		return err
