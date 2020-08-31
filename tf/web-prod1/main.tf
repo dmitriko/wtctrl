@@ -6,8 +6,48 @@ terraform {
   }
 }
 
+provider "aws" {
+  alias  = "acm"
+  region = "us-east-1"
+}
+
 variable "table_name" {}
 variable "tgbot_secret" {}
+
+variable domain {
+  default = "wtctrl.com"
+}
+
+data "aws_route53_zone" "wtctrl" {
+  zone_id = "Z03979483BDPVDJTLTZKY"
+}
+
+resource "aws_acm_certificate" "wtctrl" {
+  provider                  = aws.acm
+  domain_name               = var.domain
+  subject_alternative_names = ["*.${var.domain}"]
+  validation_method         = "DNS"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "validation" {
+  zone_id = data.aws_route53_zone.wtctrl.zone_id
+  name    = tolist(aws_acm_certificate.wtctrl.domain_validation_options)[0].resource_record_name
+  type    = tolist(aws_acm_certificate.wtctrl.domain_validation_options)[0].resource_record_type
+  records = [tolist(aws_acm_certificate.wtctrl.domain_validation_options)[0].resource_record_value]
+  ttl     = "300"
+}
+
+resource "aws_acm_certificate_validation" "wtctrl" {
+  provider        = aws.acm
+  certificate_arn = aws_acm_certificate.wtctrl.arn
+  validation_record_fqdns = [
+    aws_route53_record.validation.fqdn
+  ]
+}
+
 
 locals {
   wsauth_func_name    = "wsauth_prod1"
@@ -268,6 +308,10 @@ resource "aws_apigatewayv2_stage" "wsapi" {
     destination_arn = aws_cloudwatch_log_group.apiaccess.arn
     format          = "$context.identity.sourceIp,$context.requestTime,$context.eventType,$context.routeKey,$context.connectionId,$context.status,$context.requestId,$connection.integrationError"
   }
+}
+
+output "cert-arn" {
+  value = aws_acm_certificate.wtctrl.arn
 }
 
 output "api-url" {
