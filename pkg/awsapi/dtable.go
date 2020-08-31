@@ -494,6 +494,11 @@ func (u *User) SetEmail(e string) error {
 	return nil
 }
 
+// interface for telebot
+func (u *User) Recipient() string {
+	return u.TGID
+}
+
 func (t *Tel) String() string {
 	return t.Number
 }
@@ -861,7 +866,29 @@ func NewLoginRequest(userPK string) (*LoginRequest, error) {
 	req.SK = req.PK
 	req.UserPK = userPK
 	req.CreatedAt = time.Now().Unix()
-	req.TTL = req.CreatedAt + 3*60
+	req.TTL = req.CreatedAt + 20*60
 	req.OTP = gotp.NewDefaultTOTP(gotp.RandomSecret(16)).Now()
 	return req, nil
+}
+
+const (
+	OTP_EXPIRED       = "OTP_EXPIRED"
+	TOO_MANY_ATTEMPTS = "TOO_MANY_ATTEMPTS"
+	OTP_WRONG         = "OTP_WRONG"
+)
+
+func (req *LoginRequest) IsOTPValid(otp string) (bool, string) {
+	if req.Attempts >= 5 {
+		return false, TOO_MANY_ATTEMPTS
+	}
+
+	if req.TTL <= time.Now().Unix() {
+		return false, OTP_EXPIRED
+	}
+
+	if req.OTP == otp {
+		return true, "ok"
+	}
+	return false, OTP_WRONG
+
 }

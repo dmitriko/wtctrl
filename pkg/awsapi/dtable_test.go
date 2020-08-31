@@ -538,4 +538,16 @@ func TestLoginReq(t *testing.T) {
 	if !reflect.DeepEqual(req, r2) {
 		t.Errorf("%#v != %#v", req, r2)
 	}
+	ok, res := req.IsOTPValid("000000")
+	assert.False(t, ok)
+	assert.Equal(t, OTP_WRONG, res)
+	ok, res = req.IsOTPValid(req.OTP)
+	if !assert.True(t, ok) {
+		t.Error(res)
+	}
+	req.Attempts = 5
+	ok, res = req.IsOTPValid(req.OTP)
+	assert.False(t, ok)
+	assert.Equal(t, TOO_MANY_ATTEMPTS, res)
+
 }
