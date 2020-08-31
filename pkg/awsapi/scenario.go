@@ -111,3 +111,59 @@ func HandleTGMsg(bot *Bot, table *DTable, orig string) (string, error) {
 	err = table.StoreItem(msg)
 	return "", err
 }
+
+type DummyTGBot struct {
+	ChatID string
+	Sent   string
+}
+
+func (b *DummyTGBot) Send(to tb.Recipient, what interface{}, options ...interface{}) (*tb.Message, error) {
+	b.ChatID = to.Recipient()
+	b.Sent = what.(string)
+	return &tb.Message{}, nil
+}
+
+var dummyTGBot *DummyTGBot
+
+func BotSendText(table *DTable, bot *Bot, user *User, text string) error {
+	var sendFunc func(to tb.Recipient, what interface{}, options ...interface{}) (*tb.Message, error)
+	if bot.Kind == TGBotKind {
+		tgbot, err := tb.NewBot(tb.Settings{
+			Token:       bot.Secret,
+			Synchronous: true,
+		})
+		if err != nil {
+			return err
+		}
+		sendFunc = tgbot.Send
+	} else {
+		dummyTGBot = &DummyTGBot{}
+		sendFunc = dummyTGBot.Send
+	}
+	_, err := sendFunc(user, text)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func SendOtp(table *DTable, userPK, otp string) error {
+	var err error
+	user := &User{}
+	err = table.FetchItem(userPK, user)
+	if err != nil {
+		return err
+	}
+	var bot *Bot
+	if len(user.Bots) > 0 {
+		botPK := user.Bots[0]
+		err := table.FetchItem(botPK, &bot)
+		if err != nil {
+			return err
+		}
+	} else {
+		errors.New("User does not use any bots")
+	}
+	return BotSendText(table, bot, user, otp)
+}

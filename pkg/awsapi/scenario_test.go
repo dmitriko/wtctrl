@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	tb "github.com/dmitriko/wtctrl/pkg/telebot"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -346,22 +345,21 @@ func TestScenarioTGPhoto(t *testing.T) {
 	}
 }
 
-type DummyTGBot struct {
-	ChatID string
-	Sent   string
-}
-
-func (b *DummyTGBot) Send(to tb.Recipient, what interface{}, options ...interface{}) (*tb.Message, error) {
-	b.ChatID = to.Recipient()
-	b.Sent = what.(string)
-	return &tb.Message{}, nil
-}
-
 func TestScenarioLoginReq(t *testing.T) {
 	defer stopLocalDynamo()
 	table := startLocalDynamo(t)
 	user, _ := NewUser("foo")
+	user.TGID = "123456789"
+	bot, _ := NewBot(DummyBotKind, "foo")
+	user.Bots = []string{bot.PK}
 	req, _ := NewLoginRequest(user.PK)
 	assert.Nil(t, table.StoreItem(req))
-
+	for _, e := range table.StoreItems(user, bot, req) {
+		assert.Nil(t, e)
+	}
+	assert.Nil(t, SendOtp(table, user.PK, req.OTP))
+	if assert.NotNil(t, dummyTGBot) {
+		assert.Equal(t, req.OTP, dummyTGBot.Sent)
+		assert.Equal(t, user.TGID, dummyTGBot.ChatID)
+	}
 }

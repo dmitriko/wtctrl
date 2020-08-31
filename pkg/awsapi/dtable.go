@@ -31,6 +31,7 @@ const (
 	SubscriptionKeyPrefix = "subs#"
 
 	TGBotKind               = "tg"
+	DummyBotKind            = "dummy"
 	RecognizedTextFieldName = "text_recogn"
 )
 
