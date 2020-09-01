@@ -6,7 +6,9 @@ require (
 	github.com/aws/aws-lambda-go v1.19.0
 	github.com/aws/aws-sdk-go v1.34.12
 	github.com/aws/aws-sdk-go-v2 v0.24.0
+	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/gin-gonic/gin v1.6.3
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.3
 	github.com/spf13/cobra v1.0.0
