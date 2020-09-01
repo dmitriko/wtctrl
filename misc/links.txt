@@ -1,3 +1,6 @@
+https://medium.com/runatlantis/hosting-our-static-site-over-ssl-with-s3-acm-cloudfront-and-terraform-513b799aec0f
+https://advancedweb.hu/how-to-use-the-aws-apigatewayv2-api-to-add-an-http-api-to-a-lambda-function/
+https://favicon.io/favicon-generator/
 https://jsonformatter.curiousconcept.com/#
 https://github.com/stuartforrest-infinity/go-aws-websockets/
 https://www.uglydirtylittlestrawberry.co.uk/posts/aws-api-gateway-websockets-golang-serverless/
