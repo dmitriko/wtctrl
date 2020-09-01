@@ -1,4 +1,8 @@
 .*
 venv
 *.tfstate*
+lambda/webapp/webapp
+lambda/wsauth/wsauth
+lambda/wsconn/wsconn
+lambda/wsdefault/wsdefault
 lambda/tgwebhook/tgwebhook
