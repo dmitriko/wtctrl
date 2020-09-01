@@ -182,7 +182,7 @@ resource "aws_cloudfront_distribution" "app_wtctrl_com" {
   default_cache_behavior {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    allowed_methods        = ["GET", "HEAD"]
+    allowed_methods        = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "app_wtctrl_com"
     min_ttl                = 0
@@ -210,7 +210,7 @@ resource "aws_cloudfront_distribution" "app_wtctrl_com" {
     ssl_support_method  = "sni-only"
   }
 }
-/*
+
 resource "aws_route53_record" "webapp" {
   zone_id = data.aws_route53_zone.wtctrl.zone_id
   name    = var.domain_name
@@ -222,7 +222,7 @@ resource "aws_route53_record" "webapp" {
     evaluate_target_health = false
   }
 }
-
+/*
 output "cert_east" {
   value = aws_acm_certificate.wtctrl_east.arn
 }

@@ -9,6 +9,7 @@ require (
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/gin-gonic/gin v1.6.3
+	github.com/onsi/ginkgo v1.14.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.3
 	github.com/spf13/cobra v1.0.0
