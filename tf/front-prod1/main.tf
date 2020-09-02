@@ -23,7 +23,7 @@ variable domain {
   default = "wtctrl.com"
 }
 
-variable domain_name {
+variable app_domain_name {
   default = "app.wtctrl.com"
 }
 
@@ -81,6 +81,9 @@ resource "aws_lambda_function" "webapp" {
 resource "aws_apigatewayv2_api" "webapp" {
   name          = "webapp-prod1"
   protocol_type = "HTTP"
+  cors_configuration {
+    allow_origins = ["*"]
+  }
 }
 
 resource "aws_apigatewayv2_integration" "webapp" {
@@ -96,18 +99,6 @@ resource "aws_apigatewayv2_route" "webapp" {
   target    = "integrations/${aws_apigatewayv2_integration.webapp.id}"
   route_key = "$default"
 }
-/*
-resource "aws_apigatewayv2_route" "webapp_get" {
-  api_id    = aws_apigatewayv2_api.webapp.id
-  target    = "integrations/${aws_apigatewayv2_integration.webapp.id}"
-  route_key = "GET /{proxy+}"
-}
-resource "aws_apigatewayv2_route" "webapp_any" {
-  api_id    = aws_apigatewayv2_api.webapp.id
-  target    = "integrations/${aws_apigatewayv2_integration.webapp.id}"
-  route_key = "GET /"
-}
-*/
 
 resource "aws_lambda_permission" "webapp" {
   statement_id  = "${aws_lambda_function.webapp.function_name}Lambda"
@@ -116,33 +107,6 @@ resource "aws_lambda_permission" "webapp" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.webapp.execution_arn}/*"
 }
-
-/*
-resource "aws_apigatewayv2_domain_name" "webapp" {
-  domain_name = "app.wtctrl.com"
-  domain_name_configuration {
-    certificate_arn = aws_acm_certificate.wtctrl_west.arn
-    endpoint_type   = "REGIONAL"
-    security_policy = "TLS_1_2"
-  }
-  depends_on = [aws_acm_certificate_validation.wtctrl_west]
-}
-resource "aws_route53_record" "webapp" {
-  name    = aws_apigatewayv2_domain_name.webapp.domain_name
-  type    = "A"
-  zone_id = data.aws_route53_zone.wtctrl.zone_id
-
-  alias {
-    name                   = aws_apigatewayv2_domain_name.webapp.domain_name_configuration[0].target_domain_name
-    zone_id                = aws_apigatewayv2_domain_name.webapp.domain_name_configuration[0].hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-resource "aws_apigatewayv2_api_mapping" "webapp" {
-  api_id      = aws_apigatewayv2_api.webapp.id
-  domain_name = aws_apigatewayv2_domain_name.webapp.id
-  stage       = aws_apigatewayv2_stage.webapp.id
-}*/
 
 resource "aws_apigatewayv2_stage" "webapp" {
   api_id        = aws_apigatewayv2_api.webapp.id
@@ -197,7 +161,7 @@ resource "aws_cloudfront_distribution" "app_wtctrl_com" {
     }
   }
 
-  aliases = [var.domain_name]
+  aliases = [var.app_domain_name]
 
   restrictions {
     geo_restriction {
@@ -213,20 +177,44 @@ resource "aws_cloudfront_distribution" "app_wtctrl_com" {
 
 resource "aws_route53_record" "webapp" {
   zone_id = data.aws_route53_zone.wtctrl.zone_id
-  name    = var.domain_name
+  name    = var.app_domain_name
   type    = "A"
 
-  alias  {
+  alias {
     name                   = aws_cloudfront_distribution.app_wtctrl_com.domain_name
     zone_id                = aws_cloudfront_distribution.app_wtctrl_com.hosted_zone_id
     evaluate_target_health = false
   }
 }
-/*
-output "cert_east" {
-  value = aws_acm_certificate.wtctrl_east.arn
+
+data "aws_iam_policy_document" "website_policy" {
+  statement {
+    actions = [
+      "s3:GetObject"
+    ]
+    principals {
+      identifiers = ["*"]
+      type        = "AWS"
+    }
+    resources = [
+      "arn:aws:s3:::www.${var.domain}/*"
+    ]
+  }
 }
-*/
+
+resource "aws_s3_bucket" "website_bucket" {
+  bucket = "www.${var.domain}"
+  acl    = "public-read"
+  policy = data.aws_iam_policy_document.website_policy.json
+  website {
+    index_document = "index.html"
+    error_document = "index.html"
+  }
+}
+
+output "website_endpoint" {
+  value = "${aws_s3_bucket.website_bucket.bucket_regional_domain_name}"
+}
 
 output "app_url" {
   value = "${aws_apigatewayv2_api.webapp.api_endpoint}/prod1"
