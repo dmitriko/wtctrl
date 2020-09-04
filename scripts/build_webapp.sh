@@ -19,6 +19,7 @@ rm -rf index.htmlbk
 cd ..
 aws s3 sync spa/ s3://${BUCKET_NAME}/
 cp spa/index.html $DIR/../lambda/webapp
-rm -rf $DIR/../lambda/webapp/js
+rm -rf $DIR/../lambda/webapp/js $DIR/../lambda/webapp/css
 cp -r spa/js $DIR/../lambda/webapp
+cp -r spa/css $DIR/../lambda/webapp
 cd $CDIR

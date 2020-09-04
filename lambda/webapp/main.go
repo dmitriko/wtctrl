@@ -37,6 +37,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 	path := req.Path
 	var body string
+	var contentType string
 	if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".css") {
 		parts := strings.Split(path, "/")
 		filePath := fmt.Sprintf("./%s/%s", parts[len(parts)-2], parts[len(parts)-1])
@@ -44,14 +45,20 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		if err != nil {
 			return events.APIGatewayProxyResponse{StatusCode: 500}, err
 		}
+		if strings.HasSuffix(path, ".css") {
+			contentType = "text/css"
+		} else {
+			contentType = "text/javascript"
+		}
 		body = string(content)
 	} else {
 		body = indexHTML
+		contentType = "text/html"
 	}
 	res := events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers: map[string]string{
-			"Content-Type": "text/html",
+			"Content-Type": contentType,
 		},
 		Body: body,
 	}
