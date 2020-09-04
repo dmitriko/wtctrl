@@ -1,17 +1,19 @@
 <template>
   <div id="q-app">
-    <router-view v-if="isLoggedIn" />
-    <Login v-else @loggedIn="isLoggedIn = true" />
+    <router-view />
   </div>
 </template>
 
 <script>
 
-import Login from 'pages/Login.vue'
 
 export default {
     name: 'App',
-    components: {Login},
+    created () {
+        if (!this.isLoggedIn) {
+            this.$router.push("/login")
+        }
+    },
     data() {
         return {
             isLoggedIn: false

@@ -508,3 +508,93 @@ func HandleWSDefaultReq(req events.APIGatewayWebsocketProxyRequest, table *DTabl
 	resp.Body = "ok"
 	return resp, nil
 }
+
+type OTPReqRespBody struct {
+	OK        bool   `json:"ok"`
+	RequestPK string `json:"request_pk"`
+	Error     string `json:"error"`
+}
+
+type OTPReqBody struct {
+	Key string `json:"key"`
+}
+
+const NO_SUCH_USER = "No such user"
+
+func userByKey(table *DTable, key string, user *User) error {
+	var userPK string
+	if strings.Contains(key, "@") {
+		email := &Email{}
+		emailPK := fmt.Sprintf("%s%s", EmailKeyPrefix, key)
+		err := table.FetchItem(emailPK, email)
+		if err != nil {
+			if err.Error() == NO_SUCH_ITEM {
+				return errors.New(NO_SUCH_USER)
+			}
+			return err
+		}
+		userPK = email.OwnerPK
+	} else {
+		tel := &Tel{}
+		telPK := fmt.Sprintf("%s%s", TelKeyPrefix, key)
+		err := table.FetchItem(telPK, tel)
+		if err != nil {
+			if err.Error() == NO_SUCH_ITEM {
+				return errors.New(NO_SUCH_USER)
+			}
+			return err
+		}
+		userPK = tel.OwnerPK
+	}
+	err := table.FetchItem(userPK, user)
+	if err != nil {
+		if err.Error() == NO_SUCH_ITEM {
+			return errors.New(NO_SUCH_USER)
+		}
+		return err
+	}
+	return nil
+}
+
+func HandleLoginRequestOTP(table *DTable, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	resp := events.APIGatewayProxyResponse{StatusCode: 400}
+	reqBody := &OTPReqBody{}
+	err := json.Unmarshal([]byte(req.Body), reqBody)
+	if err != nil {
+		return resp, err
+	}
+	user := &User{}
+	err = userByKey(table, reqBody.Key, user)
+	if err != nil {
+		if err.Error() == NO_SUCH_USER {
+			resp.StatusCode = 200
+			respBody := &OTPReqRespBody{}
+			respBody.OK = false
+			respBody.Error = NO_SUCH_USER
+			b, _ := json.Marshal(respBody)
+			resp.Body = string(b)
+			return resp, nil
+		}
+		return resp, err
+	}
+	loginReqItem, _ := NewLoginRequest(user.PK)
+	err = table.StoreItem(loginReqItem)
+	if err != nil {
+		return resp, err
+	}
+
+	err = SendOtp(table, user.PK, loginReqItem.OTP)
+	if err != nil {
+		return resp, err
+	}
+	respBody := &OTPReqRespBody{}
+	respBody.OK = true
+	respBody.RequestPK = loginReqItem.PK
+
+	jsonRespBody, err := json.Marshal(&respBody)
+	if err != nil {
+		return resp, err
+	}
+	resp.Body = string(jsonRespBody)
+	return resp, nil
+}

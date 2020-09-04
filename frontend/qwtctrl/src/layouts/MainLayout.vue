@@ -18,8 +18,8 @@
     </q-header>
 
     <q-drawer
+      ref="drawer"
       v-model="leftDrawerOpen"
-      show-if-above
       bordered
       content-class="bg-grey-1"
     >
@@ -39,7 +39,7 @@
     </q-drawer>
 
     <q-page-container>
-      <div>system messages goes here</div>
+      <div class="q-pa-md q-ml-md" >system messages goes here</div>
       <router-view />
     </q-page-container>
   </q-layout>

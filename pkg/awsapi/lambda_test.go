@@ -262,3 +262,35 @@ func TestCmdStartStopSubscr(t *testing.T) {
 		assert.Equal(t, NO_SUCH_ITEM, err.Error())
 	}
 }
+
+func TestHandleLoginRequestOTP(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	user.TGID = "123456789"
+	bot, _ := NewBot(DummyBotKind, "foo")
+	user.Bots = []string{bot.PK}
+	user.Tel = "55555"
+	assert.Nil(t, table.StoreItem(bot))
+	assert.Nil(t, table.StoreNewUser(user))
+
+	reqOTP := `{"key": "55555"}`
+	req := events.APIGatewayProxyRequest{
+		Path:       "/prod1/login",
+		HTTPMethod: "POST",
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "prod1",
+		},
+		Body: reqOTP,
+	}
+
+	resp, err := HandleLoginRequestOTP(table, req)
+	assert.Nil(t, err)
+	r := &OTPReqRespBody{}
+	assert.Nil(t, json.Unmarshal([]byte(resp.Body), r))
+	assert.True(t, r.OK)
+	assert.True(t, r.RequestPK != "")
+	lReq := &LoginRequest{}
+	assert.Nil(t, table.FetchItem(r.RequestPK, lReq))
+
+}
