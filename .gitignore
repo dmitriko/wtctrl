@@ -6,3 +6,4 @@ lambda/wsauth/wsauth
 lambda/wsconn/wsconn
 lambda/wsdefault/wsdefault
 lambda/tgwebhook/tgwebhook
+foo.go
