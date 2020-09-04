@@ -23,6 +23,10 @@ variable domain {
   default = "wtctrl.com"
 }
 
+variable www_bucket_name {
+  default = "www-wtctrl-com"
+}
+
 variable app_domain_name {
   default = "app.wtctrl.com"
 }
@@ -83,6 +87,10 @@ resource "aws_apigatewayv2_api" "webapp" {
   protocol_type = "HTTP"
   cors_configuration {
     allow_origins = ["*"]
+    allow_methods = ["*"]
+    allow_headers = ["Content-Type"]
+    max_age = 1000
+    expose_headers = ["Access-Control-Allow-Origin"]
   }
 }
 
@@ -93,6 +101,7 @@ resource "aws_apigatewayv2_integration" "webapp" {
   integration_method = "POST"
   integration_uri    = aws_lambda_function.webapp.invoke_arn
 }
+
 
 resource "aws_apigatewayv2_route" "webapp" {
   api_id    = aws_apigatewayv2_api.webapp.id
@@ -117,7 +126,7 @@ resource "aws_apigatewayv2_stage" "webapp" {
 resource "aws_apigatewayv2_deployment" "webapp" {
   api_id      = aws_apigatewayv2_api.webapp.id
   description = "prod1"
-
+  depends_on = [aws_apigatewayv2_route.webapp]
   triggers = {
     redeployment = sha1(jsonencode(aws_lambda_function.webapp))
   }
@@ -197,13 +206,13 @@ data "aws_iam_policy_document" "website_policy" {
       type        = "AWS"
     }
     resources = [
-      "arn:aws:s3:::www.${var.domain}/*"
+      "arn:aws:s3:::${var.www_bucket_name}/*"
     ]
   }
 }
 
 resource "aws_s3_bucket" "website_bucket" {
-  bucket = "www.${var.domain}"
+  bucket = var.www_bucket_name
   acl    = "public-read"
   policy = data.aws_iam_policy_document.website_policy.json
   website {
