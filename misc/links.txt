@@ -1,3 +1,4 @@
+https://advancedweb.hu/how-to-route-to-multiple-origins-with-cloudfront/
 https://github.com/nathantsoi/vue-native-websocket
 https://advancedweb.hu/how-to-use-api-gateway-with-cloudfront/
 https://medium.com/runatlantis/hosting-our-static-site-over-ssl-with-s3-acm-cloudfront-and-terraform-513b799aec0f

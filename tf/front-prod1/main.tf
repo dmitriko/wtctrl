@@ -163,7 +163,15 @@ resource "aws_s3_bucket" "webapp_bucket" {
     index_document = "index.html"
     error_document = "index.html"
   }
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT", "POST", "GET"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 30000
+  }
 }
+
 
 
 resource "aws_cloudfront_distribution" "app_wtctrl_com" {
