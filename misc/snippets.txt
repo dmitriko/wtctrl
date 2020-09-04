@@ -1,3 +1,5 @@
+curl -H "Origin: http://exlocalhost:8000"  -H "Access-Control-Request-Method: POSONS --verbose   https://app.wtctrl.com
+
 yarn add core-js
 
 {"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}
