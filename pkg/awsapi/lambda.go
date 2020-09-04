@@ -556,13 +556,13 @@ func userByKey(table *DTable, key string, user *User) error {
 	return nil
 }
 
-func HandleLoginRequestOTP(table *DTable, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	resp := events.APIGatewayProxyResponse{StatusCode: 400}
-	reqBody := &OTPReqBody{}
-	err := json.Unmarshal([]byte(req.Body), reqBody)
-	if err != nil {
-		return resp, err
-	}
+func HandleLoginRequestOTP(table *DTable, reqBody *OTPReqBody) (events.APIGatewayProxyResponse, error) {
+	var err error
+	resp := events.APIGatewayProxyResponse{
+		StatusCode: 400,
+		Headers: map[string]string{
+			"Content-Type": "text/json",
+		}}
 	user := &User{}
 	err = userByKey(table, reqBody.Key, user)
 	if err != nil {
@@ -596,5 +596,80 @@ func HandleLoginRequestOTP(table *DTable, req events.APIGatewayProxyRequest) (ev
 		return resp, err
 	}
 	resp.Body = string(jsonRespBody)
+	return resp, nil
+}
+
+type LoginResp struct {
+	Ok     bool   `json:"ok"`
+	Error  string `json:"error"`
+	UserPK string `json:"user_pk"`
+	Title  string `json:"title"`
+	Token  string `json:"token"`
+}
+
+type UILoginReq struct {
+	RequestPK string `json:"request_pk"`
+	OTP       string `json:"otp"`
+}
+
+func (req *UILoginReq) generateResp(table *DTable) (string, error) {
+	var err error
+	resp := &LoginResp{}
+
+	reqItem := &LoginRequest{}
+	err = table.FetchItem(req.RequestPK, reqItem)
+	if err != nil {
+		return "", errors.New("No such request")
+	}
+
+	user := &User{}
+	err = table.FetchItem(reqItem.UserPK, user)
+	if err != nil {
+		return "", errors.New("No such user")
+	}
+
+	token, _ := NewToken(user, 24)
+	err = table.StoreItem(token)
+	if err != nil {
+		return "", err
+	}
+	resp.Ok = true
+	resp.UserPK = user.PK
+	resp.Title = user.Title
+	resp.Token = PK2ID(TokenKeyPrefix, token.PK)
+	b, _ := json.Marshal(resp)
+	return string(b), nil
+}
+
+func HandleLoginRequest(table *DTable, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	resp := events.APIGatewayProxyResponse{
+		StatusCode: 400,
+		Headers: map[string]string{
+			"Content-Type": "text/json",
+		},
+	}
+	reqBody := &OTPReqBody{}
+	err := json.Unmarshal([]byte(req.Body), reqBody)
+	if err != nil {
+		return resp, err
+	}
+	if strings.HasSuffix(req.Path, "reqotp") {
+		return HandleLoginRequestOTP(table, reqBody)
+	}
+	if !strings.HasSuffix(req.Path, "login") {
+		return resp, errors.New("No such method")
+	}
+	lReq := &UILoginReq{}
+	err = json.Unmarshal([]byte(req.Body), lReq)
+	if err != nil {
+		return resp, nil
+	}
+
+	body, err := lReq.generateResp(table)
+	if err != nil {
+		return resp, err
+	}
+	resp.StatusCode = 200
+	resp.Body = body
 	return resp, nil
 }

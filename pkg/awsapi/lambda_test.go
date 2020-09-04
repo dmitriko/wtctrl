@@ -262,8 +262,7 @@ func TestCmdStartStopSubscr(t *testing.T) {
 		assert.Equal(t, NO_SUCH_ITEM, err.Error())
 	}
 }
-
-func TestHandleLoginRequestOTP(t *testing.T) {
+func TestHandleRequestOTP(t *testing.T) {
 	defer stopLocalDynamo()
 	table := startLocalDynamo(t)
 	user, _ := NewUser("foo")
@@ -276,7 +275,7 @@ func TestHandleLoginRequestOTP(t *testing.T) {
 
 	reqOTP := `{"key": "55555"}`
 	req := events.APIGatewayProxyRequest{
-		Path:       "/prod1/login",
+		Path:       "/prod1/reqotp",
 		HTTPMethod: "POST",
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "prod1",
@@ -284,7 +283,7 @@ func TestHandleLoginRequestOTP(t *testing.T) {
 		Body: reqOTP,
 	}
 
-	resp, err := HandleLoginRequestOTP(table, req)
+	resp, err := HandleLoginRequest(table, req)
 	assert.Nil(t, err)
 	r := &OTPReqRespBody{}
 	assert.Nil(t, json.Unmarshal([]byte(resp.Body), r))
@@ -293,4 +292,30 @@ func TestHandleLoginRequestOTP(t *testing.T) {
 	lReq := &LoginRequest{}
 	assert.Nil(t, table.FetchItem(r.RequestPK, lReq))
 
+}
+
+func TestHandleLogin(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	lreq, _ := NewLoginRequest(user.PK)
+	assert.Nil(t, table.StoreItem(lreq))
+	assert.Nil(t, table.StoreItem(user))
+	reqLogin := fmt.Sprintf(`{"request_pk": "%s", "otp":"%s"}`, lreq.PK, lreq.OTP)
+	req := events.APIGatewayProxyRequest{
+		Path:       "/prod1/login",
+		HTTPMethod: "POST",
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "prod1",
+		},
+		Body: reqLogin,
+	}
+	resp, err := HandleLoginRequest(table, req)
+	assert.Nil(t, err)
+	loginResp := &LoginResp{}
+	err = json.Unmarshal([]byte(resp.Body), loginResp)
+	assert.Nil(t, err)
+	tokenPK := fmt.Sprintf("%s%s", TokenKeyPrefix, loginResp.Token)
+	token := &Token{}
+	assert.Nil(t, table.FetchItem(tokenPK, token))
 }
