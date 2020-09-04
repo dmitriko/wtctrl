@@ -27,6 +27,10 @@ variable www_bucket_name {
   default = "www-wtctrl-com"
 }
 
+variable app_bucket_name {
+  default = "app-wtctrl-com"
+}
+
 variable app_domain_name {
   default = "app.wtctrl.com"
 }
@@ -136,6 +140,32 @@ resource "aws_apigatewayv2_deployment" "webapp" {
   }
 }
 
+data "aws_iam_policy_document" "webapp_policy" {
+  statement {
+    actions = [
+      "s3:GetObject"
+    ]
+    principals {
+      identifiers = ["*"]
+      type        = "AWS"
+    }
+    resources = [
+      "arn:aws:s3:::${var.app_bucket_name}/*"
+    ]
+  }
+}
+
+resource "aws_s3_bucket" "webapp_bucket" {
+  bucket = var.app_bucket_name
+  acl    = "public-read"
+  policy = data.aws_iam_policy_document.webapp_policy.json
+  website {
+    index_document = "index.html"
+    error_document = "index.html"
+  }
+}
+
+
 resource "aws_cloudfront_distribution" "app_wtctrl_com" {
   origin {
     custom_origin_config {
@@ -222,7 +252,7 @@ resource "aws_s3_bucket" "website_bucket" {
 }
 
 output "website_endpoint" {
-  value = "${aws_s3_bucket.website_bucket.bucket_regional_domain_name}"
+  value = "${aws_s3_bucket.webapp_bucket.bucket_regional_domain_name}"
 }
 
 output "app_url" {
