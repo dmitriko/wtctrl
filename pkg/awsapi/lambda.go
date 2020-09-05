@@ -595,6 +595,7 @@ func HandleLoginRequestOTP(table *DTable, reqBody *OTPReqBody) (events.APIGatewa
 	if err != nil {
 		return resp, err
 	}
+	resp.StatusCode = 200
 	resp.Body = string(jsonRespBody)
 	return resp, nil
 }

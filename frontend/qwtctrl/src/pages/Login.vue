@@ -7,11 +7,11 @@
                   label="email or phone"
                   v-model="loginKey"
                   style="font-size:2em"
-                  class="q-ml-xl q-mr-xl" />
+                  class="q-ml-md q-mr-md" />
               <q-input square outlined
                   label="OTP"
                   v-model="otp"
-                  style="font-size:2em;text-align:center;width:50%;"
+                  style="font-size:2em;text-align:center;width:8em;"
                   v-if="askOTP"
                   class="q-mx-auto" />
             </q-form>
@@ -33,7 +33,8 @@ export default {
             loginKey: "",
             otp: "",
             askOTP: false,
-            btnLabel: "Request OTP"
+            btnLabel: "Request OTP",
+            requestPK: ""
         }
     },
     methods: {
@@ -50,8 +51,12 @@ export default {
         },
         onSubmit() {
             if (this.loginKey !== "") {
-                this.btnLabel = 'Login'
-                this.askOTP = true
+                this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
+                    .then((response) => {
+                        this.requestPK = response.data.request_pk
+                        this.btnLabel = 'Login'
+                        this.askOTP = true
+                    })
             }
             if (this.otp !== "") {
                 this.sendOtp()
