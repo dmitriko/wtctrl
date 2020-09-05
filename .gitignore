@@ -1,6 +1,9 @@
 .*
 venv
 *.tfstate*
+lambda/webapp/css/
+lambda/webapp/index.html
+lambda/webapp/js/
 lambda/webapp/webapp
 lambda/wsauth/wsauth
 lambda/wsconn/wsconn
