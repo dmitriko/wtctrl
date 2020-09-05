@@ -335,4 +335,28 @@ func TestHandleLogin(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, loginResp.Ok)
 
+	// too many login attempts
+	lreq, _ = NewLoginRequest(user.PK)
+	assert.Nil(t, table.StoreItem(lreq))
+	assert.Nil(t, table.StoreItem(user))
+	reqLogin = fmt.Sprintf(`{"request_pk": "%s", "otp":"%s"}`, lreq.PK, lreq.OTP)
+	req = events.APIGatewayProxyRequest{
+		Path:       "/prod1/login",
+		HTTPMethod: "POST",
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "prod1",
+		},
+		Body: reqLogin,
+	}
+	_, err = HandleLoginRequest(table, req)
+	_, err = HandleLoginRequest(table, req)
+	_, err = HandleLoginRequest(table, req)
+	_, err = HandleLoginRequest(table, req)
+	_, err = HandleLoginRequest(table, req)
+	resp, err = HandleLoginRequest(table, req)
+	assert.Nil(t, err)
+	loginResp = &LoginResp{}
+	err = json.Unmarshal([]byte(resp.Body), loginResp)
+	assert.Nil(t, err)
+	assert.False(t, loginResp.Ok)
 }

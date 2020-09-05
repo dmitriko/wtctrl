@@ -865,7 +865,7 @@ type LoginRequest struct {
 	OTP       string
 	Status    int64 // 0 just created, 1 accepted, 2 too many attemts
 	TTL       int64
-	Attempts  int64 `dynamodbav:"ATMPS"`
+	Attempts  int64 `dynamodbav:"A"`
 }
 
 func NewLoginRequest(userPK string) (*LoginRequest, error) {

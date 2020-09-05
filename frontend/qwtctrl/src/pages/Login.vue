@@ -68,12 +68,13 @@ export default {
             this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
             .then((response) => {
                 if (response.data.ok) {
+                    this.$root.$emit('sys-msg-info', 'Done')
                     this.title = response.data.title
                     this.token = response.data.token
                     this.userPK = response.data.user_pk
                     //this.$refs.drawer.open()
                 } else {
-                    console.log(response.data)
+                    this.$root.$emit('sys-msg-error', response.data.error)
                 }
             })
             .catch((err) => {

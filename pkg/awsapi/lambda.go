@@ -622,6 +622,7 @@ func (req *UILoginReq) generateResp(table *DTable) (string, error) {
 	if err != nil {
 		return "", errors.New("No such request")
 	}
+	table.IncrProp(reqItem.PK, reqItem.SK, "A", 1)
 	ok, msg := reqItem.IsOTPValid(req.OTP)
 	if !ok {
 		resp.Ok = false
