@@ -1,3 +1,4 @@
+https://github.com/quasarframework/quasar-awesome
 https://advancedweb.hu/how-to-route-to-multiple-origins-with-cloudfront/
 https://github.com/nathantsoi/vue-native-websocket
 https://advancedweb.hu/how-to-use-api-gateway-with-cloudfront/

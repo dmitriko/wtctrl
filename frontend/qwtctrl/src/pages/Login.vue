@@ -34,23 +34,39 @@ export default {
             otp: "",
             askOTP: false,
             btnLabel: "Request OTP",
-            requestPK: ""
+            requestPK: "",
+            title: "",
+            token: "",
+            userPK: ""
         }
     },
     methods: {
         requestOtp() {
         },
         sendOtp() {
-            this.$axios.post("https://app.wtctrl.com/login")
+            this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
             .then((response) => {
                 console.log(response.data)
+                if (response.data.ok) {
+                    console.log("Login is OK")
+                    this.title = response.data.title
+                    this.token = response.data.token
+                    this.userPK = response.data.user_pk
+                    //this.$refs.drawer.open()
+                } else {
+                    console.log(response.data)
+                }
             })
             .catch((err) => {
                 console.log("could not POST " + err)
                 })
         },
         onSubmit() {
-            if (this.loginKey !== "") {
+            if (this.otp !== "" && this.requestPK !== "") {
+                this.sendOtp()
+                return
+            }
+             if (this.loginKey !== "") {
                 this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
                     .then((response) => {
                         this.requestPK = response.data.request_pk
@@ -58,10 +74,7 @@ export default {
                         this.askOTP = true
                     })
             }
-            if (this.otp !== "") {
-                this.sendOtp()
-            }
-        }
+       }
     }
 }
 </script>
