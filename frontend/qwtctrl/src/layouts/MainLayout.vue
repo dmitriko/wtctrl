@@ -39,7 +39,7 @@
     </q-drawer>
 
     <q-page-container>
-      <div class="q-pa-md q-ml-md" >system messages goes here</div>
+        <SysMsg />
       <router-view />
     </q-page-container>
   </q-layout>

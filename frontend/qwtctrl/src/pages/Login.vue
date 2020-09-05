@@ -26,8 +26,16 @@
 </template>
 
 <script>
+import SysMsg from 'components/SysMsg.vue'
+import { LocalStorage } from 'quasar'
+
 export default {
     name: 'Login',
+    created() {
+        if (LocalStorage.has('loginKey')) {
+            this.loginKey = LocalStorage.getItem('loginKey')
+        }
+    },
     data() {
         return {
             loginKey: "",
@@ -42,13 +50,21 @@ export default {
     },
     methods: {
         requestOtp() {
+          //  SysMsg.Info("Sending data...")
+            this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
+                    .then((response) => {
+      //                  SysMsg.Info("Done.")
+                        this.requestPK = response.data.request_pk
+                        this.btnLabel = 'Login'
+                        this.askOTP = true
+                    })
+
         },
         sendOtp() {
+        //    SysMsg.Info("Sending data...")
             this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
             .then((response) => {
-                console.log(response.data)
                 if (response.data.ok) {
-                    console.log("Login is OK")
                     this.title = response.data.title
                     this.token = response.data.token
                     this.userPK = response.data.user_pk
@@ -67,12 +83,8 @@ export default {
                 return
             }
              if (this.loginKey !== "") {
-                this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
-                    .then((response) => {
-                        this.requestPK = response.data.request_pk
-                        this.btnLabel = 'Login'
-                        this.askOTP = true
-                    })
+                 LocalStorage.set('loginKey', this.loginKey)
+                 this.requestOtp()
             }
        }
     }
