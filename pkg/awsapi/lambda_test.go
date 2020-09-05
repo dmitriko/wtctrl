@@ -318,4 +318,21 @@ func TestHandleLogin(t *testing.T) {
 	tokenPK := fmt.Sprintf("%s%s", TokenKeyPrefix, loginResp.Token)
 	token := &Token{}
 	assert.Nil(t, table.FetchItem(tokenPK, token))
+
+	wrongLogin := fmt.Sprintf(`{"request_pk": "%s", "otp":"000000"}`, lreq.PK)
+	req = events.APIGatewayProxyRequest{
+		Path:       "/prod1/login",
+		HTTPMethod: "POST",
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "prod1",
+		},
+		Body: wrongLogin,
+	}
+	resp, err = HandleLoginRequest(table, req)
+	assert.Nil(t, err)
+	loginResp = &LoginResp{}
+	err = json.Unmarshal([]byte(resp.Body), loginResp)
+	assert.Nil(t, err)
+	assert.False(t, loginResp.Ok)
+
 }

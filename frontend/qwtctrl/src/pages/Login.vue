@@ -26,7 +26,6 @@
 </template>
 
 <script>
-import SysMsg from 'components/SysMsg.vue'
 import { LocalStorage } from 'quasar'
 
 export default {
@@ -50,18 +49,22 @@ export default {
     },
     methods: {
         requestOtp() {
-          //  SysMsg.Info("Sending data...")
+            this.$root.$emit('sys-msg-info', 'Sending data...')
             this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
                     .then((response) => {
-      //                  SysMsg.Info("Done.")
-                        this.requestPK = response.data.request_pk
-                        this.btnLabel = 'Login'
-                        this.askOTP = true
-                    })
+                        if (response.data.ok) {
+                            this.$root.$emit('sys-msg-info', 'Done.')
+                            this.requestPK = response.data.request_pk
+                            this.btnLabel = 'Login'
+                            this.askOTP = true
+                        } else {
+                            this.$root.$emit('sys-msg-error', response.data.error)
+                        }
+                    }).catch((error) => {this.$root.$emit('sys-msg-error', error)})
 
         },
         sendOtp() {
-        //    SysMsg.Info("Sending data...")
+            this.$root.$emit('sys-msg-info', 'Sending data...')
             this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
             .then((response) => {
                 if (response.data.ok) {

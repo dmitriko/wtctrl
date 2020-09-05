@@ -5,6 +5,14 @@
 <script>
 export default {
     name: 'SysMsg',
+    created() {
+        this.$root.$on("sys-msg-info", this.Info),
+        this.$root.$on("sys-msg-error", this.Error)
+    },
+    beforeDestroy() {
+        this.$root.$off("sys-msg-info", this.Info),
+        this.$root.$off("sys-msg-error", this.Error)
+    },
     data() {
         return {
             error: false,
@@ -26,6 +34,6 @@ export default {
 
 <style scoped>
     .error {
-        font-color: red
+        color: red
     }
 </style>

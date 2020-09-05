@@ -622,7 +622,13 @@ func (req *UILoginReq) generateResp(table *DTable) (string, error) {
 	if err != nil {
 		return "", errors.New("No such request")
 	}
-
+	ok, msg := reqItem.IsOTPValid(req.OTP)
+	if !ok {
+		resp.Ok = false
+		resp.Error = msg
+		f, _ := json.Marshal(resp)
+		return string(f), nil
+	}
 	user := &User{}
 	err = table.FetchItem(reqItem.UserPK, user)
 	if err != nil {
