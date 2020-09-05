@@ -4,6 +4,7 @@ import Vuex from 'vuex'
 // import example from './module-example'
 
 import login from './login'
+import ui from './ui'
 
 Vue.use(Vuex)
 
@@ -19,7 +20,8 @@ Vue.use(Vuex)
 export default function (/* { ssrContext } */) {
   const Store = new Vuex.Store({
     modules: {
-      login
+        login,
+        ui
     },
 
     // enable strict mode (adds overhead!)
@@ -28,6 +30,10 @@ export default function (/* { ssrContext } */) {
   })
 
   if (process.env.DEV && module.hot) {
+     module.hot.accept(['./ui'], () => {
+      const newUI = require('./ui').default
+      Store.hotUpdate({ modules: { ui: newUI } })
+    })
     module.hot.accept(['./login'], () => {
       const newLogin = require('./login').default
       Store.hotUpdate({ modules: { login: newLogin } })

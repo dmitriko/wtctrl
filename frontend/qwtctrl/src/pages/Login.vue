@@ -79,6 +79,7 @@ export default {
                 if (response.data.ok) {
                     this.$root.$emit('sys-msg-info', 'Welcome, ' + response.data.title)
                     this.$store.dispatch('login/setLoggedUser', response.data)
+                    this.$store.dispatch('ui/openDrawer')
                 } else {
                     this.btnDisabled = false
                     this.btnLabel = "Login"

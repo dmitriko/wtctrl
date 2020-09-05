@@ -8,7 +8,7 @@
           round
           icon="menu"
           aria-label="Menu"
-          @click="leftDrawerOpen = !leftDrawerOpen"
+          @click="isDrawerOpen = !isDrawerOpen"
         />
 
         <q-toolbar-title>
@@ -19,7 +19,7 @@
 
     <q-drawer
       ref="drawer"
-      v-model="leftDrawerOpen"
+      v-model="isDrawerOpen"
       bordered
       content-class="bg-grey-1"
     >
@@ -96,9 +96,21 @@ const linksData = [
 export default {
   name: 'MainLayout',
   components: { EssentialLink },
+  created() {
+      this.$store.dispatch('ui/closeDrawer')
+  },
+  computed: {
+      isDrawerOpen: {
+          get() {
+              return this.$store.state.ui.is_drawer_open
+          },
+          set(val) {
+              this.$store.commit('ui/is_drawer_open', val)
+          }
+      }
+  },
   data () {
     return {
-      leftDrawerOpen: false,
       essentialLinks: linksData
     }
   }
