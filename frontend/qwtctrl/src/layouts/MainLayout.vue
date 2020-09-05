@@ -105,7 +105,7 @@ export default {
               return this.$store.state.ui.is_drawer_open
           },
           set(val) {
-              this.$store.commit('ui/is_drawer_open', val)
+              this.$store.commit('ui/SET_DRAWER', val)
           }
       }
   },

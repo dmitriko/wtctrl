@@ -5,28 +5,12 @@
 <script>
 export default {
     name: 'SysMsg',
-    created() {
-        this.$root.$on("sys-msg-info", this.Info),
-        this.$root.$on("sys-msg-error", this.Error)
-    },
-    beforeDestroy() {
-        this.$root.$off("sys-msg-info", this.Info),
-        this.$root.$off("sys-msg-error", this.Error)
-    },
-    data() {
-        return {
-            error: false,
-            msg: ""
-        }
-    },
-    methods: {
-        Info(msg) {
-            this.error = false
-            this.msg = msg
+    computed: {
+        error() {
+            return this.$store.state.ui.sys_msg_error
         },
-        Error(msg) {
-            this.error = true
-            this.msg = msg
+        msg() {
+            return this.$store.state.ui.sys_msg
         }
     }
 }

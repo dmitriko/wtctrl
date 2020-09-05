@@ -48,28 +48,28 @@ export default {
     },
     methods: {
         requestOtp() {
-            this.$root.$emit('sys-msg-info', 'Sending data...')
+            this.SysInfo('Sending data...')
             this.btnDisabled = true
             this.btnLabel = "Loading..."
             this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
                     .then((response) => {
                         if (response.data.ok) {
-                            this.$root.$emit('sys-msg-info', 'Done.')
+                            this.SysInfo('Done.')
                             this.requestPK = response.data.request_pk
                             this.btnLabel = 'Login'
                             this.btnDisabled = false
                             this.askOTP = true
                         } else {
-                            this.$root.$emit('sys-msg-error', response.data.error)
+                            this.SysInfo(response.data.error)
                         }
                     }).catch((error) => {
                         this.btnLabel = 'Login'
                         this.btnDisabled = false
-                        this.$root.$emit('sys-msg-error', error)})
+                        this.SysInfo(error)})
 
         },
         sendOtp() {
-            this.$root.$emit('sys-msg-info', 'Sending data...')
+            this.SysInfo('Sending data...')
             this.btnDisabled = true
             this.btnLabel = "Loading..."
             this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
@@ -77,13 +77,13 @@ export default {
                 this.btnDisabled = false
                 this.btnLabel = "Login"
                 if (response.data.ok) {
-                    this.$root.$emit('sys-msg-info', 'Welcome, ' + response.data.title)
+                    this.SysInfo('Welcome, ' + response.data.title)
                     this.$store.dispatch('login/setLoggedUser', response.data)
                     this.$store.dispatch('ui/openDrawer')
                 } else {
                     this.btnDisabled = false
                     this.btnLabel = "Login"
-                    this.$root.$emit('sys-msg-error', response.data.error)
+                    this.SysError(response.data.error)
                 }
             })
             .catch((err) => {
@@ -99,7 +99,13 @@ export default {
                  LocalStorage.set('loginKey', this.loginKey)
                  this.requestOtp()
             }
-       }
+       },
+        SysInfo(msg) {
+            this.$store.dispatch('ui/SysMsgInfo', msg)
+        },
+        SysError(msg) {
+            this.$store.dispatch('ui/SysMsgError', msg)
+        }
     }
 }
 </script>
