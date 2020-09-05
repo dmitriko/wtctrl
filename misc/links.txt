@@ -1,3 +1,4 @@
+https://davestewart.github.io/vuex-pathify/#/
 https://github.com/quasarframework/quasar-awesome
 https://advancedweb.hu/how-to-route-to-multiple-origins-with-cloudfront/
 https://github.com/nathantsoi/vue-native-websocket

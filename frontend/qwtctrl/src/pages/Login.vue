@@ -6,12 +6,13 @@
               <q-input square outlined clearable
                   label="email or phone"
                   v-model="loginKey"
-                  style="font-size:2em"
+                  style="font-size:1.5em"
                   class="q-ml-md q-mr-md" />
               <q-input square outlined
                   label="OTP"
+                  @keydown.enter="onSubmit()"
                   v-model="otp"
-                  style="font-size:2em;text-align:center;width:8em;"
+                  style="font-size:1.5em;text-align:center;width:8em;"
                   v-if="askOTP"
                   class="q-mx-auto" />
             </q-form>
@@ -19,7 +20,7 @@
           <q-card-actions class="q-px-md">
             <q-btn @click="onSubmit()"
                 unelevated color="light-green-7" size="lg" class="q-mx-auto"
-                :label="btnLabel" />
+                :label="btnLabel" :disabled="btnDisabled" />
           </q-card-actions>
        </q-card>
  </q-page>
@@ -41,39 +42,46 @@ export default {
             otp: "",
             askOTP: false,
             btnLabel: "Request OTP",
+            btnDisabled: false,
             requestPK: "",
-            title: "",
-            token: "",
-            userPK: ""
-        }
+       }
     },
     methods: {
         requestOtp() {
             this.$root.$emit('sys-msg-info', 'Sending data...')
+            this.btnDisabled = true
+            this.btnLabel = "Loading..."
             this.$axios.post("https://app.wtctrl.com/reqotp", {"key": this.loginKey})
                     .then((response) => {
                         if (response.data.ok) {
                             this.$root.$emit('sys-msg-info', 'Done.')
                             this.requestPK = response.data.request_pk
                             this.btnLabel = 'Login'
+                            this.btnDisabled = false
                             this.askOTP = true
                         } else {
                             this.$root.$emit('sys-msg-error', response.data.error)
                         }
-                    }).catch((error) => {this.$root.$emit('sys-msg-error', error)})
+                    }).catch((error) => {
+                        this.btnLabel = 'Login'
+                        this.btnDisabled = false
+                        this.$root.$emit('sys-msg-error', error)})
 
         },
         sendOtp() {
             this.$root.$emit('sys-msg-info', 'Sending data...')
+            this.btnDisabled = true
+            this.btnLabel = "Loading..."
             this.$axios.post("https://app.wtctrl.com/login", {"request_pk": this.requestPK, "otp": this.otp})
             .then((response) => {
+                this.btnDisabled = false
+                this.btnLabel = "Login"
                 if (response.data.ok) {
-                    this.$root.$emit('sys-msg-info', 'Done')
-                    this.title = response.data.title
-                    this.token = response.data.token
-                    this.userPK = response.data.user_pk
-                    //this.$refs.drawer.open()
+                    this.$root.$emit('sys-msg-info', 'Welcome, ' + response.data.title)
+                    this.$store.dispatch('login/setLoggedUser', response.data)
                 } else {
+                    this.btnDisabled = false
+                    this.btnLabel = "Login"
                     this.$root.$emit('sys-msg-error', response.data.error)
                 }
             })

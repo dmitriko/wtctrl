@@ -1,4 +1,4 @@
-/*
-export function someAction (context) {
+export function setLoggedUser ({commit}, data) {
+    commit('SET_LOGGED_USER', data)
 }
-*/
+

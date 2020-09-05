@@ -1,7 +1,8 @@
 export default function () {
   return {
-    isLoggedIn: false,
-    loggedUser: "",
-    apiToken: ""
-  }
+      token: "",
+      userPK: "",
+      title: "",
+      isLoggedIn: false,
+ }
 }
