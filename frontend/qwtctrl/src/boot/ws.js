@@ -11,6 +11,13 @@ class WSConn {
         this.connection.onclose = this.eventHandler()
         this.connection.onerror = this.eventHandler()
         this.connection.onmessage = this.eventHandler()
+        setInterval(this.pinger(), 1 * 60 * 1000)
+    }
+    pinger() {
+        return () => {
+            console.log("pinging server")
+            this.connection.send(JSON.stringify({"name": "ping"}))
+        }
     }
     eventHandler() {
         return (event) => {

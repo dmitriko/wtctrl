@@ -8,13 +8,13 @@ export function handleOpen(context, event){
 
 export function handleClose(context, event) {
     if (navigator.onLine) {
+        context.dispatch('login/setLoggedOut', 'dummy', {root: true})
         if (LocalStorage.has('loginUser')) {
-           // LocalStorage.remove('loginUser')
+            LocalStorage.remove('loginUser')
          }
     }
     context.commit('SOCKET_ONCLOSE')
     context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
-    context.dispatch('login/setLoggedOut', 'dummy', {root: true})
 }
 
 export function handleError(context, event) {

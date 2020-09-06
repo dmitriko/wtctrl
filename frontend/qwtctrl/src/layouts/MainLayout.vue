@@ -12,7 +12,14 @@
     </q-header>
 
     <q-drawer overlay behavior="desktop" v-model="isDrawerOpen" side="left" bordered>
-      <!-- drawer content -->
+        <q-list>
+        <q-item-label
+          header
+          class="text-grey-8 text-body-1"
+        >
+            Welcome, {{ userTitle }}
+        </q-item-label>
+        </q-list>
     </q-drawer>
 
     <q-page-container>
@@ -37,7 +44,10 @@ export default {
           set(val) {
               this.$store.commit('ui/SET_DRAWER', val)
           }
-      }
+      },
+      userTitle () {
+          return this.$store.state.login.title
+      },
   },
   data () {
     return {

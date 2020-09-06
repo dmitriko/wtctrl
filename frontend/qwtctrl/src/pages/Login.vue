@@ -75,7 +75,6 @@ export default {
 
         },
         loggedIn(data) {
-            console.table(data.token)
             this.$q.localStorage.set('loginUser', {"token": data.token,
                 "title": data.title, "user_pk": data.user_pk})
             this.$wsconn.connect(this.ws_api_url + '?token=' + data.token)
