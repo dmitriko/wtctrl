@@ -22,4 +22,9 @@ cp spa/index.html $DIR/../lambda/webapp
 rm -rf $DIR/../lambda/webapp/js $DIR/../lambda/webapp/css
 cp -r spa/js $DIR/../lambda/webapp
 cp -r spa/css $DIR/../lambda/webapp
+
+cd $DIR/../tf/front-prod1/ && ./build_lambda.sh && terraform apply -auto-approve 
+
 cd $CDIR
+
+
