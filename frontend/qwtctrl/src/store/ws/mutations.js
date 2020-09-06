@@ -5,7 +5,7 @@ export function SOCKET_ONOPEN (state)  {
 }
 
 export function SOCKET_ONCLOSE (state, event)  {
-      state.socket.isConnected = false
+      state.isConnected = false
 }
 
 export function SOCKET_ONERROR (state, event)  {
@@ -13,7 +13,7 @@ export function SOCKET_ONERROR (state, event)  {
 }
 
 export function SOCKET_ONMESSAGE (state, message)  {
-      state.socket.message = message
+      state.message = message
 }
 
 export function SOCKET_RECONNECT(state, count) {
@@ -21,5 +21,5 @@ export function SOCKET_RECONNECT(state, count) {
 }
 
 export function SOCKET_RECONNECT_ERROR(state) {
-      state.socket.reconnectError = true;
+      state.reconnectError = true;
 }
