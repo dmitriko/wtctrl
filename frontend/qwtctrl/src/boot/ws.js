@@ -11,7 +11,7 @@ class WSConn {
         this.connection.onclose = this.eventHandler()
         this.connection.onerror = this.eventHandler()
         this.connection.onmessage = this.eventHandler()
-        setInterval(this.pinger(), 1 * 60 * 1000)
+        setInterval(this.pinger(), 5 * 60 * 1000)
     }
     pinger() {
         return () => {

@@ -146,6 +146,7 @@ func (cmd *PingCmd) Perform(
 	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
 	done <- sendWithContext(ctx, out, &CmdResp{
 		Id:     cmd.Id,
+		Name:   cmd.Name,
 		Status: "pong",
 	})
 }
