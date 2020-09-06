@@ -19,6 +19,7 @@ module.exports = function (/* ctx */) {
     // https://quasar.dev/quasar-cli/boot-files
     boot: [
       'sysmsg',
+       'ws',
       'i18n',
       'axios',
     ],
