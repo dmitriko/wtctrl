@@ -1,4 +1,5 @@
 import Vue from 'vue'
+import {LocalStorage} from 'quasar'
 
 export function handleOpen(context, event){
     context.commit('SOCKET_ONOPEN')
@@ -6,17 +7,28 @@ export function handleOpen(context, event){
 }
 
 export function handleClose(context, event) {
+    if (navigator.onLine) {
+        if (LocalStorage.has('loginUser')) {
+           // LocalStorage.remove('loginUser')
+         }
+    }
     context.commit('SOCKET_ONCLOSE')
     context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
+    context.dispatch('login/setLoggedOut', 'dummy', {root: true})
 }
 
 export function handleError(context, event) {
+    console.log("websocket error")
+    console.log(event)
     context.commit('SOCKET_ONERROR')
     context.dispatch('ui/SysMsgError', 'Error connecting to server.', {root: true})
 }
 
 export function handleMessage(context, event) {
-    context.commit('SOCKET_ONMESSAGE', event.data)
+    let msg = JSON.parse(event.data)
+    console.log("got msg from server")
+    console.log(msg)
+    context.commit('SOCKET_ONMESSAGE', msg)
 }
 
 export function handleEvent (context, event) {

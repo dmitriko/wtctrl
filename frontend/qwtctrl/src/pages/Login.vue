@@ -27,14 +27,19 @@
 </template>
 
 <script>
-import { LocalStorage } from 'quasar'
+//import { LocalStorage } from 'quasar'
 
 export default {
     name: 'Login',
     created() {
-        if (LocalStorage.has('loginKey')) {
-            this.loginKey = LocalStorage.getItem('loginKey')
+        if (this.$q.localStorage.has('loginKey')) {
+            this.loginKey = this.$q.localStorage.getItem('loginKey')
         }
+        if (this.$q.localStorage.has('loginUser')) {
+            let item = this.$q.localStorage.getItem('loginUser')
+            this.loggedIn(item)
+        }
+
     },
     data() {
         return {
@@ -44,6 +49,7 @@ export default {
             btnLabel: "Request OTP",
             btnDisabled: false,
             requestPK: "",
+            ws_api_url: "wss://io2hsa5u5a.execute-api.us-west-2.amazonaws.com/prod1"
        }
     },
     methods: {
@@ -68,6 +74,15 @@ export default {
                         this.SysInfo(error)})
 
         },
+        loggedIn(data) {
+            console.table(data.token)
+            this.$q.localStorage.set('loginUser', {"token": data.token,
+                "title": data.title, "user_pk": data.user_pk})
+            this.$wsconn.connect(this.ws_api_url + '?token=' + data.token)
+            this.SysInfo('Welcome, ' + data.title)
+            this.$store.dispatch('login/setLoggedUser', data)
+            this.$store.dispatch('ui/openDrawer')
+        },
         sendOtp() {
             this.SysInfo('Sending data...')
             this.btnDisabled = true
@@ -77,9 +92,7 @@ export default {
                 this.btnDisabled = false
                 this.btnLabel = "Login"
                 if (response.data.ok) {
-                    this.SysInfo('Welcome, ' + response.data.title)
-                    this.$store.dispatch('login/setLoggedUser', response.data)
-                    this.$store.dispatch('ui/openDrawer')
+                    this.loggedIn(response.data)
                 } else {
                     this.btnDisabled = false
                     this.btnLabel = "Login"
@@ -96,7 +109,7 @@ export default {
                 return
             }
              if (this.loginKey !== "") {
-                 LocalStorage.set('loginKey', this.loginKey)
+                 this.$q.localStorage.set('loginKey', this.loginKey)
                  this.requestOtp()
             }
        },
