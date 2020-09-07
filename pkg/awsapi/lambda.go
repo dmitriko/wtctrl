@@ -185,35 +185,39 @@ func preSignUrl(bucket, key string) (string, error) {
 }
 
 type MsgView struct {
-	PK        string                 `json:"pk"`
-	CreatedAt int64                  `json:"created"`
-	Owner     string                 `json:"owner"`
-	Author    string                 `json:"author"`
-	Status    int64                  `json:"status"`
-	Kind      int64                  `json:"kind"`
-	Name      string                 `json:"name"`
-	Files     map[string]interface{} `json:"files"`
+	PK           string `json:"pk"`
+	CreatedAt    int64  `json:"created"`
+	Author       string `json:"author"`
+	UMS          string `json:"ums"`
+	Kind         int64  `json:"kind"`
+	Name         string `json:"name"`
+	Text         string `json:"text"`
+	VoiceUrl     string `json:"voice_url"`
+	ThumbUrl     string `json:"thumb_url"`
+	BigPicUrl    string `json:"big_pic_url"`
+	MediumPicUrl string `json:"medium_pic_url"`
 }
 
 func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
 	view := &MsgView{}
 	view.PK = msg.PK
 	view.CreatedAt = msg.CreatedAt
-	view.Owner = msg.UMS.PK
-	view.Status = msg.UMS.Status
+	view.UMS = msg.UMS.String()
 	view.Kind = msg.Kind
 	view.Name = "imsg"
 	view.Author = msg.AuthorPK
-	view.Files = make(map[string]interface{})
 	for _, f := range files {
-		fdata := make(map[string]interface{})
-		urlStr, err := preSignUrl(f.Bucket, f.Key)
-		if err == nil {
-			fdata["url"] = urlStr
-		} else {
-			return nil, err
+		urlStr, _ := preSignUrl(f.Bucket, f.Key)
+		switch f.FileKind {
+		case FileKindTgThumb:
+			view.ThumbUrl = urlStr
+		case FileKindTgMediumPic:
+			view.MediumPicUrl = urlStr
+		case FileKindTgBigPic:
+			view.BigPicUrl = urlStr
+		case FileKindTgVoice:
+			view.VoiceUrl = urlStr
 		}
-		view.Files[f.FileKind] = fdata
 	}
 	return view, nil
 }

@@ -292,8 +292,12 @@ type UMSField struct {
 	Status int64
 }
 
+func (ums *UMSField) String() string {
+	return fmt.Sprintf("%s#%d", ums.PK, ums.Status)
+}
+
 func (ums *UMSField) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-	s := fmt.Sprintf("%s#%d", ums.PK, ums.Status)
+	s := ums.String()
 	av.S = &s
 	return nil
 }
