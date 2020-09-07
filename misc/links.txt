@@ -1,3 +1,4 @@
+https://quasar.dev/quasar-cli/prefetch-feature#Store-Code-Splitting
 https://davestewart.github.io/vuex-pathify/#/
 https://github.com/quasarframework/quasar-awesome
 https://advancedweb.hu/how-to-route-to-multiple-origins-with-cloudfront/

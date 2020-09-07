@@ -11,15 +11,32 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer overlay behavior="desktop" v-model="isDrawerOpen" side="left" bordered>
-        <q-list>
-        <q-item-label
-          header
-          class="text-grey-8 text-body-1"
-        >
-            Welcome, {{ userTitle }}
-        </q-item-label>
-        </q-list>
+    <q-drawer overlay v-model="isDrawerOpen" side="left" bordered>
+        <q-scroll-area class="fit">
+         <q-list padding>
+
+            <q-item-label
+                header
+                class="text-grey-8 text-body-1"
+             >
+                Welcome, {{ userTitle }}
+             </q-item-label>
+            <q-separator class="q-my-sm" />
+
+                <q-item clickable v-ripple :to="{name: 'ums', params:{status: '0'}}">
+              <q-item-section avatar>
+                 <q-avatar color="primary" text-color="white">
+                   N
+                 </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                  <q-item-label>NEW</q-item-label>
+                  <q-item-label caption lines="1">Messages to process</q-item-label>
+              </q-item-section>
+            </q-item>
+         </q-list>
+        </q-scroll-area>
     </q-drawer>
 
     <q-page-container>
