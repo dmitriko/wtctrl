@@ -398,6 +398,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 	}
 	err = json.Unmarshal(data, c)
 	if err != nil {
+		fmt.Printf("Could not unmarshal %s, reason:%s", data, err.Error())
 		return nil, err
 	}
 	return c, nil

@@ -13,8 +13,8 @@ export function SOCKET_ONERROR (state, event)  {
 }
 
 export function SOCKET_ONMESSAGE (state, message)  {
-    console.log("in SOCKET_ONMESSAGE " + message)
-      state.message = message
+//      Vue.set(state, 'message', message)
+        state.message = message
 }
 
 export function SOCKET_RECONNECT(state, count) {

@@ -26,13 +26,10 @@ export function handleError(context, event) {
 
 export function handleMessage(context, event) {
     let msg = JSON.parse(event.data)
-    console.log("got msg from server")
-    console.log(msg)
     context.commit('SOCKET_ONMESSAGE', msg)
 }
 
 export function handleEvent (context, event) {
-    console.log(event)
     if (event.type === "open") {
         return handleOpen(context, event)
     }

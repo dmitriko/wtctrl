@@ -1,7 +1,7 @@
 export default function () {
   return {
       isConnected: false,
-      message: '',
+      message: {},
       reconnectError: false
   }
 }
