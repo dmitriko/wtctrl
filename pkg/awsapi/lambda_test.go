@@ -111,7 +111,11 @@ func TestCmdGotPing(t *testing.T) {
 	err := handleUserCmd(ctx, testTable, reqCtx, cmd, outCh)
 	assert.Nil(t, err)
 	doneCh <- true
-	assert.Equal(t, 1, len(output))
+	if assert.Equal(t, 1, len(output)) {
+		r := make(map[string]string)
+		assert.Nil(t, json.Unmarshal([]byte(output[0]), &r))
+		assert.Equal(t, "ping", r["name"])
+	}
 }
 
 func TestCmdUnmarshal(t *testing.T) {

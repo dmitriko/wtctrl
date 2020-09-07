@@ -15,7 +15,6 @@ class WSConn {
     }
     pinger() {
         return () => {
-            console.log("pinging server")
             this.connection.send(JSON.stringify({"name": "ping"}))
         }
     }
