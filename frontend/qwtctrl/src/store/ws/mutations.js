@@ -13,6 +13,7 @@ export function SOCKET_ONERROR (state, event)  {
 }
 
 export function SOCKET_ONMESSAGE (state, message)  {
+    console.log("in SOCKET_ONMESSAGE " + message)
       state.message = message
 }
 
