@@ -17,7 +17,7 @@ variable "tgbot_secret" {}
 variable domain {
   default = "wtctrl.com"
 }
-
+/*
 data "aws_route53_zone" "wtctrl" {
   zone_id = "Z03979483BDPVDJTLTZKY"
 }
@@ -48,7 +48,7 @@ resource "aws_acm_certificate_validation" "wtctrl" {
   ]
 }
 
-
+*/
 locals {
   wsauth_func_name    = "wsauth_prod1"
   wsdefault_func_name = "wsdefault_prod1"
@@ -309,11 +309,11 @@ resource "aws_apigatewayv2_stage" "wsapi" {
     format          = "$context.identity.sourceIp,$context.requestTime,$context.eventType,$context.routeKey,$context.connectionId,$context.status,$context.requestId,$connection.integrationError"
   }
 }
-
+/*
 output "cert-arn" {
   value = aws_acm_certificate.wtctrl.arn
 }
-
+*/
 output "api-url" {
   value = "${aws_apigatewayv2_api.wsapi.api_endpoint}/${aws_apigatewayv2_stage.wsapi.name}"
 }
