@@ -135,6 +135,7 @@ func TestCmdMsgFetch(t *testing.T) {
 	stage := "prod"
 	user1, _ := NewUser("user1")
 	msg1, _ := NewMsg("bot1", user1.PK, TGPhotoMsgKind)
+	msg1.Data["text"] = "foobar"
 	pic1, _ := NewMsgFile(msg1.PK, FileKindTgThumb, "image/jpeg", "wtctrl-udatab", "bar")
 	pic2, _ := NewMsgFile(msg1.PK, FileKindTgMediumPic, "image/jpeg", "wtctrl-udatab", "bar")
 	pic3, _ := NewMsgFile(msg1.PK, FileKindTgBigPic, "image/jpeg", "wtctrl-udatab", "bar")
@@ -165,6 +166,8 @@ func TestCmdMsgFetch(t *testing.T) {
 	url, ok := thumb["url"].(string)
 	assert.True(t, ok)
 	assert.True(t, len(url) > 0)
+	text, _ := resp["text"].(string)
+	assert.Equal(t, "foobar", text)
 }
 
 func TestCmdFetchByDays(t *testing.T) {
@@ -176,13 +179,13 @@ func TestCmdFetchByDays(t *testing.T) {
 	user1, _ := NewUser("user1")
 	user2, _ := NewUser("user2")
 	msg1, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(0),
-		DataOp(map[string]string{"text": "msg1"}))
+		DataOp(map[string]interface{}{"text": "msg1"}))
 	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"text": "msg2"}))
+		DataOp(map[string]interface{}{"text": "msg2"}))
 	msg3, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"text": "msg3"}))
+		DataOp(map[string]interface{}{"text": "msg3"}))
 	msg4, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(0),
-		DataOp(map[string]string{"text": "msg4"}))
+		DataOp(map[string]interface{}{"text": "msg4"}))
 	errs := testTable.StoreItems(msg1, msg2, msg3, msg4)
 	for _, e := range errs {
 		if e != nil {

@@ -205,6 +205,12 @@ func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
 	view.Author = msg.AuthorPK
 	view.Files = make(map[string]interface{})
 
+	if msg.Data != nil {
+		view.Text, _ = msg.Data["text"].(string)
+		if view.Text == "" {
+			view.Text, _ = msg.Data[RecognizedTextFieldName].(string)
+		}
+	}
 	for _, f := range files {
 		fdata := make(map[string]interface{})
 		urlStr, err := preSignUrl(f.Bucket, f.Key)

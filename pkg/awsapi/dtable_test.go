@@ -149,7 +149,7 @@ func TestMsgDb(t *testing.T) {
 	testTable := startLocalDynamo(t)
 	defer stopLocalDynamo()
 	msg, err := NewMsg("bot1", "user#user1", TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"url": "https://google.com"}))
+		DataOp(map[string]interface{}{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
 	}
@@ -172,7 +172,7 @@ func TestMsgDb(t *testing.T) {
 
 func TestMsgSimple(t *testing.T) {
 	msg, err := NewMsg("bot1", "user#user1", TGPhotoMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"url": "https://google.com"}))
+		DataOp(map[string]interface{}{"url": "https://google.com"}))
 	if err != nil {
 		t.Error(err)
 	}
@@ -211,13 +211,13 @@ func TestMsgList(t *testing.T) {
 	user1, _ := NewUser("user1")
 	user2, _ := NewUser("user2")
 	msg1, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(5),
-		DataOp(map[string]string{"url": "https://example1.com"}))
+		DataOp(map[string]interface{}{"url": "https://example1.com"}))
 
 	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"url": "https://example2.com"}))
+		DataOp(map[string]interface{}{"url": "https://example2.com"}))
 
 	msg3, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
-		DataOp(map[string]string{"url": "https://example3.com"}))
+		DataOp(map[string]interface{}{"url": "https://example3.com"}))
 
 	errs := testTable.StoreItems(msg1, msg2, msg3)
 	for _, e := range errs {

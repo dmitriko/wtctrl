@@ -319,12 +319,12 @@ func (ums *UMSField) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue
 type Msg struct {
 	PK        string
 	SK        string
-	ChannelPK string            `dynamodbav:"Ch"`
-	AuthorPK  string            `dynamodbav:"A"`
-	Kind      int64             `dynamodbav:"K"`
-	UMS       UMSField          `dynamodbav:"UMS"`
-	CreatedAt int64             `dynamodbav:"CRTD"`
-	Data      map[string]string `dynamodbav:"D"`
+	ChannelPK string                 `dynamodbav:"Ch"`
+	AuthorPK  string                 `dynamodbav:"A"`
+	Kind      int64                  `dynamodbav:"K"`
+	UMS       UMSField               `dynamodbav:"UMS"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D"`
 }
 
 //Option for new msg
@@ -346,7 +346,7 @@ func UserStatusOp(s int) func(*Msg) error {
 	}
 }
 
-func DataOp(d map[string]string) func(m *Msg) error {
+func DataOp(d map[string]interface{}) func(m *Msg) error {
 	return func(m *Msg) error {
 		m.Data = d
 		return nil
@@ -356,7 +356,7 @@ func DataOp(d map[string]string) func(m *Msg) error {
 //Factory method for Msg
 func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) (*Msg, error) {
 	msg := &Msg{ChannelPK: channel, AuthorPK: pk, Kind: kind, CreatedAt: time.Now().Unix()}
-	msg.Data = make(map[string]string)
+	msg.Data = make(map[string]interface{})
 	for _, opt := range options {
 		err := opt(msg)
 		if err != nil {
