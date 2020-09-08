@@ -43,32 +43,7 @@ func replyUser(bot *tb.Bot, tgmsg *tb.Message, txt string) error {
 	return err
 }
 
-func runSpeechRecogn(pk string, table *DTable, orig string) {
-	var upd tb.Update
-	err := json.Unmarshal([]byte(orig), &upd)
-	if err != nil {
-		fmt.Printf("ERROR: %s", err.Error())
-		return
-	}
-	if upd.Message == nil || upd.Message.Voice == nil {
-		fmt.Printf("ERROR: msg is not well formed %s", orig)
-		return
-	}
-
-	bot, err := tb.NewBot(tb.Settings{
-		Token:       os.Getenv("TGBOT_SECRET"),
-		Synchronous: true,
-	})
-	if err != nil {
-		fmt.Printf("ERROR creating bot %s", err.Error())
-		return
-	}
-
-	if upd.Message.Voice.Duration > 59 {
-		_ = replyUser(bot, upd.Message, "it's too long")
-		return
-	}
-
+func runSpeechRecogn(pk string, table *DTable, bot *tb.Bot, upd *tb.Update) {
 	txt, err := voiceToText(bot, upd.Message.Voice)
 	if err != nil {
 		fmt.Printf("ERROR speech recognition: %s", err.Error())
@@ -85,15 +60,72 @@ func runSpeechRecogn(pk string, table *DTable, orig string) {
 	}
 }
 
+func downloadVoice(table *DTable, pk string, voice *tb.Voice, bot *tb.Bot) {
+	bucket := os.Getenv("IMG_BUCKET")
+	if bucket == "" {
+		fmt.Println("IMG_BUCKET evn var is not set")
+		return
+	}
+	sess, _ := session.NewSession()
+	file, err := bot.GetFile(&voice.File)
+	if err == nil {
+		key := fmt.Sprintf("%s.ogg", voice.UniqueID)
+		err = storeS3(sess, bucket, key, voice.MIME, file)
+		if err == nil {
+			createMsgFileVoice(table, pk, voice, key, bucket)
+		}
+	} else {
+		fmt.Println("ERROR", err.Error())
+	}
+}
+
+func createMsgFileVoice(table *DTable, pk string, voice *tb.Voice, key, bucket string) {
+	f, _ := NewMsgFile(pk, FileKindTgVoice, voice.MIME, bucket, key)
+	f.Data["duration"] = voice.Duration
+	f.Data["size"] = voice.File.FileSize
+	err := table.StoreItem(f)
+	if err != nil {
+		fmt.Println("ERROR storing MsgFile", err.Error())
+	}
+}
+
 func handleVoiceMsg(pk string, table *DTable, item map[string]events.DynamoDBAttributeValue) {
+	bot, err := tb.NewBot(tb.Settings{
+		Token:       os.Getenv("TGBOT_SECRET"),
+		Synchronous: true,
+	})
+	if err != nil {
+		fmt.Printf("ERROR creating bot %s", err.Error())
+		return
+	}
+
+	var orig string
 	if item["D"].DataType() == events.DataTypeMap {
 		data := item["D"].Map()
-		orig := data["orig"].String()
-		_, ok := data[RecognizedTextFieldName]
-		if !ok {
-			runSpeechRecogn(pk, table, orig)
-		}
+		orig = data["orig"].String()
 	}
+	if orig == "" {
+		fmt.Println("ERROR orig is empty for msg", pk)
+		return
+	}
+
+	upd := &tb.Update{}
+	err = json.Unmarshal([]byte(orig), upd)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err.Error())
+		return
+	}
+	if upd.Message == nil || upd.Message.Voice == nil {
+		fmt.Printf("ERROR: msg is not well formed %s", orig)
+		return
+	}
+	if upd.Message.Voice.Duration > 59 {
+		_ = replyUser(bot, upd.Message, "it's too long")
+		return
+	}
+
+	runSpeechRecogn(pk, table, bot, upd)
+	downloadVoice(table, pk, upd.Message.Voice, bot)
 }
 
 func handleTGPhotoMsg(pk string, table *DTable, item map[string]events.DynamoDBAttributeValue) {
