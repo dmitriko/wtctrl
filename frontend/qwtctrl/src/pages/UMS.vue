@@ -20,10 +20,15 @@
             <q-item-section>
                 <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
                         :src="item.files.thumb.url"  />
-                    <q-item-label caption>{{item.pk}}</q-item-label>
+                <audio v-if="item.files.voice"
+                        class="q-mx-auto"
+                        :src="item.files.voice.url"
+                        controls type="audio/ogg; codecs=opus" />
+                <q-item-label class="text-subtitle-1" v-if="item.text">{{item.text}}</q-item-label>
             </q-item-section>
           </template>
           <q-card>
+          <q-card-section>{{item.pk}}</q-card-section>
           <q-card-section>
               <q-btn label="Foo" />
           </q-card-section>
@@ -59,12 +64,13 @@ export default {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
                 return
             }
-            if (msg.name === 'imsg' && msg.kind === 3) {
+            let expected_kind = [2, 3].includes(msg.kind)
+            if (msg.name === 'imsg' && expected_kind) {
                 this.items.unshift(msg)
                 this.items.sort(function(a, b){return b.created-a.created})
                 return
             }
-            if (msg.name === 'dbevent' && msg.kind === 3) {
+            if (msg.name === 'dbevent' && expected_kind) {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
                 return
             }
