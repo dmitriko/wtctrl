@@ -14,12 +14,12 @@
             </div>
         </div>
     </q-toolbar>
-    <q-list bordered separator class="justify-center flex flex-center">
-        <q-expansion-item v-for="item in items" :key="item.pk" >
+    <q-list bordered separator style="max-width:520px" class="q-mx-auto">
+        <q-expansion-item v-for="item in items" :key="item.pk" class="q-mx-auto">
           <template v-slot:header>
             <q-item-section>
                 <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
-                        :src="item.thumb_url"  />
+                        :src="item.files.thumb.url"  />
                     <q-item-label caption>{{item.pk}}</q-item-label>
             </q-item-section>
           </template>
