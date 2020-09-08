@@ -155,9 +155,10 @@ func TestCmdMsgFetch(t *testing.T) {
 	assert.Nil(t, json.Unmarshal([]byte(output[0]), &resp))
 	assert.Equal(t, msg1.PK, resp["pk"].(string))
 
-	thumb_url, ok := resp["thumb_url"]
+	fdata := resp["files"].(map[string]interface{})
+	thumb, ok := fdata["thumb"].(map[string]interface{})
 	assert.True(t, ok)
-	url, ok := thumb_url.(string)
+	url, ok := thumb["url"].(string)
 	assert.True(t, ok)
 	assert.True(t, len(url) > 0)
 }
