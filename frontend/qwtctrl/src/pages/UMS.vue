@@ -66,9 +66,21 @@ export default {
             }
             let expected_kind = [2, 3].includes(msg.kind)
             if (msg.name === 'imsg' && expected_kind) {
-                this.items.unshift(msg)
-                this.items.sort(function(a, b){return b.created-a.created})
-                return
+                let changed = false
+                for (let i=0; i < this.items.length; i++) {
+                    if (this.items[i].pk == msg.pk) {
+                        if (this.items[i].updated < msg.updated) {
+                            this.$set(this.items, i, msg)
+                        }
+                        changed = true
+                        break
+                    }
+                }
+                if (!changed) {
+                    this.items.unshift(msg)
+                    this.items.sort(function(a, b){return b.created-a.created})
+                    return
+                }
             }
             if (msg.name === 'dbevent' && expected_kind) {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
