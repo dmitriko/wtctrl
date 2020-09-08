@@ -217,8 +217,8 @@ func TestCmdFetchByDays(t *testing.T) {
 	err = json.Unmarshal([]byte(output[3]), &resp4)
 	assert.Nil(t, err)
 
-	assert.Equal(t, msg4.PK, resp2["PK"].(string))
-	assert.Equal(t, msg1.PK, resp3["PK"].(string))
+	assert.Equal(t, msg4.PK, resp2["pk"].(string))
+	assert.Equal(t, msg1.PK, resp3["pk"].(string))
 }
 
 func TestCmdStartStopSubscr(t *testing.T) {

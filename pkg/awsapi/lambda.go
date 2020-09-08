@@ -162,7 +162,7 @@ type MsgFetchByDays struct {
 //It shows PK, CreatedAt, Status and Kind
 func MsgIndexView(msg *Msg) ([]byte, error) {
 	out := make(map[string]interface{})
-	out["PK"] = msg.PK
+	out["pk"] = msg.PK
 	out["created"] = msg.CreatedAt
 	out["owner"] = msg.UMS.PK
 	out["status"] = msg.UMS.Status

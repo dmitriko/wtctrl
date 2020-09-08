@@ -4,7 +4,9 @@
         <div class="row justify-center flex flex-center" style="width: 100%">
             <div class="col text-center" > Period, days: </div>
             <div class="col">
-                <q-input dense outlined square @blur="onDaysBlur" :input-style="{width:'3em'}" v-model="days" />
+                <q-input dense outlined square
+                    @keydown.enter="onDaysEnter"
+                    @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
             </div>
             <div class="col"></div>
             <div class="col-4">
@@ -16,7 +18,7 @@
         <q-expansion-item v-for="item in items" :key="item.pk" >
           <template v-slot:header>
             <q-item-section>
-                <q-img style="height: 320px; max-width: 320px"
+                <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
                         :src="item.thumb_url"  />
                     <q-item-label caption>{{item.pk}}</q-item-label>
             </q-item-section>
@@ -47,21 +49,17 @@ export default {
             days: 21,
             subscribed: false,
             msg_lists: {},  // UMS as key, array of objects is a value
-            msgs_store: {}, //msg.PK a key, full msg a value
+            msgs_store: {}, //msg.pk a key, full msg a value
             items:[]
         }
     },
     watch: {
         '$store.state.ws.message': function(msg) {
             if (msg.name === 'msg_index') {
-                this.$wsconn.send({'name':'fetchmsg', 'pk': msg.PK})
+                this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
                 return
             }
             if (msg.name === 'imsg' && msg.kind === 3) {
-                if (msg.thumb_url === "") {
-                    this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
-                    return
-                }
                 this.items.unshift(msg)
                 this.items.sort(function(a, b){return b.created-a.created})
                 return
@@ -104,7 +102,7 @@ export default {
         onDaysSet() {
             this.fetchMsgs()
         },
-        onDaysBlur() {
+        onDaysEnter() {
             let item = this.$q.localStorage.getItem(this.id())
             if (item === null) {
                  item = {}
