@@ -187,6 +187,7 @@ func preSignUrl(bucket, key string) (string, error) {
 type MsgView struct {
 	PK        string                 `json:"pk"`
 	CreatedAt int64                  `json:"created"`
+	UpdatedAt int64                  `json:"updated"`
 	Author    string                 `json:"author"`
 	UMS       string                 `json:"ums"`
 	Text      string                 `json:"text"`
@@ -204,7 +205,7 @@ func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
 	view.Name = "imsg"
 	view.Author = msg.AuthorPK
 	view.Files = make(map[string]interface{})
-
+	view.UpdatedAt = msg.UpdatedAt()
 	if msg.Data != nil {
 		view.Text, _ = msg.Data["text"].(string)
 		if view.Text == "" {

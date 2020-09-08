@@ -206,18 +206,24 @@ func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutp
 	return t.UpdateItemMap(pk, pk, "D", key, value)
 }
 
+const UpdatedAtField = "updated_at"
+
 func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.UpdateItemOutput, error) {
 	uii := &dynamodb.UpdateItemInput{
 		TableName:    aws.String(t.Name),
 		ReturnValues: aws.String("ALL_NEW"),
 		ExpressionAttributeNames: map[string]*string{
-			"#Data": aws.String(fName),
-			"#Key":  aws.String(key),
+			"#Data":      aws.String(fName),
+			"#Key":       aws.String(key),
+			"#UpdatedAt": aws.String(UpdatedAtField),
 		},
-		UpdateExpression: aws.String("SET #Data.#Key = :v"),
+		UpdateExpression: aws.String("SET #Data.#Key = :v, #Data.#UpdatedAt = :t"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":v": {
 				S: aws.String(value),
+			},
+			":t": {
+				N: aws.String(fmt.Sprintf("%d", time.Now().Unix())),
 			},
 		},
 		Key: map[string]*dynamodb.AttributeValue{
@@ -379,6 +385,17 @@ func NewMsg(channel string, pk string, kind int64, options ...func(*Msg) error) 
 
 func (m *Msg) Reload(table *DTable) error {
 	return table.FetchItem(m.PK, m)
+}
+
+func (m *Msg) UpdatedAt() int64 {
+	var updated int64
+	if m.Data != nil {
+		updated, _ = m.Data[UpdatedAtField].(int64)
+	}
+	if updated != 0 {
+		return updated
+	}
+	return m.CreatedAt
 }
 
 //Represents list of Msg
