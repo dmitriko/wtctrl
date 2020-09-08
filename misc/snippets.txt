@@ -1,4 +1,13 @@
+push()
+pop()
+shift()
+unshift()
+splice()
+sort()
+reverse()
+
 wss://echo.websocket.org
+
 
 curl -H "Origin: http://exlocalhost:8000"  -H "Access-Control-Request-Method: POSONS --verbose   https://app.wtctrl.com
 

@@ -12,18 +12,35 @@
             </div>
         </div>
     </q-toolbar>
-    <div>{{id()}}</div>
-    <ul>
-        <li v-for="item in items">{{item}}</li>
-    </ul>
+    <q-list bordered separator class="justify-center flex flex-center">
+        <q-expansion-item v-for="item in items" :key="item.pk" >
+          <template v-slot:header>
+            <q-item-section>
+                <q-img style="height: 320px; max-width: 320px"
+                        :src="item.thumb_url"  />
+                    <q-item-label caption>{{item.pk}}</q-item-label>
+            </q-item-section>
+          </template>
+          <q-card>
+          <q-card-section>
+              <q-btn label="Foo" />
+          </q-card-section>
+        </q-card>
+        </q-expansion-item>
+    </q-list>
 </q-page>
 </template>
 
 <script>
+import MsgView from 'components/MsgView.vue'
+
 export default {
     name: 'ums',
+    components: {MsgView},
     created() {
         this.restoreSettings()
+        this.fetchMsgs()
+        this.subscr()
     },
      data() {
         return {
@@ -36,14 +53,22 @@ export default {
     },
     watch: {
         '$store.state.ws.message': function(msg) {
-            console.log('got message from sever in component')
-            console.log(msg)
             if (msg.name === 'msg_index') {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.PK})
                 return
             }
             if (msg.name === 'imsg' && msg.kind === 3) {
-                this.items.push(msg)
+                if (msg.thumb_url === "") {
+                    this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
+                    return
+                }
+                this.items.unshift(msg)
+                this.items.sort(function(a, b){return b.created-a.created})
+                return
+            }
+            if (msg.name === 'dbevent' && msg.kind === 3) {
+                this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
+                return
             }
         },
     },
@@ -68,6 +93,7 @@ export default {
         },
         fetchMsgs() {
             //{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}
+            this.items = []
             this.$wsconn.send({
                 'name': 'msgfetchbydays',
                 'id':'foo',
@@ -90,6 +116,22 @@ export default {
                 this.$q.localStorage.set(this.id(), item)
             }
         },
+        subscr() {
+            // Subscribe or unsubscribe
+            if (this.subscribed) {
+                this.$wsconn.send({
+                    'name':'subscr',
+                    'umspk': this.$store.state.login.userPK,
+                    'status': parseInt(this.$route.params.status)
+                })
+            } else {
+                this.$wsconn.send({
+                    'name':'unsubscr',
+                    'umspk': 'this.$store.state.login.userPK',
+                    'status': parseInt(this.$route.params.status)
+                })
+            }
+        },
         onSubscribeInput () {
             let item = this.$q.localStorage.getItem(this.id())
             if (item === null) {
@@ -97,6 +139,7 @@ export default {
             }
             item.subscribed = this.subscribed
             this.$q.localStorage.set(this.id(), item)
+            this.subscr()
         }
     }
 }
