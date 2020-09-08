@@ -307,15 +307,31 @@ func (cmd *FetchMsgCmd) Perform(ctx context.Context, table *DTable,
 		})
 		return
 	}
+
+	// we would wait here 5 secs for TG pics and TG Voice till the files
+	// are redy
 	var files []*MsgFile
-	err = table.FetchItemsWithPrefix(cmd.PK, MsgFileKeyPrefix, &files)
-	if err != nil {
-		done <- sendWithContext(ctx, out, &CmdResp{
-			Id:     cmd.PK,
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
+	if msg.Kind == TGPhotoMsgKind || msg.Kind == TGVoiceMsgKind {
+		for i := 0; i < 5; i++ {
+			err = table.FetchItemsWithPrefix(cmd.PK, MsgFileKeyPrefix, &files)
+			if err != nil {
+				done <- sendWithContext(ctx, out, &CmdResp{
+					Id:     cmd.PK,
+					Status: "error",
+					Error:  err.Error(),
+				})
+			}
+			if ctx.Err() != nil {
+				break
+			}
+			if msg.Kind == TGPhotoMsgKind && len(files) == 3 {
+				break
+			}
+			if msg.Kind == TGVoiceMsgKind && len(files) == 1 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
 	}
 	v, _ := NewMsgView(msg, files)
 	b, err := json.Marshal(v)

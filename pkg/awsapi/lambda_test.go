@@ -134,9 +134,13 @@ func TestCmdMsgFetch(t *testing.T) {
 	connId := "someid="
 	stage := "prod"
 	user1, _ := NewUser("user1")
-	msg1, _ := NewMsg("bot1", user1.PK, TGTextMsgKind)
+	msg1, _ := NewMsg("bot1", user1.PK, TGPhotoMsgKind)
 	pic1, _ := NewMsgFile(msg1.PK, FileKindTgThumb, "image/jpeg", "wtctrl-udatab", "bar")
+	pic2, _ := NewMsgFile(msg1.PK, FileKindTgMediumPic, "image/jpeg", "wtctrl-udatab", "bar")
+	pic3, _ := NewMsgFile(msg1.PK, FileKindTgBigPic, "image/jpeg", "wtctrl-udatab", "bar")
 	assert.Nil(t, testTable.StoreItem(pic1))
+	assert.Nil(t, testTable.StoreItem(pic2))
+	assert.Nil(t, testTable.StoreItem(pic3))
 	assert.Nil(t, testTable.StoreItem(msg1))
 	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
 	outCh := make(chan []byte)
