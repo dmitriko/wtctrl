@@ -208,7 +208,7 @@ func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutp
 
 const UpdatedAtField = "updated_at"
 
-func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.UpdateItemOutput, error) {
+func (t *DTable) UpdateItemMap(pk, sk, fName, key string, value interface{}) (*dynamodb.UpdateItemOutput, error) {
 	val, err := dattr.Marshal(value)
 	if err != nil {
 		return nil, err
