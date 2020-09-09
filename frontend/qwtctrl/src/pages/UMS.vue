@@ -27,23 +27,18 @@
                 <q-item-label class="text-subtitle-1" v-if="item.text">{{item.text}}</q-item-label>
             </q-item-section>
           </template>
-          <q-card>
-          <q-card-section>{{item.pk}}</q-card-section>
-          <q-card-section>
-              <q-btn label="Foo" />
-          </q-card-section>
-        </q-card>
-        </q-expansion-item>
+          <MsgViewEdit :item="item" />
+       </q-expansion-item>
     </q-list>
 </q-page>
 </template>
 
 <script>
-import MsgView from 'components/MsgView.vue'
+import MsgViewEdit from 'components/MsgViewEdit.vue'
 
 export default {
     name: 'ums',
-    components: {MsgView},
+    components: {MsgViewEdit},
     created() {
         this.restoreSettings()
         this.fetchMsgs()
