@@ -10,7 +10,7 @@
              />
         </q-card-section>
         <q-card-section>
-              <q-btn label="Foo" />
+              <q-btn label="Save" @click="saveText" />
         </q-card-section>
     </q-card>
 
@@ -21,13 +21,18 @@ export default {
     created() {
         console.log('in msg edit created')
     },
+    methods: {
+        saveText() {
+            this.$emit("textUpdated", this.item.pk, this.text)
+        },
+    },
     data() {
         return {
             text: this.item.text
         }
     },
     props: {
-        "item": {required: true}
+        "item": {required: true},
     }
 }
 </script>

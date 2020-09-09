@@ -27,7 +27,7 @@
                 <q-item-label class="text-subtitle-1" v-if="item.text">{{item.text}}</q-item-label>
             </q-item-section>
           </template>
-          <MsgViewEdit :item="item" />
+          <MsgViewEdit @textUpdated="textUpdated" :item="item" />
        </q-expansion-item>
     </q-list>
 </q-page>
@@ -86,6 +86,15 @@ export default {
     computed: {
     },
     methods: {
+       textUpdated(pk, text) {
+           this.$wsconn.send({
+               name: "msgupdate",
+               pk: pk,
+               key: "text",
+               value: text,
+               id: "someuuid",
+           })
+       },
        restoreSettings() {
         if (this.$q.localStorage.has(this.id())) {
             let item = this.$q.localStorage.getItem(this.id())
