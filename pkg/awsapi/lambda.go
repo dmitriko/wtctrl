@@ -626,11 +626,12 @@ func HandleLoginRequestOTP(table *DTable, reqBody *OTPReqBody) (events.APIGatewa
 }
 
 type LoginResp struct {
-	Ok     bool   `json:"ok"`
-	Error  string `json:"error"`
-	UserPK string `json:"user_pk"`
-	Title  string `json:"title"`
-	Token  string `json:"token"`
+	Ok      bool   `json:"ok"`
+	Error   string `json:"error"`
+	UserPK  string `json:"user_pk"`
+	Title   string `json:"title"`
+	Token   string `json:"token"`
+	Created int64  `json:"created"`
 }
 
 type UILoginReq struct {
@@ -670,6 +671,7 @@ func (req *UILoginReq) generateResp(table *DTable) (string, error) {
 	resp.UserPK = user.PK
 	resp.Title = user.Title
 	resp.Token = PK2ID(TokenKeyPrefix, token.PK)
+	resp.Created = time.Now().Unix()
 	b, _ := json.Marshal(resp)
 	return string(b), nil
 }

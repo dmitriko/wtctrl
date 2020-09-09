@@ -76,7 +76,7 @@ export default {
         },
         loggedIn(data) {
             this.$q.localStorage.set('loginUser', {"token": data.token,
-                "title": data.title, "user_pk": data.user_pk})
+                "title": data.title, "user_pk": data.user_pk, "created":data.created})
             this.$wsconn.connect(this.ws_api_url + '?token=' + data.token)
             this.SysInfo('Welcome, ' + data.title)
             this.$store.dispatch('login/setLoggedUser', data)
