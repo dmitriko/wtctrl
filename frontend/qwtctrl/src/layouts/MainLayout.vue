@@ -22,20 +22,12 @@
                 Welcome, {{ userTitle }}
              </q-item-label>
             <q-separator class="q-my-sm" />
+            <DrawerMenuItem symb="N" status="0" label="NEW" caption="Messages to process"  />
+            <DrawerMenuItem symb="A" status="1" label="ARCHIVE" caption="Stored messages"  />
+            <DrawerMenuItem symb="E" status="3" label="EXPORT" caption="Ready for export"  />
+            <DrawerMenuItem symb="T" status="4" label="Trash" caption="Disapear in 30 days"  />
 
-                <q-item clickable v-ripple :to="{name: 'ums', params:{status: '0'}}">
-              <q-item-section avatar>
-                 <q-avatar color="primary" text-color="white">
-                   N
-                 </q-avatar>
-              </q-item-section>
-
-              <q-item-section>
-                  <q-item-label>NEW</q-item-label>
-                  <q-item-label caption lines="1">Messages to process</q-item-label>
-              </q-item-section>
-            </q-item>
-         </q-list>
+          </q-list>
         </q-scroll-area>
     </q-drawer>
 
@@ -47,9 +39,10 @@
   </q-layout>
 </template>
 <script>
-
+import DrawerMenuItem from 'components/DrawerMenuItem.vue'
 export default {
   name: 'MainLayout',
+    components: {DrawerMenuItem},
   created() {
       this.$store.dispatch('ui/closeDrawer')
   },

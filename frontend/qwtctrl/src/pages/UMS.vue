@@ -22,7 +22,7 @@
             </q-item-section>
             <q-item-section>
                 <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
-                        :src="item.files.thumb.url"  />
+                                               :src="item.files.thumb.url" />
                 <audio v-if="item.files.voice"
                         class="q-mx-auto"
                         :src="item.files.voice.url"

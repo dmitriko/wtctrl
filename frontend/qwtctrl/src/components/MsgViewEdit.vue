@@ -19,7 +19,6 @@
 export default {
     name: 'MsgViewEdit',
     created() {
-        console.log('in msg edit created')
     },
     methods: {
         saveText() {
