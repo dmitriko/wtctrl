@@ -13,6 +13,11 @@ class WSConn {
         this.connection.onmessage = this.eventHandler()
         setInterval(this.pinger(), 3 * 60 * 1000)
     }
+    reconnect() {
+        if (this.url != ""){
+            this.connect(this.url)
+        }
+    }
     pinger() {
         return () => {
             this.connection.send(JSON.stringify({"name": "ping"}))

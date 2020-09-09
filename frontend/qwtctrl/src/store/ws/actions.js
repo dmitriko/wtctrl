@@ -7,14 +7,23 @@ export function handleOpen(context, event){
 }
 
 export function handleClose(context, event) {
-    if (navigator.onLine) {
+    context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
+    if (!navigator.onLine) {
+        return
+    }
+    let isExpired = ((~~(Date.now() / 1000) - context.rootState.login.created) > 24*60*59)
+    if (isExpired) {
         context.dispatch('login/setLoggedOut', 'dummy', {root: true})
         if (LocalStorage.has('loginUser')) {
             LocalStorage.remove('loginUser')
          }
     }
+    if (contest.state.reconnectAttempts < 6) {
+        context.commit('RECONNECT_ATTEMPT')
+        context.dispatch('ui/SysMsgInfo', 'Reconnecting...', {root: true})
+        Vue.prototype.$wsconn.reconnect()
+    }
     context.commit('SOCKET_ONCLOSE')
-    context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
 }
 
 export function handleError(context, event) {

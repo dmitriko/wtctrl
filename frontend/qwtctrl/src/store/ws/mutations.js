@@ -1,4 +1,7 @@
 import Vue from 'vue'
+export function RECONNECT_ATTEMPT (state) {
+    state.reconnectCount = state.reconnectCount + 1
+}
 
 export function SOCKET_ONOPEN (state)  {
       state.isConnected = true
@@ -18,10 +21,4 @@ export function SOCKET_ONMESSAGE (state, message)  {
         state.message = message
 }
 
-export function SOCKET_RECONNECT(state, count) {
-      console.info(state, count)
-}
 
-export function SOCKET_RECONNECT_ERROR(state) {
-      state.reconnectError = true;
-}

@@ -59,7 +59,7 @@ export default {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
                 return
             }
-            let expected_kind = [2, 3].includes(msg.kind)
+            let expected_kind = [1, 2, 3].includes(msg.kind)
             if (msg.name === 'imsg' && expected_kind) {
                 let changed = false
                 for (let i=0; i < this.items.length; i++) {
@@ -102,9 +102,15 @@ export default {
         id () {
             return this.$store.state.login.userPK + '#' + this.$route.params.status
         },
-        fetchMsgs() {
-            //{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}
-            this.items = []
+        async fetchMsgs() {
+            let started = ~~(Date.now() / 1000)
+            while (this.$wsconn.connection.readyState != 1) {
+                if ((~~(Date.now() / 1000) - started) > 10) {
+                    console.log('failed to fetch data')
+                    return
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            }
             this.$wsconn.send({
                 'name': 'msgfetchbydays',
                 'id':'foo',
@@ -113,6 +119,7 @@ export default {
             })
         },
         onDaysSet() {
+            this.items = []
             this.fetchMsgs()
         },
         onDaysEnter() {
