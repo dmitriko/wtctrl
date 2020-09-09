@@ -294,6 +294,7 @@ func (cmd *UnsubscribeCmd) Perform(
 	done <- sendWithContext(ctx, out, &CmdResp{
 		Id:     cmd.Id,
 		Status: "ok",
+		Name:   cmd.Name,
 	})
 }
 
