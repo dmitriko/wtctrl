@@ -324,6 +324,21 @@ func (ums *UMSField) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue
 	return nil
 }
 
+func (ums *UMSField) Parse(s string) error {
+	parts := strings.Split(s, "#")
+	if len(parts) != 3 {
+		return fmt.Errorf("Could not parse %s", s)
+
+	}
+	n, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return err
+	}
+	ums.PK = fmt.Sprintf("%s#%s", parts[0], parts[1])
+	ums.Status = int64(n)
+	return nil
+}
+
 type Msg struct {
 	PK        string
 	SK        string

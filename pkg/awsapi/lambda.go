@@ -399,6 +399,24 @@ func (cmd *MsgUpdateCmd) Perform(
 		done <- sendWithContext(ctx, out, &resp)
 		return
 	}
+	if cmd.Key == "ums" {
+		err = msg.UMS.Parse(cmd.Value.(string))
+		if err != nil {
+			resp.Ok = false
+			resp.Error = "Permission denied"
+			done <- sendWithContext(ctx, out, &resp)
+			return
+		}
+		err = table.StoreItem(msg)
+		if err != nil {
+			resp.Ok = false
+			resp.Error = "Permission denied"
+			done <- sendWithContext(ctx, out, &resp)
+			return
+		}
+		done <- sendWithContext(ctx, out, &resp)
+		return
+	}
 	_, err = table.UpdateItemData(cmd.PK, cmd.Key, cmd.Value)
 	if err != nil {
 		resp.Ok = false

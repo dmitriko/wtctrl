@@ -377,7 +377,7 @@ func TestHandleLogin(t *testing.T) {
 	assert.False(t, loginResp.Ok)
 }
 
-func TestCmdMsgUpdate(t *testing.T) {
+func TestCmdMsgUpdateData(t *testing.T) {
 	defer stopLocalDynamo()
 	table := startLocalDynamo(t)
 	domain := "foobar.com"
@@ -408,4 +408,37 @@ func TestCmdMsgUpdate(t *testing.T) {
 	m := &Msg{}
 	require.Nil(t, table.FetchItem(msg1.PK, m))
 	assert.Equal(t, m.Data["text"].(string), "spamegg")
+}
+
+func TestCmdMsgUpdateUMS(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	user1, _ := NewUser("user1")
+	msg1, _ := NewMsg("bot1", user1.PK, TGPhotoMsgKind)
+	msg1.Data["text"] = "foobar"
+	assert.Nil(t, table.StoreItem(msg1))
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	output := make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	input := fmt.Sprintf(`{"name":"msgupdate", "id":"fooid", "key":"ums", "value":"user1#foo#2", "pk":"%s"}`, msg1.PK)
+	err := handleUserCmd(ctx, table, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	if assert.Equal(t, 1, len(output)) {
+		resp := make(map[string]interface{})
+		assert.Nil(t, json.Unmarshal([]byte(output[0]), &resp))
+		assert.Equal(t, "fooid", resp["id"].(string))
+		assert.Equal(t, msg1.PK, resp["pk"].(string))
+	}
+	m := &Msg{}
+	require.Nil(t, table.FetchItem(msg1.PK, m))
+	assert.Equal(t, m.UMS.String(), "user1#foo#2")
 }
