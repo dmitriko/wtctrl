@@ -8,7 +8,7 @@
                     @keydown.enter="onDaysEnter"
                     @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
             </div>
-            <div class="col"></div>
+            <div class="col" style="text-align:center"> <q-btn class="q-mx-auto" color="secondary" label="reload" /></div>
             <div class="col-4">
                 Get updates: <q-toggle @input="onSubscribeInput" v-model="subscribed" />
             </div>
@@ -17,6 +17,9 @@
     <q-list bordered separator style="max-width:520px" class="q-mx-auto">
         <q-expansion-item v-for="item in items" :key="item.pk" class="q-mx-auto">
           <template v-slot:header>
+            <q-item-section avatar>
+              <q-checkbox v-model="selected" :val="item.pk" color="secondary" />
+            </q-item-section>
             <q-item-section>
                 <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
                         :src="item.files.thumb.url"  />
@@ -50,7 +53,8 @@ export default {
             subscribed: false,
             msg_lists: {},  // UMS as key, array of objects is a value
             msgs_store: {}, //msg.pk a key, full msg a value
-            items:[]
+            items:[],
+            selected:[]
         }
     },
     watch: {
