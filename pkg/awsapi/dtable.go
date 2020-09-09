@@ -209,6 +209,10 @@ func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutp
 const UpdatedAtField = "updated_at"
 
 func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.UpdateItemOutput, error) {
+	val, err := dattr.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
 	uii := &dynamodb.UpdateItemInput{
 		TableName:    aws.String(t.Name),
 		ReturnValues: aws.String("ALL_NEW"),
@@ -219,9 +223,7 @@ func (t *DTable) UpdateItemMap(pk, sk, fName, key, value string) (*dynamodb.Upda
 		},
 		UpdateExpression: aws.String("SET #Data.#Key = :v, #Data.#UpdatedAt = :t"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":v": {
-				S: aws.String(value),
-			},
+			":v": val,
 			":t": {
 				N: aws.String(fmt.Sprintf("%d", time.Now().Unix())),
 			},
@@ -428,22 +430,12 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, userPK string, status int, start
 	if err != nil {
 		return err
 	}
-	// item in db has only PK, K, UMS and CRTD b/c index projection settings
-	// so we fetch whole item here
 	for _, item := range resp.Items {
 		msg := &Msg{}
 		err = dattr.UnmarshalMap(item, msg)
 		if err != nil {
 			continue
 		}
-		/*		pk := *item["PK"].S
-				err = t.FetchItem(pk, msg)
-				if err != nil {
-					if err.Error() == NO_SUCH_ITEM {
-						continue
-					}
-					return err
-				}*/
 		lm.Items[msg.PK] = msg
 	}
 	return nil
