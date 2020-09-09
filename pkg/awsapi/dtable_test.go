@@ -202,6 +202,10 @@ func TestMsgSimple(t *testing.T) {
 	if msg.Kind != TGPhotoMsgKind {
 		t.Error("Kind is not correct")
 	}
+	upd := float64(time.Now().Unix() + 5)
+	msg.Data[UpdatedAtField] = upd
+	assert.Equal(t, int64(upd), msg.UpdatedAt())
+
 }
 
 func TestMsgList(t *testing.T) {

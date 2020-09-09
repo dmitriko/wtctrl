@@ -388,12 +388,12 @@ func (m *Msg) Reload(table *DTable) error {
 }
 
 func (m *Msg) UpdatedAt() int64 {
-	var updated int64
+	var updated float64
 	if m.Data != nil {
-		updated, _ = m.Data[UpdatedAtField].(int64)
+		updated, _ = m.Data[UpdatedAtField].(float64)
 	}
 	if updated != 0 {
-		return updated
+		return int64(updated)
 	}
 	return m.CreatedAt
 }

@@ -133,9 +133,11 @@ func TestCmdMsgFetch(t *testing.T) {
 	domain := "foobar.com"
 	connId := "someid="
 	stage := "prod"
+	updated := time.Now().Unix() + 5
 	user1, _ := NewUser("user1")
 	msg1, _ := NewMsg("bot1", user1.PK, TGPhotoMsgKind)
 	msg1.Data["text"] = "foobar"
+	msg1.Data[UpdatedAtField] = updated
 	pic1, _ := NewMsgFile(msg1.PK, FileKindTgThumb, "image/jpeg", "wtctrl-udatab", "bar")
 	pic2, _ := NewMsgFile(msg1.PK, FileKindTgMediumPic, "image/jpeg", "wtctrl-udatab", "bar")
 	pic3, _ := NewMsgFile(msg1.PK, FileKindTgBigPic, "image/jpeg", "wtctrl-udatab", "bar")
@@ -168,6 +170,8 @@ func TestCmdMsgFetch(t *testing.T) {
 	assert.True(t, len(url) > 0)
 	text, _ := resp["text"].(string)
 	assert.Equal(t, "foobar", text)
+
+	assert.Equal(t, updated, int64(resp["updated"].(float64)))
 }
 
 func TestCmdFetchByDays(t *testing.T) {
