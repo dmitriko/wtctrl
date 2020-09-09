@@ -18,9 +18,10 @@ export function handleClose(context, event) {
             LocalStorage.remove('loginUser')
          }
     }
-    if (contest.state.reconnectAttempts < 6) {
+    if (context.state.reconnectAttempts < 6) {
         context.commit('RECONNECT_ATTEMPT')
         context.dispatch('ui/SysMsgInfo', 'Reconnecting...', {root: true})
+        console.log("reconnecting...")
         Vue.prototype.$wsconn.reconnect()
     }
     context.commit('SOCKET_ONCLOSE')
