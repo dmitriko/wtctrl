@@ -202,7 +202,7 @@ func (t *DTable) FetchItemsWithPrefix(pk, prefix string, out interface{}) error 
 	return nil
 }
 
-func (t *DTable) UpdateItemData(pk, key, value string) (*dynamodb.UpdateItemOutput, error) {
+func (t *DTable) UpdateItemData(pk, key string, value interface{}) (*dynamodb.UpdateItemOutput, error) {
 	return t.UpdateItemMap(pk, pk, "D", key, value)
 }
 

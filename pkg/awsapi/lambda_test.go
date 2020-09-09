@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWSAuthRequest(t *testing.T) {
@@ -374,4 +375,37 @@ func TestHandleLogin(t *testing.T) {
 	err = json.Unmarshal([]byte(resp.Body), loginResp)
 	assert.Nil(t, err)
 	assert.False(t, loginResp.Ok)
+}
+
+func TestCmdMsgUpdate(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	user1, _ := NewUser("user1")
+	msg1, _ := NewMsg("bot1", user1.PK, TGPhotoMsgKind)
+	msg1.Data["text"] = "foobar"
+	assert.Nil(t, table.StoreItem(msg1))
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	output := make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	input := fmt.Sprintf(`{"name":"msgupdate", "id":"fooid", "key":"text", "value":"spamegg", "pk":"%s"}`, msg1.PK)
+	err := handleUserCmd(ctx, table, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	if assert.Equal(t, 1, len(output)) {
+		resp := make(map[string]interface{})
+		assert.Nil(t, json.Unmarshal([]byte(output[0]), &resp))
+		assert.Equal(t, "fooid", resp["id"].(string))
+		assert.Equal(t, msg1.PK, resp["pk"].(string))
+	}
+	m := &Msg{}
+	require.Nil(t, table.FetchItem(msg1.PK, m))
+	assert.Equal(t, m.Data["text"].(string), "spamegg")
 }

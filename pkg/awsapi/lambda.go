@@ -355,6 +355,57 @@ func (cmd *FetchMsgCmd) Perform(ctx context.Context, table *DTable,
 	done <- nil
 }
 
+type MsgUpdateCmd struct {
+	Id    string      `json:"id"`
+	PK    string      `json:"pk"`
+	Name  string      `json:"name"`
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+func (cmd *MsgUpdateCmd) Perform(
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext,
+	out chan<- []byte, done chan<- error) {
+	userPK, err := extractUserPK(reqCtx)
+	if err != nil {
+		done <- err
+		return
+	}
+	resp := struct {
+		PK    string `json:"pk"`
+		Id    string `json:"id"`
+		Name  string `json:"name"`
+		Ok    bool   `json:"ok"`
+		Error string `json:"error"`
+	}{
+		PK:   cmd.PK,
+		Id:   cmd.Id,
+		Name: cmd.Name,
+		Ok:   true,
+	}
+
+	msg := &Msg{}
+	err = table.FetchItem(cmd.PK, msg)
+	if err != nil {
+		resp.Ok = false
+		resp.Error = err.Error()
+		done <- sendWithContext(ctx, out, &resp)
+		return
+	}
+	if msg.UMS.PK != userPK {
+		resp.Ok = false
+		resp.Error = "Permission denied"
+		done <- sendWithContext(ctx, out, &resp)
+		return
+	}
+	_, err = table.UpdateItemData(cmd.PK, cmd.Key, cmd.Value)
+	if err != nil {
+		resp.Ok = false
+		resp.Error = err.Error()
+	}
+	done <- sendWithContext(ctx, out, &resp)
+}
+
 type SubscribeCmd struct {
 	Id        string `json:"id"`
 	Name      string `json:"name"`
@@ -407,6 +458,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 		"subscr":         &SubscribeCmd{},
 		"unsubscr":       &UnsubscribeCmd{},
 		"fetchmsg":       &FetchMsgCmd{},
+		"msgupdate":      &MsgUpdateCmd{},
 	}
 	var s struct {
 		Name string `json:"name"`
@@ -427,7 +479,7 @@ func UnmarshalCmd(data []byte) (UserCmd, error) {
 	return c, nil
 }
 
-func sendWithContext(ctx context.Context, outCh chan<- []byte, resp *CmdResp) error {
+func sendWithContext(ctx context.Context, outCh chan<- []byte, resp interface{}) error {
 	data, err := json.Marshal(resp)
 	if err != nil {
 		return err
