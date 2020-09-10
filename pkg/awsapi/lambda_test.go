@@ -185,11 +185,11 @@ func TestCmdFetchByDays(t *testing.T) {
 	user2, _ := NewUser("user2")
 	msg1, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(0),
 		DataOp(map[string]interface{}{"text": "msg1"}))
-	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-3d"), UserStatusOp(5),
 		DataOp(map[string]interface{}{"text": "msg2"}))
-	msg3, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+	msg3, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
 		DataOp(map[string]interface{}{"text": "msg3"}))
-	msg4, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(0),
+	msg4, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(0),
 		DataOp(map[string]interface{}{"text": "msg4"}))
 	errs := testTable.StoreItems(msg1, msg2, msg3, msg4)
 	for _, e := range errs {
@@ -206,7 +206,7 @@ func TestCmdFetchByDays(t *testing.T) {
 
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
-	input := `{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":0, "desc":true}`
+	input := `{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":5, "desc":true}`
 	err = handleUserCmd(ctx, testTable, reqCtx, input, outCh)
 	if assert.Nil(t, err) {
 		doneCh <- true
@@ -229,8 +229,8 @@ func TestCmdFetchByDays(t *testing.T) {
 	err = json.Unmarshal([]byte(output[3]), &resp4)
 	assert.Nil(t, err)
 
-	assert.Equal(t, msg4.PK, resp2["pk"].(string))
-	assert.Equal(t, msg1.PK, resp3["pk"].(string))
+	assert.Equal(t, msg3.PK, resp2["pk"].(string))
+	assert.Equal(t, msg2.PK, resp3["pk"].(string))
 }
 
 func TestCmdStartStopSubscr(t *testing.T) {
