@@ -1,5 +1,9 @@
 <template>
-    <div class="q-pa-md q-ml-md" ><span :class="error ? 'error' : '' " >{{ msg }}</span></div>
+    <div class="fit row no-wrap justify-between" >
+        <span class="q-mt-sm" :class="error ? 'error' : '' " >
+            {{ msg }}
+        </span>
+    </div>
 </template>
 
 <script>
