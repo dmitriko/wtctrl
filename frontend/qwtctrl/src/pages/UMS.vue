@@ -58,6 +58,9 @@ export default {
         }
     },
     watch: {
+        'isOnline': function(isOnline) {
+            console.log('browser is online? - ' + isOnline)
+        },
         '$store.state.ws.message': function(msg) {
             if (msg.name === 'msg_index') {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
