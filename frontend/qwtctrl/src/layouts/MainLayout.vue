@@ -26,7 +26,8 @@
             <DrawerMenuItem symb="A" status="1" label="ARCHIVE" caption="Stored messages"  />
             <DrawerMenuItem symb="E" status="3" label="EXPORT" caption="Ready for export"  />
             <DrawerMenuItem symb="T" status="4" label="Trash" caption="Disapear in 30 days"  />
-
+            <q-separator class="q-my-sm" />
+                <q-item class="justify-center flex"><q-btn @onclick="logout" label="Logout" /></q-item>
           </q-list>
         </q-scroll-area>
     </q-drawer>
@@ -57,6 +58,10 @@ export default {
       },
       userTitle () {
           return this.$store.state.login.title
+      },
+  },
+  methods: {
+      logout() {
       },
   },
   data () {
