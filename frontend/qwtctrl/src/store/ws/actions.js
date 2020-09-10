@@ -7,7 +7,8 @@ export function handleOpen(context, event){
 }
 
 export function handleClose(context, event) {
-    context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
+   context.dispatch('ui/SysMsgInfo', 'Connection to server closed!', {root: true})
+   context.commit('SOCKET_ONCLOSE')
     if (!navigator.onLine) {
         return
     }
@@ -17,14 +18,23 @@ export function handleClose(context, event) {
         if (LocalStorage.has('loginUser')) {
             LocalStorage.remove('loginUser')
          }
+    } else {
+        reconnect(context)
     }
-    if (context.state.reconnectAttempts < 6) {
+}
+
+export function clearReconnectCount(context) {
+    context.commit('CLEAR_RECONNECT_COUNT')
+}
+
+export function reconnect(context) {
+    console.log("in reconnect action, attempt " + context.state.reconnectCount)
+    if (context.state.reconnectCount < 6) {
         context.commit('RECONNECT_ATTEMPT')
         context.dispatch('ui/SysMsgInfo', 'Reconnecting...', {root: true})
         console.log("reconnecting...")
         Vue.prototype.$wsconn.reconnect()
     }
-    context.commit('SOCKET_ONCLOSE')
 }
 
 export function handleError(context, event) {

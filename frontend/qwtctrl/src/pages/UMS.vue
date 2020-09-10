@@ -59,7 +59,14 @@ export default {
     },
     watch: {
         'isOnline': function(isOnline) {
-            console.log('browser is online? - ' + isOnline)
+            // browser went online but websocket is closed
+            if (!isOnline) {console.log("browser went online")}
+            else {console.log("browser went online")}
+            if (isOnline && !this.$store.state.ws.isConnected) {
+                console.log("websocket is closed, reconnecting")
+                this.$store.dispatch('ws/clearReconnectCount')
+                this.$store.dispatch('ws/reconnect')
+            }
         },
         '$store.state.ws.message': function(msg) {
             if (msg.name === 'msg_index') {
