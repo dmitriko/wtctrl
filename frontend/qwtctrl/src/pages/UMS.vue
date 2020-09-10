@@ -8,7 +8,8 @@
                     @keydown.enter="onDaysEnter"
                     @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
             </div>
-            <div class="col" style="text-align:center"> <q-btn class="q-mx-auto" color="secondary" label="reload" /></div>
+            <div class="col" style="text-align:center">
+                <q-btn class="q-mx-auto" @click="reload()" color="secondary" label="reload" /></div>
             <div class="col-4">
                 Get updates: <q-toggle @input="onSubscribeInput" v-model="subscribed" />
             </div>
@@ -60,12 +61,18 @@ export default {
     watch: {
         'isOnline': function(isOnline) {
             // browser went online but websocket is closed
-            if (!isOnline) {console.log("browser went online")}
+            if (!isOnline) {console.log("browser went offline")}
             else {console.log("browser went online")}
             if (isOnline && !this.$store.state.ws.isConnected) {
                 console.log("websocket is closed, reconnecting")
                 this.$store.dispatch('ws/clearReconnectCount')
                 this.$store.dispatch('ws/reconnect')
+            }
+        },
+        '$store.state.ws.isConnected': function(isConnected) {
+            if (isConnected) {
+                 this.subscr()
+                 this.fetchMsgs()
             }
         },
         '$store.state.ws.message': function(msg) {
@@ -181,6 +188,11 @@ export default {
             item.subscribed = this.subscribed
             this.$q.localStorage.set(this.id(), item)
             this.subscr()
+        },
+        reload () {
+            console.log("reloading")
+            this.items = []
+            this.fetchMsgs()
         }
     }
 }
