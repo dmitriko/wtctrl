@@ -54,13 +54,11 @@ export default {
             subscribed: false,
             msg_lists: {},  // UMS as key, array of objects is a value
             msgs_store: {}, //msg.pk a key, full msg a value
-            items:[],
             selected:[]
         }
     },
     watch: {
         'isOnline': function(isOnline) {
-            // browser went online but websocket is closed
             if (!isOnline) {console.log("browser went offline")}
             else {console.log("browser went online")}
             if (isOnline && !this.$store.state.ws.isConnected) {
@@ -93,9 +91,15 @@ export default {
                     }
                 }
                 if (!changed) {
-                    this.items.unshift(msg)
-                    this.items.sort(function(a, b){return b.created-a.created})
+                    let items = this.msg_lists[this.id()]
+                    if (items === undefined) {
+                        items = []
+                    }
+                    items.push(msg)
+                    items.sort(function(a, b){return b.created-a.created})
+                    this.$set(this.msg_lists, this.id(), items)
                     return
+
                 }
             }
             if (msg.name === 'dbevent' && expected_kind) {
@@ -105,6 +109,13 @@ export default {
         },
     },
     computed: {
+        items() {
+            console.log('in computed items')
+            if (this.msg_lists[this.id()] === undefined) {
+                return []
+            }
+            return this.msg_lists[this.id()]
+        },
     },
     methods: {
        textUpdated(pk, text) {
