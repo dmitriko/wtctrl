@@ -80,24 +80,18 @@ export default {
             }
             let expected_kind = [1, 2, 3].includes(msg.kind)
             if (msg.name === 'imsg' && expected_kind) {
-                console.log('got new item')
-                let items = this.msg_lists[this.id()]
-                if (items === undefined) {
-                        items = []
-                }
-                 for (let i=0; i < items.length; i++) {
+                let items = this.items
+                for (let i=0; i < items.length; i++) {
                     if (items[i].pk == msg.pk) {
-                        console.log('item is in the list')
                         if (items[i].updated < msg.updated) {
                             this.$set(items, i, msg)
-                            console.log('updating it in place')
                         }
                     return
                     }
                 }
                 items.push(msg)
                 items.sort(function(a, b){return b.created-a.created})
-                this.$set(this.msg_lists, this.id(), items)
+                this.items = items
                 return
             }
             if (msg.name === 'dbevent' && expected_kind) {
@@ -110,7 +104,7 @@ export default {
         items: {
             get () {
               if (this.msg_lists[this.id()] === undefined) {
-                    return []
+                  return []
                }
                return this.msg_lists[this.id()]
             },
