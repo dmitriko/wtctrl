@@ -80,27 +80,25 @@ export default {
             }
             let expected_kind = [1, 2, 3].includes(msg.kind)
             if (msg.name === 'imsg' && expected_kind) {
-                let changed = false
-                for (let i=0; i < this.items.length; i++) {
-                    if (this.items[i].pk == msg.pk) {
-                        if (this.items[i].updated < msg.updated) {
-                            this.$set(this.items, i, msg)
-                        }
-                        changed = true
-                        break
-                    }
-                }
-                if (!changed) {
-                    let items = this.msg_lists[this.id()]
-                    if (items === undefined) {
+                console.log('got new item')
+                let items = this.msg_lists[this.id()]
+                if (items === undefined) {
                         items = []
-                    }
-                    items.push(msg)
-                    items.sort(function(a, b){return b.created-a.created})
-                    this.$set(this.msg_lists, this.id(), items)
-                    return
-
                 }
+                 for (let i=0; i < items.length; i++) {
+                    if (items[i].pk == msg.pk) {
+                        console.log('item is in the list')
+                        if (items[i].updated < msg.updated) {
+                            this.$set(items, i, msg)
+                            console.log('updating it in place')
+                        }
+                    return
+                    }
+                }
+                items.push(msg)
+                items.sort(function(a, b){return b.created-a.created})
+                this.$set(this.msg_lists, this.id(), items)
+                return
             }
             if (msg.name === 'dbevent' && expected_kind) {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
@@ -109,13 +107,17 @@ export default {
         },
     },
     computed: {
-        items() {
-            console.log('in computed items')
-            if (this.msg_lists[this.id()] === undefined) {
-                return []
+        items: {
+            get () {
+              if (this.msg_lists[this.id()] === undefined) {
+                    return []
+               }
+               return this.msg_lists[this.id()]
+            },
+            set (val) {
+               this.$set(this.msg_lists, this.id(), val)
             }
-            return this.msg_lists[this.id()]
-        },
+        }
     },
     methods: {
        textUpdated(pk, text) {
