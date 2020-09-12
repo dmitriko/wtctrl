@@ -10,7 +10,10 @@
              />
         </q-card-section>
         <q-card-section>
-              <q-btn label="Save" @click="saveText" />
+              <q-btn label="Save Text" @click="saveText" />
+        </q-card-section>
+        <q-card-section>
+            <q-btn v-if="status !== '2'" label="To Export" @click="setUMS('2')" />
         </q-card-section>
     </q-card>
 
@@ -24,6 +27,10 @@ export default {
         saveText() {
             this.$emit("textUpdated", this.item.pk, this.text)
         },
+        setUMS(newStatus) {
+            let ums = this.item.author + '#' + newStatus
+            this.$emit('umsSet', this.item, ums)
+        }
     },
     data() {
         return {
@@ -32,6 +39,7 @@ export default {
     },
     props: {
         "item": {required: true},
+        "status": {required: true}
     }
 }
 </script>

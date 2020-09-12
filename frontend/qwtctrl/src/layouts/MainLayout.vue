@@ -24,8 +24,8 @@
             <q-separator class="q-my-sm" />
             <DrawerMenuItem symb="N" status="0" label="NEW" caption="Messages to process"  />
             <DrawerMenuItem symb="A" status="1" label="ARCHIVE" caption="Stored messages"  />
-            <DrawerMenuItem symb="E" status="3" label="EXPORT" caption="Ready for export"  />
-            <DrawerMenuItem symb="T" status="4" label="Trash" caption="Disapear in 30 days"  />
+            <DrawerMenuItem symb="E" status="2" label="EXPORT" caption="Ready for export"  />
+            <DrawerMenuItem symb="T" status="-1" label="Trash" caption="Disapear in 30 days"  />
             <q-separator class="q-my-sm" />
                 <q-item class="justify-center flex"><q-btn @onclick="logout" label="Logout" /></q-item>
           </q-list>

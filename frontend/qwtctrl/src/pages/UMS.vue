@@ -28,10 +28,11 @@
                         class="q-mx-auto"
                         :src="item.files.voice.url"
                         controls type="audio/ogg; codecs=opus" />
+                    <a :href="item.files.bigpic.url" v-if="item.files.bigpic" target="_blank" >big</a>
                 <q-item-label class="text-subtitle-1" v-if="item.text">{{item.text}}</q-item-label>
             </q-item-section>
           </template>
-          <MsgViewEdit @textUpdated="textUpdated" :item="item" />
+          <MsgViewEdit @textUpdated="textUpdated" @umsSet="umsSet" :item="item" :status="$route.params.status" />
        </q-expansion-item>
     </q-list>
 </q-page>
@@ -53,7 +54,7 @@ export default {
             days: 21,
             subscribed: false,
             msg_lists: {},  // UMS as key, array of objects is a value
-            msgs_store: {}, //msg.pk a key, full msg a value
+            msg_ums: {}, //msg.pk - msg.ums
             selected:[]
         }
     },
@@ -80,19 +81,7 @@ export default {
             }
             let expected_kind = [1, 2, 3].includes(msg.kind)
             if (msg.name === 'imsg' && expected_kind) {
-                let items = this.items
-                for (let i=0; i < items.length; i++) {
-                    if (items[i].pk == msg.pk) {
-                        if (items[i].updated < msg.updated) {
-                            this.$set(items, i, msg)
-                        }
-                    return
-                    }
-                }
-                items.push(msg)
-                items.sort(function(a, b){return b.created-a.created})
-                this.items = items
-                return
+                this.msg_push(msg)
             }
             if (msg.name === 'dbevent' && expected_kind) {
                 this.$wsconn.send({'name':'fetchmsg', 'pk': msg.pk})
@@ -114,6 +103,59 @@ export default {
         }
     },
     methods: {
+       umsSet(msg, ums) {
+           //let's remove the msg from the current view
+           let index = -1
+           for (let i=0; i< this.items.length; i++){
+               if (this.items[i].pk === msg.pk) {
+                   index = i
+                   break
+                }
+           }
+           if (index !== -1) {
+               this.items.splice(index, 1)
+               console.log('removing from the current view')
+           }
+
+            // put in the another view
+            msg.ums = ums
+           let items = this.msg_lists[ums]
+           if (items === undefined) {
+               items = []
+               this.msg_lists[ums] = []
+           }
+
+            let exists = false
+            for (let j=0; j<items.length; j++){
+                if (items[j].pk === msg.pk) {
+                    exists = true
+                    break
+                }
+            }
+            if (!exists) {
+                console.log('item does not exist')
+                items.push(msg)
+                this.$set(this.msg_lists, ums, items)
+            }
+
+       },
+       msg_push(store_msg) {
+           let msg = {}
+            for(let k in store_msg) msg[k] = store_msg[k]
+            let items = this.items
+            for (let i=0; i < items.length; i++) {
+                if (items[i].pk === msg.pk) {
+                    if (items[i].updated < msg.updated) {
+                        this.$set(items, i, msg)
+                    }
+                return
+                }
+            }
+            items.push(msg)
+            items.sort(function(a, b){return b.created-a.created})
+            this.items = items
+            return
+       },
        textUpdated(pk, text) {
            this.$wsconn.send({
                name: "msgupdate",
