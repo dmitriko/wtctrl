@@ -1,3 +1,5 @@
+https://www.brunoscheufler.com/blog/2020-08-28-forwarding-emails-with-ses
+https://pkg.go.dev/github.com/jhillyerd/enmime?tab=doc#example-Builder
 https://quasar.dev/quasar-cli/prefetch-feature#Store-Code-Splitting
 https://davestewart.github.io/vuex-pathify/#/
 https://github.com/quasarframework/quasar-awesome
