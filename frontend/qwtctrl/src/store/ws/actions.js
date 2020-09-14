@@ -38,7 +38,8 @@ export function reconnect(context) {
 }
 
 export function handleError(context, event) {
-    console.log("websocket error")
+    console.log("websocket error, reconnecting")
+    return reconnect(context)
     console.log(event)
     context.commit('SOCKET_ONERROR')
     context.dispatch('ui/SysMsgError', 'Error connecting to server.', {root: true})

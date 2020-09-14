@@ -114,7 +114,6 @@ export default {
            }
            if (index !== -1) {
                this.items.splice(index, 1)
-               console.log('removing from the current view')
            }
 
             // put in the another view
@@ -133,10 +132,16 @@ export default {
                 }
             }
             if (!exists) {
-                console.log('item does not exist')
                 items.push(msg)
                 this.$set(this.msg_lists, ums, items)
             }
+           this.$wsconn.send({
+               name: "msgupdate",
+               pk: msg.pk,
+               key: "ums",
+               value: ums,
+               id: "someuuid",
+           })
 
        },
        msg_push(store_msg) {
