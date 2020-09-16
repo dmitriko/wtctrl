@@ -9,7 +9,7 @@
                     @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
             </div>
             <div class="col" style="text-align:center">
-                <q-btn class="q-mx-auto" @click="reload()" color="secondary" label="reload" /></div>
+                <q-btn icon="refresh" class="q-mx-auto" @click="reload()" color="secondary"  /></div>
             <div class="col-4">
                 Get updates: <q-toggle @input="onSubscribeInput" v-model="subscribed" />
             </div>
