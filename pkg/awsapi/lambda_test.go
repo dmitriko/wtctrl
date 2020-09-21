@@ -442,3 +442,60 @@ func TestCmdMsgUpdateUMS(t *testing.T) {
 	require.Nil(t, table.FetchItem(msg1.PK, m))
 	assert.Equal(t, m.UMS.String(), "user1#foo#2")
 }
+
+func TestCmdFetchTimeStamps(t *testing.T) {
+	defer stopLocalDynamo()
+	testTable := startLocalDynamo(t)
+	domain := "foobar.com"
+	connId := "someid="
+	stage := "prod"
+	user1, _ := NewUser("user1")
+	user2, _ := NewUser("user2")
+	msg1, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-10d"), UserStatusOp(0),
+		DataOp(map[string]interface{}{"text": "msg1"}))
+	msg2, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-3d"), UserStatusOp(5),
+		DataOp(map[string]interface{}{"text": "msg2"}))
+	msg3, err := NewMsg("bot1", user1.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(5),
+		DataOp(map[string]interface{}{"text": "msg3"}))
+	msg4, err := NewMsg("bot1", user2.PK, TGTextMsgKind, CreatedAtOp("-2d"), UserStatusOp(0),
+		DataOp(map[string]interface{}{"text": "msg4"}))
+	errs := testTable.StoreItems(msg1, msg2, msg3, msg4)
+	for _, e := range errs {
+		if e != nil {
+			t.Error(e)
+		}
+	}
+	reqCtx := getProxyContext("MESSAGE", domain, stage, connId, user1.PK)
+	outCh := make(chan []byte)
+	doneCh := make(chan bool)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	var output []string
+
+	output = make([]string, 0)
+	go collectOutput(ctx, &output, outCh, doneCh)
+	start := time.Now().Unix() - 4*24*60*60
+	end := time.Now().Unix() - 2.5*24*60*60
+	input := fmt.Sprintf(
+		`{"name":"msgfetchbytstamp", "id":"foo", "start":%d, "end": %d, "ums":"%s"}`,
+		start, end, msg2.UMS.String())
+	err = handleUserCmd(ctx, testTable, reqCtx, input, outCh)
+	if assert.Nil(t, err) {
+		doneCh <- true
+	}
+	require.Equal(t, 3, len(output))
+
+	resp1 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[0]), &resp1)
+	assert.Nil(t, err)
+
+	resp2 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[1]), &resp2)
+	assert.Nil(t, err)
+
+	resp3 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(output[2]), &resp3)
+	assert.Nil(t, err)
+
+	assert.Equal(t, msg2.PK, resp2["pk"].(string))
+}

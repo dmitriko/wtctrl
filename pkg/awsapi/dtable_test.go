@@ -11,6 +11,7 @@ import (
 	dattr "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type TItem struct {
@@ -561,4 +562,16 @@ func TestLoginReq(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, TOO_MANY_ATTEMPTS, res)
 
+}
+
+func TestOrgNew(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	org, _ := NewOrg("Foo", []*User{user})
+	org.Data["foo"] = "bar"
+	require.Nil(t, table.StoreItem(org))
+	o := &Org{}
+	require.Nil(t, table.FetchItem(org.PK, o))
+	assert.Equal(t, "Foo", o.Title)
 }

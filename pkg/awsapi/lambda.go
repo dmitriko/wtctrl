@@ -159,6 +159,14 @@ type MsgFetchByDays struct {
 	Desc   bool   `json:"desc"`
 }
 
+type MsgFetchByTimeStamp struct {
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+	Start int64  `json:"start"`
+	End   int64  `json:"end"`
+	UMS   string `json:"ums"`
+}
+
 //It shows PK, CreatedAt, Status and Kind
 func MsgIndexView(msg *Msg) ([]byte, error) {
 	out := make(map[string]interface{})
@@ -223,6 +231,47 @@ func NewMsgView(msg *Msg, files []*MsgFile) (*MsgView, error) {
 		view.Files[f.FileKind] = fdata
 	}
 	return view, nil
+}
+
+func (cmd *MsgFetchByTimeStamp) Perform(
+	ctx context.Context, table *DTable, reqCtx events.APIGatewayWebsocketProxyRequestContext, out chan<- []byte, done chan<- error) {
+	userPK, err := extractUserPK(reqCtx)
+	if err != nil {
+		done <- err
+		return
+	}
+
+	if !strings.HasPrefix(cmd.UMS, userPK) {
+	}
+	listMsg := NewListMsg()
+	err = listMsg.FetchByUMS(table, userPK, cmd.UMS, cmd.Start, cmd.End)
+	if err != nil {
+		done <- err
+		return
+	}
+	_ = sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Name:   cmd.Name,
+		Status: "started",
+	})
+	for _, m := range listMsg.Asc() {
+		b, err := MsgIndexView(m)
+		if err == nil {
+			select {
+			case <-ctx.Done():
+				fmt.Println("ERROR", ctx.Err())
+				return
+			case out <- b:
+			}
+		} else {
+			fmt.Println("ERROR", err.Error())
+		}
+	}
+	done <- sendWithContext(ctx, out, &CmdResp{
+		Id:     cmd.Id,
+		Name:   cmd.Name,
+		Status: "done",
+	})
 }
 
 func (cmd *MsgFetchByDays) Perform(
@@ -472,12 +521,13 @@ func (cmd *SubscribeCmd) Perform(
 
 func UnmarshalCmd(data []byte) (UserCmd, error) {
 	cmds := map[string]UserCmd{
-		"ping":           &PingCmd{},
-		"msgfetchbydays": &MsgFetchByDays{},
-		"subscr":         &SubscribeCmd{},
-		"unsubscr":       &UnsubscribeCmd{},
-		"fetchmsg":       &FetchMsgCmd{},
-		"msgupdate":      &MsgUpdateCmd{},
+		"ping":             &PingCmd{},
+		"msgfetchbydays":   &MsgFetchByDays{},
+		"msgfetchbytstamp": &MsgFetchByTimeStamp{},
+		"subscr":           &SubscribeCmd{},
+		"unsubscr":         &UnsubscribeCmd{},
+		"fetchmsg":         &FetchMsgCmd{},
+		"msgupdate":        &MsgUpdateCmd{},
 	}
 	var s struct {
 		Name string `json:"name"`

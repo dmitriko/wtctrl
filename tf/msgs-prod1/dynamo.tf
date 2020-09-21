@@ -21,6 +21,11 @@ resource "aws_dynamodb_table" "main" {
     }
 
     attribute {
+        name = "OMS"
+        type = "S"
+    }
+
+    attribute {
         name = "CRTD"
         type = "N"
     }
@@ -40,6 +45,13 @@ resource "aws_dynamodb_table" "main" {
         projection_type    = "INCLUDE"
         non_key_attributes = ["PK", "K"]
     }
-    
+
+    global_secondary_index {
+        name               = "OMSIndex"
+        hash_key           = "OMS"
+        range_key          = "CRTD"
+        projection_type    = "INCLUDE"
+        non_key_attributes = ["PK", "A"]
+    }
 }
 

@@ -29,6 +29,7 @@ const (
 	BotKeyPrefix          = "bot#"
 	InviteKeyPrefix       = "inv#"
 	SubscriptionKeyPrefix = "subs#"
+	OrgKeyPrefix          = "org#"
 
 	TGBotKind               = "tg"
 	DummyBotKind            = "dummy"
@@ -440,7 +441,11 @@ func (lm *ListMsg) FetchByUserStatus(t *DTable, userPK string, status int, start
 	if err != nil {
 		return err
 	}
-	exprValues := map[string]interface{}{":ums": ums, ":start": start_time.Unix(), ":end": end_time.Unix()}
+	return lm.FetchByUMS(t, userPK, ums, start_time.Unix(), end_time.Unix())
+}
+
+func (lm *ListMsg) FetchByUMS(t *DTable, userPK, ums string, start, end int64) error {
+	exprValues := map[string]interface{}{":ums": ums, ":start": start, ":end": end}
 	resp, err := t.QueryIndex("UMSIndex", "UMS = :ums and CRTD BETWEEN :start AND :end", exprValues)
 	if err != nil {
 		return err
@@ -927,4 +932,26 @@ func (req *LoginRequest) IsOTPValid(otp string) (bool, string) {
 	}
 	return false, OTP_WRONG
 
+}
+
+type Org struct {
+	PK        string
+	SK        string
+	Title     string                 `dynamodbav:"T"`
+	Admins    []string               `dynamodbav:"ADM"`
+	CreatedAt int64                  `dynamodbav:"CRTD"`
+	Data      map[string]interface{} `dynamodbav:"D,omitempty"`
+}
+
+func NewOrg(title string, admins []*User) (*Org, error) {
+	org := &Org{}
+	org.Title = title
+	org.PK = fmt.Sprintf("%s%s", OrgKeyPrefix, ksuid.New())
+	org.SK = org.PK
+	org.CreatedAt = time.Now().Unix()
+	for _, u := range admins {
+		org.Admins = append(org.Admins, u.PK)
+	}
+	org.Data = make(map[string]interface{})
+	return org, nil
 }
