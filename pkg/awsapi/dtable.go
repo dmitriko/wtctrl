@@ -938,14 +938,16 @@ type Org struct {
 	PK        string
 	SK        string
 	Title     string                 `dynamodbav:"T"`
+	Motto     string                 `dynamodbav:"M"`
 	Admins    []string               `dynamodbav:"ADM"`
 	CreatedAt int64                  `dynamodbav:"CRTD"`
 	Data      map[string]interface{} `dynamodbav:"D,omitempty"`
 }
 
-func NewOrg(title string, admins []*User) (*Org, error) {
+func NewOrg(title, motto string, admins []*User) (*Org, error) {
 	org := &Org{}
 	org.Title = title
+	org.Motto = motto
 	org.PK = fmt.Sprintf("%s%s", OrgKeyPrefix, ksuid.New())
 	org.SK = org.PK
 	org.CreatedAt = time.Now().Unix()

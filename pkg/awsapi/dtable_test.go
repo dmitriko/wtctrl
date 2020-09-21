@@ -568,10 +568,17 @@ func TestOrgNew(t *testing.T) {
 	defer stopLocalDynamo()
 	table := startLocalDynamo(t)
 	user, _ := NewUser("foo")
-	org, _ := NewOrg("Foo", []*User{user})
+	org, _ := NewOrg("Foo", "Foo bar", []*User{user})
 	org.Data["foo"] = "bar"
 	require.Nil(t, table.StoreItem(org))
 	o := &Org{}
 	require.Nil(t, table.FetchItem(org.PK, o))
 	assert.Equal(t, "Foo", o.Title)
+}
+
+func TestPermNew(t *testing.T) {
+	//	defer stopLocalDynamo()
+	//	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	fmt.Println(user)
 }
