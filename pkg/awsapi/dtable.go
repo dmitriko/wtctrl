@@ -963,10 +963,11 @@ func NewOrg(title, motto string, admins []*User) (*Org, error) {
 	return org, nil
 }
 
-type Perm struct {
+type UserPerm struct {
 	PK        string
 	SK        string
-	CreatedAt int64 `dynamodbav:"CRTD"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
+	Value     string `dynamodbav:"V"`
 }
 
 func checkPermValue(value string) error {
@@ -988,21 +989,22 @@ func checkPermValue(value string) error {
 	return nil
 }
 
-func NewUserPerm(userPK, value string) (*Perm, error) {
+func NewUserPerm(userPK string, f *Folder, value string) (*UserPerm, error) {
 	if err := checkPermValue(value); err != nil {
 		return nil, err
 	}
-	perm := &Perm{}
+	perm := &UserPerm{}
 	perm.PK = userPK
-	perm.SK = fmt.Sprintf("%s%s", PermKeyPrefix, value)
+	perm.SK = fmt.Sprintf("%s%s#%s#%s", PermKeyPrefix, f.PK, f.SK, value)
 	return perm, nil
 }
 
 type Folder struct {
-	PK    string
-	SK    string
-	Title string `dynamodbav:"T"`
-	Kind  int64  `dynamodbav:"K"`
+	PK        string
+	SK        string
+	Title     string `dynamodbav:"T"`
+	Kind      int64  `dynamodbav:"K"`
+	CreatedAt int64  `dynamodbav:"CRTD"`
 }
 
 func NewFolder(ownerPK, title string, id, kind int64) (*Folder, error) {
@@ -1012,5 +1014,40 @@ func NewFolder(ownerPK, title string, id, kind int64) (*Folder, error) {
 	f.SK = sk
 	f.Title = title
 	f.Kind = kind
+	f.CreatedAt = time.Now().Unix()
 	return f, nil
+}
+
+func (u *User) HasPerm(table *DTable, folderPK, folderSK, value string) (bool, error) {
+	if err := checkPermValue(value); err != nil {
+		return false, err
+	}
+	var perms []*UserPerm
+	if folderPK == u.PK {
+		return true, nil
+	}
+	prefix := fmt.Sprintf("%s%s#%s#%s", PermKeyPrefix, folderPK, folderSK, value)
+	if err := table.FetchItemsWithPrefix(u.PK, prefix, &perms); err != nil {
+		return false, err
+	}
+	if len(perms) == 1 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (f *Folder) UserCanRead(table *DTable, u *User) (bool, error) {
+	return u.HasPerm(table, f.PK, f.SK, "tr")
+}
+
+func (f *Folder) UserCanTarget(table *DTable, u *User) (bool, error) {
+	return u.HasPerm(table, f.PK, f.SK, "t")
+}
+
+func (f *Folder) UserCanWrite(table *DTable, u *User) (bool, error) {
+	return u.HasPerm(table, f.PK, f.SK, "trw")
+}
+
+func (f *Folder) UserCanAdmin(table *DTable, u *User) (bool, error) {
+	return u.HasPerm(table, f.PK, f.SK, "trwa")
 }

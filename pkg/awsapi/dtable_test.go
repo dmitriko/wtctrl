@@ -611,8 +611,23 @@ func TestFolderNew(t *testing.T) {
 	}
 }
 
-/*
-func TestNewUserPerm(t *testing.T) {
-	user, _ := NewUser("foo")
-	perm, _ := NewUserPerm(user.PK, "tr")
-}*/
+func TestUserFolderPerm(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user1, _ := NewUser("foo")
+	folder, _ := NewFolder(user1.PK, "foo", 5, FolderStreamKind)
+	user2, _ := NewUser("bar")
+	perm, _ := NewUserPerm(user2.PK, folder, "tr")
+	require.Nil(t, table.StoreItem(perm))
+	assert.Equal(t, user2.PK, perm.PK)
+	assert.Equal(t, fmt.Sprintf("%s%s#%s#tr", PermKeyPrefix, folder.PK, folder.SK), perm.SK)
+	if can, _ := folder.UserCanRead(table, user1); !can {
+		t.Error("Owner should read")
+	}
+	if can, _ := folder.UserCanRead(table, user2); !can {
+		t.Error("User with perms should be able to read")
+	}
+	if can, _ := folder.UserCanWrite(table, user2); can {
+		t.Error("User should not be able to write")
+	}
+}
