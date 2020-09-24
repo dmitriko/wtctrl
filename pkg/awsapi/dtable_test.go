@@ -576,9 +576,43 @@ func TestOrgNew(t *testing.T) {
 	assert.Equal(t, "Foo", o.Title)
 }
 
-func TestPermNew(t *testing.T) {
+func TestPermValue(t *testing.T) {
 	//	defer stopLocalDynamo()
 	//	table := startLocalDynamo(t)
-	user, _ := NewUser("foo")
-	fmt.Println(user)
+	var err error
+	err = checkPermValue("foo")
+	require.NotNil(t, err)
+	err = checkPermValue("")
+	require.NotNil(t, err)
+	err = checkPermValue("f")
+	require.NotNil(t, err)
+	err = checkPermValue("tf")
+	require.NotNil(t, err)
+	err = checkPermValue("trf")
+	require.NotNil(t, err)
+	err = checkPermValue("trwf")
+	require.NotNil(t, err)
+	err = checkPermValue("trwa")
+	require.Nil(t, err)
 }
+
+func TestFolderNew(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	f, _ := NewFolder(user.PK, "foo", 0, FolderStreamKind)
+	assert.Equal(t, fmt.Sprintf("%s%d", FolderKeyPrefix, 0), f.SK)
+	assert.Equal(t, user.PK, f.PK)
+	require.Nil(t, table.StoreItem(f))
+	f_ := &Folder{}
+	require.Nil(t, table.FetchSubItem(f.PK, f.SK, f_))
+	if !reflect.DeepEqual(f, f_) {
+		t.Errorf("%#v != %#v", f, f_)
+	}
+}
+
+/*
+func TestNewUserPerm(t *testing.T) {
+	user, _ := NewUser("foo")
+	perm, _ := NewUserPerm(user.PK, "tr")
+}*/

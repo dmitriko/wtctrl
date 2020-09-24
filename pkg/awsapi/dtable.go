@@ -30,6 +30,8 @@ const (
 	InviteKeyPrefix       = "inv#"
 	SubscriptionKeyPrefix = "subs#"
 	OrgKeyPrefix          = "org#"
+	PermKeyPrefix         = "perm#"
+	FolderKeyPrefix       = "fldr#"
 
 	TGBotKind               = "tg"
 	DummyBotKind            = "dummy"
@@ -37,11 +39,14 @@ const (
 )
 
 const (
-	TGTextMsgKind    = 1
-	TGVoiceMsgKind   = 2
-	TGPhotoMsgKind   = 3
-	TGUnknownMsgKind = 4
-	TGDocMsgKind     = 5
+	TGTextMsgKind     = 1
+	TGVoiceMsgKind    = 2
+	TGPhotoMsgKind    = 3
+	TGUnknownMsgKind  = 4
+	TGDocMsgKind      = 5
+	FolderStreamKind  = 6
+	FolderArchiveKind = 7
+	FolderTrashKind   = 8
 )
 
 type Subscriptions []*Subscription
@@ -956,4 +961,56 @@ func NewOrg(title, motto string, admins []*User) (*Org, error) {
 	}
 	org.Data = make(map[string]interface{})
 	return org, nil
+}
+
+type Perm struct {
+	PK        string
+	SK        string
+	CreatedAt int64 `dynamodbav:"CRTD"`
+}
+
+func checkPermValue(value string) error {
+	if len(value) < 1 || len(value) > 4 {
+		return errors.New("Perm value must get lenght between 0 and 5")
+	}
+	if value[0] != 't' {
+		return errors.New("First letter of value must be t")
+	}
+	if len(value) > 1 && value[1] != 'r' {
+		return errors.New("Second letter of value must be r")
+	}
+	if len(value) > 2 && value[2] != 'w' {
+		return errors.New("Third letter of value must be w")
+	}
+	if len(value) > 3 && value[3] != 'a' {
+		return errors.New("Forth letter of value must be a")
+	}
+	return nil
+}
+
+func NewUserPerm(userPK, value string) (*Perm, error) {
+	if err := checkPermValue(value); err != nil {
+		return nil, err
+	}
+	perm := &Perm{}
+	perm.PK = userPK
+	perm.SK = fmt.Sprintf("%s%s", PermKeyPrefix, value)
+	return perm, nil
+}
+
+type Folder struct {
+	PK    string
+	SK    string
+	Title string `dynamodbav:"T"`
+	Kind  int64  `dynamodbav:"K"`
+}
+
+func NewFolder(ownerPK, title string, id, kind int64) (*Folder, error) {
+	sk := fmt.Sprintf("%s%d", FolderKeyPrefix, id)
+	f := &Folder{}
+	f.PK = ownerPK
+	f.SK = sk
+	f.Title = title
+	f.Kind = kind
+	return f, nil
 }
