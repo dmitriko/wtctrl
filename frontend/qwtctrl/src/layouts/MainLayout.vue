@@ -11,7 +11,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer overlay v-model="isDrawerOpen" side="left" bordered>
+    <q-drawer overlay v-model="isDrawerOpen" side="left" bordered v-if="isLoggedIn">
         <q-scroll-area class="fit">
          <q-list padding>
 
@@ -24,7 +24,7 @@
 
                 <q-separator class="q-my-sm" />
 
-            <q-item clickable v-ripple :to="{name: 'msg'}">
+            <q-item clickable v-ripple to="/">
               <q-item-section avatar>
                  <q-avatar color="primary" text-color="white">
                      M
@@ -53,19 +53,32 @@
         </q-scroll-area>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container v-if="isLoggedIn">
         <SysMsg />
       <router-view />
     </q-page-container>
 
+    <Login v-if="!isLoggedIn" @onLoggedIn="loggedIn($event)"/>
+
   </q-layout>
 </template>
+
+
 <script>
+import MsgViewEdit from 'components/MsgViewEdit.vue'
+import Login from 'components/Login.vue'
+
 export default {
   name: 'MainLayout',
+  components: {MsgViewEdit, Login},
   created() {
       this.$store.dispatch('ui/closeDrawer')
-  },
+      if (this.$q.localStorage.has('loginUser')) {
+            let item = this.$q.localStorage.getItem('loginUser')
+            this.loggedIn(item)
+      }
+
+ },
   computed: {
       isDrawerOpen: {
           get() {
@@ -78,18 +91,34 @@ export default {
       userTitle () {
           return this.$store.state.login.title
       },
+      isLoggedIn() {
+          return this.$store.state.login.isLoggedIn
+      }
   },
   methods: {
-      logout() {
+        loggedIn(data) {
+            console.log("in loggedIn")
+            console.log(data)
+            this.$q.localStorage.set('loginUser', {
+                "token": data.token,
+                "title": data.title,
+                "folders": data.folders,
+                "user_pk": data.user_pk,
+                "created":data.created})
+            this.$wsconn.connect(this.ws_api_url + '?token=' + data.token)
+            this.$store.dispatch('ui/SysMsgInfo', 'Welcome, ' + data.title)
+            this.$store.dispatch('login/setLoggedUser', data)
+       },
+       logout() {
           console.log("logging out")
           this.$store.dispatch("login/setLoggedOut")
-          this.$router.push("login")
           this.$store.dispatch('ui/closeDrawer')
           this.$wsconn.close()
       },
   },
   data () {
     return {
+        ws_api_url: "wss://io2hsa5u5a.execute-api.us-west-2.amazonaws.com/prod1"
     }
   }
 }

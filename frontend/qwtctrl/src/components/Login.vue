@@ -1,4 +1,5 @@
 <template>
+    <q-page-container>
   <q-page class="bg-secondary window-height window-width row justify-center items-start">
        <q-card square bordered class="q-ma-lg q-pa-lg shadow-1 window-width">
           <q-card-section>
@@ -24,6 +25,7 @@
           </q-card-actions>
        </q-card>
  </q-page>
+    </q-page-container>
 </template>
 
 <script>
@@ -35,11 +37,6 @@ export default {
         if (this.$q.localStorage.has('loginKey')) {
             this.loginKey = this.$q.localStorage.getItem('loginKey')
         }
-        if (this.$q.localStorage.has('loginUser')) {
-            let item = this.$q.localStorage.getItem('loginUser')
-            this.loggedIn(item)
-        }
-
     },
     data() {
         return {
@@ -49,7 +46,6 @@ export default {
             btnLabel: "Request OTP",
             btnDisabled: false,
             requestPK: "",
-            ws_api_url: "wss://io2hsa5u5a.execute-api.us-west-2.amazonaws.com/prod1"
        }
     },
     methods: {
@@ -74,15 +70,7 @@ export default {
                         this.SysInfo(error)})
 
         },
-        loggedIn(data) {
-            this.$q.localStorage.set('loginUser', {"token": data.token,
-                "title": data.title, "user_pk": data.user_pk, "created":data.created})
-            this.$wsconn.connect(this.ws_api_url + '?token=' + data.token)
-            this.SysInfo('Welcome, ' + data.title)
-            this.$store.dispatch('login/setLoggedUser', data)
-            this.$store.dispatch('ui/openDrawer')
-        },
-        sendOtp() {
+       sendOtp() {
             this.SysInfo('Sending data...')
             this.btnDisabled = true
             this.btnLabel = "Loading..."
@@ -91,7 +79,8 @@ export default {
                 this.btnDisabled = false
                 this.btnLabel = "Login"
                 if (response.data.ok) {
-                    this.loggedIn(response.data)
+                    console.log('OK from login')
+                    this.$emit('onLoggedIn', response.data)
                 } else {
                     this.btnDisabled = false
                     this.btnLabel = "Login"

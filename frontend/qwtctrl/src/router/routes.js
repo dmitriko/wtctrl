@@ -1,11 +1,10 @@
 
 const routes = [
   {
-    path: '/',
+    path: '/:folder?',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/login', component: () => import('pages/Login.vue') },
-      { path: '/ums/:status', name:'ums', component: () => import('pages/UMS.vue') }
+      { path: '/profile', name:'profile', component: () => import('pages/Profile.vue') }
     ]
   },
 

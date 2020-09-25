@@ -9,15 +9,5 @@
 
 export default {
     name: 'App',
-    created () {
-        if (!this.isLoggedIn) {
-            this.$router.push("/login")
-        }
-    },
-    data() {
-        return {
-            isLoggedIn: false
-        }
-    }
 }
 </script>

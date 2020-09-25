@@ -13,4 +13,5 @@ export function SET_LOGGED_USER (state, data) {
     state.userPK = data.user_pk
     state.token = data.token
     state.created = data.created
+    state.folders = data.folders
 }
