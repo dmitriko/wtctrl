@@ -746,19 +746,28 @@ func HandleLoginRequestOTP(table *DTable, reqBody *OTPReqBody) (events.APIGatewa
 	return resp, nil
 }
 
+type FolderView struct {
+	UMS   string `json:"ums"`
+	Title string `json:"title"`
+	Kind  int64  `json:"kind"`
+}
+
 type LoginResp struct {
-	Ok      bool   `json:"ok"`
-	Error   string `json:"error"`
-	UserPK  string `json:"user_pk"`
-	Title   string `json:"title"`
-	Token   string `json:"token"`
-	Created int64  `json:"created"`
+	Ok      bool         `json:"ok"`
+	Error   string       `json:"error"`
+	UserPK  string       `json:"user_pk"`
+	Title   string       `json:"title"`
+	Token   string       `json:"token"`
+	Created int64        `json:"created"`
+	Folders []FolderView `json:"folders"`
 }
 
 type UILoginReq struct {
 	RequestPK string `json:"request_pk"`
 	OTP       string `json:"otp"`
 }
+
+const LAST_LOGIN_TS_FIELD = "ll"
 
 func (req *UILoginReq) generateResp(table *DTable) (string, error) {
 	var err error
@@ -788,11 +797,26 @@ func (req *UILoginReq) generateResp(table *DTable) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if user.Data == nil {
+		user.Data = make(map[string]interface{})
+	}
+	if _, ok := user.Data[LAST_LOGIN_TS_FIELD]; !ok {
+		if err := user.EnsureDefaultFolders(table); err != nil {
+			return "", err
+		}
+	}
+	user.Data[LAST_LOGIN_TS_FIELD] = time.Now().Unix()
+	table.StoreItem(user)
+	var folderViews []FolderView
+	if err := table.FetchFolderViews(user.PK, &folderViews); err != nil {
+		return "", err
+	}
 	resp.Ok = true
 	resp.UserPK = user.PK
 	resp.Title = user.Title
 	resp.Token = PK2ID(TokenKeyPrefix, token.PK)
 	resp.Created = time.Now().Unix()
+	resp.Folders = folderViews
 	b, _ := json.Marshal(resp)
 	return string(b), nil
 }

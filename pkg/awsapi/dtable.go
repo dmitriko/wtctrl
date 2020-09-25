@@ -1085,3 +1085,19 @@ func (u *User) EnsureDefaultFolders(table *DTable) error {
 	}
 	return nil
 }
+
+func (table *DTable) FetchFolderViews(userPK string, folderView *[]FolderView) error {
+	var folders []*Folder
+	if err := table.FetchItemsWithPrefix(userPK, FolderKeyPrefix, &folders); err != nil {
+		return err
+	}
+	for _, folder := range folders {
+		folderID := PK2ID(FolderKeyPrefix, folder.SK)
+		*folderView = append(*folderView, FolderView{
+			Title: folder.Title,
+			UMS:   fmt.Sprintf("%s#%s", folder.PK, folderID),
+			Kind:  folder.Kind,
+		})
+	}
+	return nil
+}

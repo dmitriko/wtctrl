@@ -334,6 +334,7 @@ func TestHandleLogin(t *testing.T) {
 	tokenPK := fmt.Sprintf("%s%s", TokenKeyPrefix, loginResp.Token)
 	token := &Token{}
 	assert.Nil(t, table.FetchItem(tokenPK, token))
+	assert.Equal(t, 4, len(loginResp.Folders))
 
 	wrongLogin := fmt.Sprintf(`{"request_pk": "%s", "otp":"000000"}`, lreq.PK)
 	req = events.APIGatewayProxyRequest{
