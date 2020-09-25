@@ -16,8 +16,14 @@ class WSConn {
         }
     }
     reconnect() {
-        if (this.url != ""){
+        if (this.url !== ""){
             this.connect(this.url, false)
+        }
+    }
+    close() {
+        if (this.connection !== "") {
+            this.connection.close()
+            this.connection = ""
         }
     }
     pinger() {

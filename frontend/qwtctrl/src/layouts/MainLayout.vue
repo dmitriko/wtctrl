@@ -21,13 +21,34 @@
              >
                 Welcome, {{ userTitle }}
              </q-item-label>
+
+                <q-separator class="q-my-sm" />
+
+            <q-item clickable v-ripple :to="{name: 'msg'}">
+              <q-item-section avatar>
+                 <q-avatar color="primary" text-color="white">
+                     M
+                 </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                  <q-item-label>Messages</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple :to="{name: 'profile'}">
+              <q-item-section avatar>
+                 <q-avatar color="primary" text-color="white">
+                     P
+                 </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                  <q-item-label>Profile</q-item-label>
+              </q-item-section>
+            </q-item>
             <q-separator class="q-my-sm" />
-            <DrawerMenuItem symb="N" status="0" label="NEW" caption="Messages to process"  />
-            <DrawerMenuItem symb="A" status="1" label="ARCHIVE" caption="Stored messages"  />
-            <DrawerMenuItem symb="E" status="2" label="EXPORT" caption="Ready for export"  />
-            <DrawerMenuItem symb="T" status="-1" label="Trash" caption="Disapear in 30 days"  />
-            <q-separator class="q-my-sm" />
-                <q-item class="justify-center flex"><q-btn @onclick="logout" label="Logout" /></q-item>
+                <q-item class="justify-center flex"><q-btn @click="logout()" label="Logout" /></q-item>
           </q-list>
         </q-scroll-area>
     </q-drawer>
@@ -40,10 +61,8 @@
   </q-layout>
 </template>
 <script>
-import DrawerMenuItem from 'components/DrawerMenuItem.vue'
 export default {
   name: 'MainLayout',
-    components: {DrawerMenuItem},
   created() {
       this.$store.dispatch('ui/closeDrawer')
   },
@@ -62,6 +81,11 @@ export default {
   },
   methods: {
       logout() {
+          console.log("logging out")
+          this.$store.dispatch("login/setLoggedOut")
+          this.$router.push("login")
+          this.$store.dispatch('ui/closeDrawer')
+          this.$wsconn.close()
       },
   },
   data () {
