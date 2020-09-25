@@ -631,3 +631,19 @@ func TestUserFolderPerm(t *testing.T) {
 		t.Error("User should not be able to write")
 	}
 }
+
+func TestUserEnsureDefaultFolders(t *testing.T) {
+	defer stopLocalDynamo()
+	table := startLocalDynamo(t)
+	user, _ := NewUser("foo")
+	require.Nil(t, user.EnsureDefaultFolders(table))
+	var folders []*Folder
+	require.Nil(t, table.FetchItemsWithPrefix(user.PK, FolderKeyPrefix, &folders))
+	require.Equal(t, 4, len(folders))
+
+	assert.Equal(t, fmt.Sprintf("%s0", FolderKeyPrefix), folders[0].SK)
+	assert.Equal(t, fmt.Sprintf("%s1", FolderKeyPrefix), folders[1].SK)
+	assert.Equal(t, fmt.Sprintf("%s2", FolderKeyPrefix), folders[2].SK)
+	assert.Equal(t, fmt.Sprintf("%s3", FolderKeyPrefix), folders[3].SK)
+
+}

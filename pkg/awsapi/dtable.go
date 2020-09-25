@@ -1051,3 +1051,37 @@ func (f *Folder) UserCanWrite(table *DTable, u *User) (bool, error) {
 func (f *Folder) UserCanAdmin(table *DTable, u *User) (bool, error) {
 	return u.HasPerm(table, f.PK, f.SK, "trwa")
 }
+
+// Ensure User account has 4 default folders:
+// INBOX, Archive, Selected, Trash
+func (u *User) EnsureDefaultFolders(table *DTable) error {
+
+	inbox, _ := NewFolder(u.PK, "INBOX", 0, FolderStreamKind)
+	archive, _ := NewFolder(u.PK, "Archive", 1, FolderArchiveKind)
+	selected, _ := NewFolder(u.PK, "Selected", 2, FolderStreamKind)
+	trash, _ := NewFolder(u.PK, "Trash", 3, FolderTrashKind)
+
+	folderMap := make(map[string]*Folder)
+	folderMap[inbox.SK] = inbox
+	folderMap[archive.SK] = archive
+	folderMap[selected.SK] = selected
+	folderMap[trash.SK] = trash
+
+	var existed []*Folder
+	if err := table.FetchItemsWithPrefix(u.PK, FolderKeyPrefix, &existed); err != nil {
+		return err
+	}
+	existedMap := make(map[string]bool)
+	for _, f := range existed {
+		existedMap[f.SK] = true
+	}
+
+	for sk, folder := range folderMap {
+		if _, exists := existedMap[sk]; !exists {
+			if err := table.StoreItem(folder); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
