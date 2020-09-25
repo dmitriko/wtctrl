@@ -77,6 +77,12 @@ export default {
             let item = this.$q.localStorage.getItem('loginUser')
             this.loggedIn(item)
       }
+      if (this.isLoggedIn && this.$route.params.folder === undefined) {
+          let folders = this.$store.state.login.folders
+          if (folders !== undefined && folders.length > 0) {
+            this.$router.push({name:'msg', params: {"folder": folders[0].ums}})
+          }
+      }
 
  },
   computed: {
@@ -93,8 +99,8 @@ export default {
       },
       isLoggedIn() {
           return this.$store.state.login.isLoggedIn
-      }
-  },
+      },
+ },
   methods: {
         loggedIn(data) {
             console.log("in loggedIn")
