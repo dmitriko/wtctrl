@@ -37,6 +37,7 @@ class WSConn {
         }
     }
     send(obj) {
+        console.log(obj)
         if (this.connection !== "") {
             this.connection.send(JSON.stringify(obj))
         }

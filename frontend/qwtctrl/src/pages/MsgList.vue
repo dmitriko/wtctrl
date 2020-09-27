@@ -114,6 +114,7 @@ export default {
             periodStarts:"",
             periodEnds:"",
             selected: [],
+            days: 7,
             msg_lists: {},  // UMS as key, array of objects is a value
             uiSettings: {},
             commonFetchStatus: {}  //UMS key, bool a value
@@ -122,7 +123,11 @@ export default {
     },
     watch: {
         '$route': function(value) {
-            if (this.currentFolder.kind===6){
+            if (this.currentFolder.kind===6) {
+                let currentSettings = this.uiSettings[this.currentUMS]
+                if (currentSettings !== undefined && currentSettings.days !== undefined) {
+                    this.days = currentSettings.days
+                }
                 if (!this.fetchStatus.fetched) {
                     this.fetchMsgs()
                 }
@@ -156,13 +161,22 @@ export default {
             }
         }
         let uiSettings = this.$q.localStorage.getItem('uiSettings')
-        if (uiSettings !== undefined) {
+        if (uiSettings !== null) {
             this.uiSettings = uiSettings
+            this.days = uiSettings[this.currentUMS].days
         }
     },
-    methods: {
+   methods: {
+        saveSettings() {
+            this.$q.localStorage.set('uiSettings', this.uiSettings)
+         },
         onDaysEnter() {
-            this.fetchMsgs()
+            if (this.uiSettings[this.currentUMS] === undefined) {
+                this.uiSettings[this.currentUMS] = {}
+            }
+            this.$set(this.uiSettings[this.currentUMS], 'days', this.days)
+            this.saveSettings()
+         //   this.fetchMsgs()
         },
         reload() {
             this.fetchMsgs()
@@ -264,45 +278,27 @@ export default {
           }
           return undefined
       },
-        currentUMS:  {
+    currentUMS:  {
             get() {
-                return this.$route.params.folder
+                if  (this.$route.params.folder !== undefined) {
+                    return this.$route.params.folder
+                }
+                return ""
             },
             set(val) {
                 this.$router.push({name: 'msg', params: {folder: val}})
             }
       },
-        days: {
+    currentSettings: {
             get() {
-                let days = this.currentSettings.days
-                if (days === undefined) {
-                    // one more try
-                    days = this.currentSettings.days
-                    if (days === undefined) return 7
-                }
-                return days
-            },
-            set(val) {
-                let settings = this.currentSettings
-                settings.days = val
-                this.currentSettings = settings
-                this.$q.localStorage.set('uiSettings', this.uiSettings)
-            }
-        },
-        currentSettings: {
-            get() {
-                if (this.uiSettings === null) return {}
-                let settings = this.uiSettings[this.currentUMS]
-                if (settings === null || settings === undefined) {
-                    return {}
-                }
-                return settings
+                this.uiSettings[this.currentUMS]
             },
             set(val) {
                 if (this.uiSettings === null) {
                     this.uiSettings = {}
                 }
                 this.uiSettings[this.currentUMS] = val
+                this.$q.localStorage.set('uiSettings', this.uiSettings)
             }
         },
     },
