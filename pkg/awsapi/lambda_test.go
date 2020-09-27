@@ -206,12 +206,13 @@ func TestCmdFetchByDays(t *testing.T) {
 
 	output = make([]string, 0)
 	go collectOutput(ctx, &output, outCh, doneCh)
-	input := `{"name":"msgfetchbydays", "id":"somerandom", "days":20, "status":5, "desc":true}`
+	input := fmt.Sprintf(`{"name":"msgfetchbydays", "id":"somerandom", "days":20, "ums":"%s#5", "desc":true}`,
+		user1.PK)
 	err = handleUserCmd(ctx, testTable, reqCtx, input, outCh)
 	if assert.Nil(t, err) {
 		doneCh <- true
 	}
-	assert.Equal(t, 4, len(output))
+	require.Equal(t, 4, len(output))
 
 	resp1 := make(map[string]interface{})
 	err = json.Unmarshal([]byte(output[0]), &resp1)

@@ -152,11 +152,11 @@ func (cmd *PingCmd) Perform(
 }
 
 type MsgFetchByDays struct {
-	Id     string `json:"id"`
-	Name   string `json:"name"`
-	Days   int    `json:"days"`
-	Status int    `json:"status"`
-	Desc   bool   `json:"desc"`
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Days int64  `json:"days"`
+	UMS  string `json:"ums"`
+	Desc bool   `json:"desc"`
 }
 
 type MsgFetchByTimeStamp struct {
@@ -281,9 +281,10 @@ func (cmd *MsgFetchByDays) Perform(
 		done <- err
 		return
 	}
-	start := fmt.Sprintf("-%dd", cmd.Days)
+	start := time.Now().Unix() - cmd.Days*24*60*60
+	end := time.Now().Unix() + 1
 	listMsg := NewListMsg()
-	err = listMsg.FetchByUserStatus(table, userPK, cmd.Status, start, "now")
+	err = listMsg.FetchByUMS(table, userPK, cmd.UMS, start, end)
 	var sortMeth func() []*Msg
 	if cmd.Desc {
 		sortMeth = listMsg.Desc
