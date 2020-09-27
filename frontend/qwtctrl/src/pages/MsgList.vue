@@ -80,6 +80,27 @@
         </tbody>
     </q-markup-table>
 
+    <q-list bordered separator style="max-width:520px" class="q-mx-auto">
+        <q-expansion-item v-for="item in items" :key="item.pk" class="q-mx-auto">
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-checkbox v-model="selected" :val="item.pk" color="secondary" />
+            </q-item-section>
+            <q-item-section>
+                <q-img v-if="item.files.thumb" style="height: 320px; max-width: 320px"
+                                               :src="item.files.thumb.url" />
+                <audio v-if="item.files.voice"
+                        class="q-mx-auto"
+                        :src="item.files.voice.url"
+                        controls type="audio/ogg; codecs=opus" />
+                    <a :href="item.files.bigpic.url" v-if="item.files.bigpic" target="_blank" >big</a>
+                <q-item-label class="text-subtitle-1" v-if="item.text">{{item.text}}</q-item-label>
+            </q-item-section>
+          </template>
+          <MsgViewEdit @textUpdated="textUpdated" @umsSet="msgSetUMS" :item="item" :status="$route.params.status" />
+       </q-expansion-item>
+    </q-list>
+
 </q-page>
 </template>
 <script>
@@ -92,6 +113,7 @@ export default {
         return {
             periodStarts:"",
             periodEnds:"",
+            selected: [],
             msg_lists: {},  // UMS as key, array of objects is a value
             uiSettings: {},
             commonFetchStatus: {}  //UMS key, bool a value
@@ -102,9 +124,9 @@ export default {
         '$route': function(value) {
             if (this.currentFolder.kind===6){
                 if (!this.fetchStatus.fetched) {
-                    console.log('fetching msgs')
-                    this.fetchStatus.fetched = true
+                    this.fetchMsgs()
                 }
+
                 if (!this.fetchStatus.subscribed) {
                     console.log('subscribing')
                     this.fetchStatus.subscribed = true
@@ -140,10 +162,39 @@ export default {
     },
     methods: {
         onDaysEnter() {
-            console.log('on days enter')
+            this.fetchMsgs()
         },
         reload() {
-            console.log("reloading")
+            this.fetchMsgs()
+        },
+        msgSetUMS(ums) {
+            console.log('changing msg ums')
+        },
+        async fetchMsgs() {
+            let started = ~~(Date.now() / 1000)
+            while (this.$wsconn.connection.readyState != 1) {
+                if ((~~(Date.now() / 1000) - started) > 10) {
+                    console.log('failed to fetch data')
+                    return
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            this.$wsconn.send({
+                'name': 'msgfetchbydays',
+                'id':'foo',
+                'days': parseInt(this.days),
+                'ums': this.currentUMS
+            })
+            this.fetchStatus.fetched = true
+        },
+        textUpdated(pk, text) {
+           this.$wsconn.send({
+               name: "msgupdate",
+               pk: pk,
+               key: "text",
+               value: text,
+               id: "someuuid",
+           })
         },
         msg_push(store_msg) {
            let msg = {}
@@ -167,7 +218,7 @@ export default {
     computed: {
         items: {
             get () {
-              if (this.msg_lists[this.id()] === undefined) {
+              if (this.msg_lists[this.currentUMS] === undefined) {
                   return []
                }
                return this.msg_lists[this.currentUMS]
@@ -220,7 +271,7 @@ export default {
             set(val) {
                 this.$router.push({name: 'msg', params: {folder: val}})
             }
-    },
+      },
         days: {
             get() {
                 let days = this.currentSettings.days
