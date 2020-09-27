@@ -1,16 +1,8 @@
 <template>
-<q-page>
-    <q-markup-table dense>
-        <thead>
-            <tr>
-                <th colspan="5"></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>List of messages from</td>
-                <td colspan="3">
-                    <q-select
+<q-page >
+    <div full-width class="row" style="border:1px solid">
+        <div class="col">Folder:</div>
+        <div class="col"><q-select
                         filled
                         dense
                         v-model="currentUMS"
@@ -21,28 +13,24 @@
                         map-options
                         style="min-width: 250px; max-width: 300px"
                     />
-                </td>
-                <td>
-                 <q-btn icon="refresh" class="q-mx-auto" @click="reload()" color="secondary"  />
-                </td>
-            </tr>
-            <tr v-if="currentFolder.kind==6">
-                <td>
+        </div>
+        <div class="col">
+                 <q-btn icon="refresh"  @click="reload()" color="secondary"  />
+        </div>
+    </div>
+    <div class="row justify-start" v-if="currentFolder.kind==6">
+                <div class="col">
                     Period, days.
-                </td>
-                <td>
+                </div>
+                <div class="col" >
                     <q-input dense outlined square
                     @keydown.enter="onDaysEnter"
                     @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
-                </td>
-                <td colspan="3"></td>
-            </tr>
-            <tr v-if="currentFolder.kind==7">
-                <td>
+                </div>
+            </div>
+            <div class="row" v-if="currentFolder.kind==7">
                     Period, from, to.
-                </td>
-                <td colspan="2">
-                    <div style="width:180px">
+                    <div class="col" style="width:180px">
                     <q-input dense filled v-model="periodStarts" mask="date" :rules="['date']">
                         <template v-slot:append>
                             <q-icon name="event" class="cursor-pointer">
@@ -57,9 +45,7 @@
                          </template>
                          </q-input>
                     </div>
-                </td>
-                <td colspan="2">
-                    <div style="width:180px">
+                    <div class="col" style="width:180px">
                     <q-input dense filled v-model="periodEnds" mask="date" :rules="['date']">
                         <template v-slot:append>
                             <q-icon name="event" class="cursor-pointer">
@@ -73,13 +59,8 @@
                             </q-icon>
                          </template>
                          </q-input>
-                         </div>
                     </div>
-                </td>
-            </tr>
-        </tbody>
-    </q-markup-table>
-
+            </div>
     <q-list bordered separator style="max-width:520px" class="q-mx-auto">
         <q-expansion-item v-for="item in items" :key="item.pk" class="q-mx-auto">
           <template v-slot:header>
