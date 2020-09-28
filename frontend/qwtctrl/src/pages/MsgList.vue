@@ -1,33 +1,35 @@
 <template>
 <q-page >
-    <div full-width class="row" style="border:1px solid">
-        <div class="col">Folder:</div>
-        <div class="col"><q-select
-                        filled
-                        dense
-                        v-model="currentUMS"
-                        :options="folders"
-                        option-value="ums"
-                        option-label="title"
-                        emit-value
-                        map-options
-                        style="min-width: 250px; max-width: 300px"
-                    />
-        </div>
-        <div class="col">
-                 <q-btn icon="refresh"  @click="reload()" color="secondary"  />
-        </div>
+  <div full-width class="row" style="border:1px solid">
+    <div class="col">
+      <q-select
+        filled
+        dense
+        v-model="currentUMS"
+        :options="folders"
+        option-value="ums"
+        option-label="title"
+        emit-value
+        map-options
+        style="min-width: 250px; max-width: 300px"
+      />
     </div>
-    <div class="row justify-start" v-if="currentFolder.kind==6">
-                <div class="col">
-                    Period, days.
-                </div>
-                <div class="col" >
-                    <q-input dense outlined square
-                    @keydown.enter="onDaysEnter"
-                    @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
-                </div>
-            </div>
+  </div>
+
+  <div class="row justify-start" v-if="currentFolder.kind==6">
+    <div class="col">
+      Period, days.
+    </div>
+    <div class="col" >
+      <q-input dense outlined square
+        @keydown.enter="onDaysEnter"
+        @blur="onDaysEnter" :input-style="{width:'3em'}" v-model="days" />
+    </div>
+    <div class="col">
+      <q-btn icon="refresh"  @click="reload()" color="secondary"  />
+    </div>
+  </div>
+
             <div class="row" v-if="currentFolder.kind==7">
                     Period, from, to.
                     <div class="col" style="width:180px">
