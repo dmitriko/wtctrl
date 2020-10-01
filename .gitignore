@@ -9,4 +9,5 @@ lambda/wsauth/wsauth
 lambda/wsconn/wsconn
 lambda/wsdefault/wsdefault
 lambda/tgwebhook/tgwebhook
+lambda/dstream/dstream
 foo.go
