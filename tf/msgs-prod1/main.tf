@@ -32,17 +32,14 @@ resource "aws_s3_bucket" "images" {
     }
 }
 
-resource "aws_sqs_queue" "errors" {
-    name = "errors.fifo"
-    fifo_queue = true
+resource "aws_sqs_queue" "audio_errors" {
+    name = "audio_errors"
 }
 
-resource "aws_sqs_queue" "tgwebhook" {
-    name = "tgwebhook.fifo"
-    fifo_queue = true
-    content_based_deduplication = true
+resource "aws_sqs_queue" "audio" {
+    name = "audio"
     redrive_policy = jsonencode({
-        deadLetterTargetArn = aws_sqs_queue.errors.arn,
+        deadLetterTargetArn = aws_sqs_queue.audio_errors.arn,
         maxReceiveCount = 6
     })
 }
@@ -88,7 +85,7 @@ data "aws_iam_policy_document" "lambda" {
     }
     statement {
         actions = ["sqs:SendMessage"]
-        resources = [aws_sqs_queue.tgwebhook.arn]
+        resources = [aws_sqs_queue.audio.arn]
     }
     statement {
         actions = [
@@ -173,7 +170,7 @@ resource "aws_lambda_function" "dstream" {
     runtime = "go1.x"
     handler = "dstream"
     memory_size = 128
-    timeout = 10
+    timeout = 120
     role = aws_iam_role.lambda.arn
     filename = data.archive_file.dstream.output_path
     source_code_hash = data.archive_file.dstream.output_base64sha256

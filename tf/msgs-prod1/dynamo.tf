@@ -52,6 +52,9 @@ resource "aws_dynamodb_table" "main" {
         range_key          = "CRTD"
         projection_type    = "INCLUDE"
         non_key_attributes = ["PK", "A"]
+     }
+    lifecycle {
+          ignore_changes = [read_capacity, write_capacity]
     }
 }
 
