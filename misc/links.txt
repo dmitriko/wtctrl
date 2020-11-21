@@ -1,3 +1,8 @@
+https://github.com/verless/verless/tree/master/example  static site generator
+https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images
+https://stackoverflow.com/questions/22322372/sox-doesnt-work-with-opus-audio-files
+https://aws.amazon.com/premiumsupport/knowledge-center/lambda-linux-binary-package/
+http://www.iandevlin.com/blog/2012/09/html5/html5-media-and-data-uri/
 https://www.brunoscheufler.com/blog/2020-08-28-forwarding-emails-with-ses
 https://pkg.go.dev/github.com/jhillyerd/enmime?tab=doc#example-Builder
 https://quasar.dev/quasar-cli/prefetch-feature#Store-Code-Splitting
